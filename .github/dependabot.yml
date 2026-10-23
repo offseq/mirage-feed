@@ -4,15 +4,38 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
   - package-ecosystem: pip
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # 3.3.1 wheel ships without its JSON schemas (oasis-open/cti-stix-validator#248).
+      - dependency-name: stix2-validator
+        versions: ["3.3.1"]
+
   - package-ecosystem: npm
     directory: /site
     schedule:
       interval: weekly
+    groups:
+      vitest:
+        patterns: ["vitest", "vite-node", "@vitest/*"]
+      dev-minor-patch:
+        dependency-type: development
+        update-types: ["minor", "patch"]
     ignore:
       # wrangler 4 defaults r2/kv/d1 commands to local storage; upgrade deliberately.
       - dependency-name: wrangler
+        update-types: ["version-update:semver-major"]
+      # v5 needs wrangler 4 as its peer; move both together.
+      - dependency-name: "@cloudflare/workers-types"
+        update-types: ["version-update:semver-major"]
+      # Tracks the Node 22 runtime (engines).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: typescript
         update-types: ["version-update:semver-major"]
