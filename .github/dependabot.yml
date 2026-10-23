@@ -4,6 +4,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 14
     groups:
       actions:
         patterns: ["*"]
@@ -12,6 +14,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 14
     ignore:
       # 3.3.1 wheel ships without its JSON schemas (oasis-open/cti-stix-validator#248).
       - dependency-name: stix2-validator
@@ -21,6 +25,8 @@ updates:
     directory: /site
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 14
     groups:
       vitest:
         patterns: ["vitest", "vite-node", "@vitest/*"]
