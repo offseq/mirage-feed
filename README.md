@@ -19,15 +19,18 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 
 | | Mirage observed | In this feed |
 |---|---:|---:|
-| Source IPs | 8,715 | 1,097 |
-| Networks (ASNs) | 827 | ··· |
-| Countries | 102 | ··· |
-| CVEs exploited (all CISA KEV) | 8 | 8 |
-| Payload / download URLs | 21 | ··· |
-| Credential pairs tried | 47,454 | — |
-| Session transcripts | 1.47M events | — |
+| Source IPs | 8,250 | 3,115 |
+| Networks (ASNs) | 747 | 393 |
+| Countries | 102 | 74 |
+| CVEs exploited (all CISA KEV) | 9 | 10 |
+| Payload / download URLs | 3 | 2 |
+| Malware hashes | 0 | 2 |
+| Tooling fingerprints | — | 200 |
+| Research scanners (excluded) | — | 3,736 |
+| Credential pairs tried | 128,261 | top 100 passwords |
+| Session transcripts | 2.07M events | — |
 
-<sub>Snapshot 2026-10-23 03:17 UTC · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-10-23 20:18 UTC · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
