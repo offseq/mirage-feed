@@ -9,22 +9,26 @@ export interface RemovalForm {
   field?: string;
 }
 
-const invalid = (f: RemovalForm, name: string) => (f.field === name ? ' aria-invalid="true" aria-describedby="form-msg"' : "");
+const described = (f: RemovalForm, name: string) =>
+  f.field === name ? ` aria-invalid="true" aria-describedby="${name}-hint form-msg"` : ` aria-describedby="${name}-hint"`;
 
 export function renderRemoval(f: RemovalForm, sitekey: string): string {
   return `<section aria-labelledby="h-removal"><h1 id="h-removal">Removal request</h1>
 <p>Ask for an address to be taken out of the Mirage Feed. No account needed. Requests are handled within 72 hours and you get a reply at the email you give. An address that resumes attacking is listed again.</p>
 <p>Prefer email? Write to <a href="mailto:${ABUSE}">${ABUSE}</a>.</p>
 <form method="post" action="/removal" data-removal>
-<p class="msg err" id="form-msg" role="alert" data-msg${f.error ? "" : " hidden"}>${esc(f.error ?? "")}</p>
-<label for="ip">IP address <span class="dim">one public IPv4 address, or IPv6 address or /64 as listed</span></label>
-<input id="ip" name="ip" required maxlength="64" autocomplete="off" spellcheck="false" inputmode="text" value="${esc(f.ip)}"${invalid(f, "ip")}>
-<label for="email">Email <span class="dim">for our reply</span></label>
-<input id="email" name="email" type="email" required maxlength="254" autocomplete="email" value="${esc(f.email)}"${invalid(f, "email")}>
-<label for="reason">Reason <span class="dim">${REASON_MIN} to ${REASON_MAX.toLocaleString("en-US")} characters, e.g. who holds the address and why it is not hostile</span></label>
-<textarea id="reason" name="reason" required minlength="${REASON_MIN}" maxlength="${REASON_MAX}"${invalid(f, "reason")}>${esc(f.reason)}</textarea>
+<p class="msg err" id="form-msg" role="alert" tabindex="-1" data-msg${f.error ? " autofocus" : " hidden"}>${esc(f.error ?? "")}</p>
+<label for="ip">IP address</label>
+<span class="hint" id="ip-hint">One public IPv4 address, or IPv6 address or /64 as listed.</span>
+<input id="ip" name="ip" required maxlength="64" autocomplete="off" spellcheck="false" inputmode="text" value="${esc(f.ip)}"${described(f, "ip")}>
+<label for="email">Email</label>
+<span class="hint" id="email-hint">For our reply.</span>
+<input id="email" name="email" type="email" required maxlength="254" autocomplete="email" value="${esc(f.email)}"${described(f, "email")}>
+<label for="reason">Reason</label>
+<span class="hint" id="reason-hint">${REASON_MIN} to ${REASON_MAX.toLocaleString("en-US")} characters, e.g. who holds the address and why it is not hostile.</span>
+<textarea id="reason" name="reason" required minlength="${REASON_MIN}" maxlength="${REASON_MAX}"${described(f, "reason")}>${esc(f.reason)}</textarea>
 <div class="hp" aria-hidden="true"><label for="website">Website</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
-<div class="cf-turnstile" data-sitekey="${esc(sitekey)}"></div>
+<div class="cf-turnstile" data-sitekey="${esc(sitekey)}" data-action="removal"></div>
 <noscript><p class="msg err">The anti-abuse check on this form needs JavaScript. Without it, send the same details to <a href="mailto:${ABUSE}">${ABUSE}</a>.</p></noscript>
 <button type="submit">Send request</button>
 </form>
@@ -42,8 +46,7 @@ export function renderRemovalSent(): string {
 </section>`;
 }
 
-
-export const PRIVACY_UPDATED = "2026-10-23";
+export const PRIVACY_UPDATED = "2026-10-24";
 
 export function renderPrivacy(): string {
   return `<section aria-labelledby="h-privacy"><h1 id="h-privacy">Privacy notice</h1>
@@ -82,6 +85,8 @@ export function renderPrivacy(): string {
 
 <section aria-labelledby="h-site"><h2 id="h-site">This website</h2>
 <p>No cookies, no tracking scripts, no third-party fonts. The removal form alone loads Cloudflare Turnstile to block automated submissions. When a feed file is downloaded we count the download in aggregate: file path, network (ASN), country and client type such as curl or a firewall product. The IP address and full user agent are not stored. Cloudflare processes requests as our hosting provider.</p>
+<p>The address lookup at <code>/ip</code> answers from the published lists only. The addresses you look up are not logged; we keep only aggregate counts of lookups and whether the result was listed. Lookups are rate-limited per client address, which is held in memory for at most a minute and not stored.</p>
+<p><code>/status.json</code> and the badges under <code>/badge/</code> publish build freshness and list sizes only, no personal data.</p>
 </section>
 
 <section aria-labelledby="h-requests"><h2 id="h-requests">Removal requests</h2>

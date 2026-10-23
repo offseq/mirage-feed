@@ -1,7 +1,23 @@
 import hashlib
 from pathlib import Path
 
-from . import LICENSE_CODE, LICENSE_DATA, MIRRORS, NAME, PUBLISHER, TLP, firewall, lists, misp, nsm, stix, tables
+from . import (
+    LICENSE_CODE,
+    LICENSE_DATA,
+    MIRRORS,
+    NAME,
+    PUBLISHER,
+    SCHEMA_VERSION,
+    TLP,
+    firewall,
+    history,
+    lists,
+    misp,
+    nsm,
+    og,
+    stix,
+    tables,
+)
 from .common import Artifact, Snapshot, dumps
 from .netlist import DEFAULT_ALLOWLIST, Allowlist
 
@@ -29,6 +45,7 @@ def feed_index(s: Snapshot, arts: list[Artifact]) -> dict:
     ]
     return {
         "name": NAME,
+        "schema_version": SCHEMA_VERSION,
         "publisher": PUBLISHER,
         "license": {"data": LICENSE_DATA, "code": LICENSE_CODE},
         "tlp": TLP,
@@ -43,13 +60,16 @@ def feed_index(s: Snapshot, arts: list[Artifact]) -> dict:
 
 def artifacts(s: Snapshot, prev: Path | None = None, allow: Allowlist | None = None) -> list[Artifact]:
     arts = [
-        *lists.render(s),
+        *lists.render(s, prev),
         *tables.render(s),
         *stix.render(s),
         *misp.render(s, prev, allow),
         *nsm.render(s),
         *firewall.render(s),
+        *og.render(s),
     ]
+    counts = {a.path: a.count for a in arts}
+    arts.append(history.render(s, prev, counts["latest/ipv4-added-1d.txt"], counts["latest/ipv4-removed-1d.txt"]))
     arts.append(
         Artifact("schema/record.schema.json", SCHEMA_FILE.read_bytes(), "json-schema", 1, None, ("jsonschema",))
     )
@@ -58,6 +78,7 @@ def artifacts(s: Snapshot, prev: Path | None = None, allow: Allowlist | None = N
     arts.append(
         Artifact("feed.json", dumps(feed_index(s, arts), indent=2), "json", len(arts), None, ("feeds.offseq.com",))
     )
+    # feed.json lists every other file's hash but not SHA256SUMS', so signing it here is not circular.
     sums = "".join(f"{_sha256(a.data)}  {a.path}\n" for a in sorted(arts, key=lambda a: a.path))
     arts.append(Artifact("SHA256SUMS", sums.encode(), "sha256sums", len(arts), None, ("sha256sum", "minisign")))
     return arts

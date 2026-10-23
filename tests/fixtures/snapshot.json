@@ -354,7 +354,8 @@
         "redis"
       ],
       "tags": [
-        "redis-rce"
+        "redis-rce",
+        "vpn-exit"
       ],
       "attack": [
         "T1059",
@@ -573,8 +574,10 @@
         "T1059",
         "T1190"
       ],
-      "cves": [],
-      "kev": false,
+      "cves": [
+        "CVE-2022-1388"
+      ],
+      "kev": true,
       "sensors": 4,
       "networks": 4,
       "hits": 302,
@@ -624,7 +627,10 @@
         "T1059",
         "T1190"
       ],
-      "cves": [],
+      "cves": [
+        "CVE-2019-0708",
+        "CVE-2021-41773"
+      ],
       "kev": false,
       "sensors": 5,
       "networks": 4,
@@ -669,7 +675,8 @@
         "redis"
       ],
       "tags": [
-        "redis-rce"
+        "redis-rce",
+        "vpn-exit"
       ],
       "attack": [
         "T1059",
@@ -745,7 +752,8 @@
         "ssh"
       ],
       "tags": [
-        "ssh-bruteforce"
+        "ssh-bruteforce",
+        "tor-exit"
       ],
       "attack": [
         "T1110.001"
@@ -2161,6 +2169,13 @@
       "value": "65535_2-4-8-1-3_1460_6",
       "sources": 3,
       "hits": 400
+    },
+    {
+      "type": "ja3",
+      "value": "771,4865-4866-4867,0-23-65281,29-23-24,0",
+      "sources": 5,
+      "hits": 100,
+      "tool": "curl"
     }
   ],
   "user_agents": [
@@ -2198,6 +2213,31 @@
       "value": "Mozilla/5.0 (X11; Linux x86_64) Chrome/120.0 Safari/537.36 Nuclei",
       "sources": 4,
       "hits": 300
+    },
+    {
+      "value": "curl/8.7.1",
+      "sources": 40,
+      "hits": 900
+    },
+    {
+      "value": "Mozilla/5.0",
+      "sources": 30,
+      "hits": 800
+    },
+    {
+      "value": "Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)",
+      "sources": 20,
+      "hits": 500
+    },
+    {
+      "value": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot",
+      "sources": 9,
+      "hits": 90
+    },
+    {
+      "value": "friendly-scanner",
+      "sources": 15,
+      "hits": 7000
     }
   ],
   "paths": [
@@ -2245,6 +2285,48 @@
       "value": "/a",
       "sources": 60,
       "hits": 5000,
+      "cves": []
+    },
+    {
+      "value": "/s/33e27393e2431313e2838313/_/;/META-INF/maven/pom.properties",
+      "sources": 6,
+      "hits": 10,
+      "cves": []
+    },
+    {
+      "value": "/login",
+      "sources": 60,
+      "hits": 900,
+      "cves": []
+    },
+    {
+      "value": "/api/graphql",
+      "sources": 20,
+      "hits": 200,
+      "cves": []
+    },
+    {
+      "value": "/@vite/env",
+      "sources": 12,
+      "hits": 30,
+      "cves": []
+    },
+    {
+      "value": "/user@example.php",
+      "sources": 4,
+      "hits": 5,
+      "cves": []
+    },
+    {
+      "value": "/.git/config",
+      "sources": 25,
+      "hits": 300,
+      "cves": []
+    },
+    {
+      "value": "/HNAP1/",
+      "sources": 7,
+      "hits": 40,
       "cves": []
     }
   ],

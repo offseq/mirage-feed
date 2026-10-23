@@ -1,7 +1,7 @@
 import gzip
 import io
 
-from .common import Artifact, Snapshot, csv_bytes, dumps, network
+from .common import JA4_TYPES, Artifact, Snapshot, csv_bytes, dumps, network
 
 ATTACKER_COLS = (
     "ip",
@@ -39,7 +39,6 @@ FOXIO_COLS = (
     "count",
     "cluster",
 )
-JA4_TYPES = {"ja4", "ja4s", "ja4h", "ja4x", "ja4t", "ja4tscan"}
 HASSH_COLS = ("hassh", "type", "tool", "sources", "hits", "first_seen", "last_seen")
 IP_FIELDS = (
     "asn",
@@ -100,7 +99,7 @@ def _fingerprints(s: Snapshot) -> tuple[list[list], list[list]]:
                 }
             )
             foxio.append([row[c] for c in FOXIO_COLS])
-        elif f["type"].startswith("hassh"):
+        else:
             hassh.append([f["value"], f["type"], f.get("tool"), f["sources"], f.get("hits"), *seen])
     return foxio, hassh
 

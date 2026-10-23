@@ -7,13 +7,16 @@ import json
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
-from generator import build, check, readme, spotlight
+from generator import build, check, og, readme, spotlight
 from generator.common import Snapshot, SnapshotError
 from generator.netlist import CANARY, Allowlist
 from generator.tables import ATTACKER_COLS
 
 from .conftest import ALLOWLIST, SNAPSHOT
+
+ANONYMIZERS = {"198.51.100.24", "203.0.113.31", "2001:db8:3:32::/64"}
 
 
 def tree(root: Path) -> dict[str, bytes]:
@@ -34,7 +37,7 @@ def test_deterministic(tmp_path):
 def test_plain_lists(out):
     for rel in check.IP_LISTS:
         data = (out / rel).read_bytes()
-        assert data.endswith(b"\n") and b"\r" not in data and b"#" not in data
+        assert data == b"" or (data.endswith(b"\n") and b"\r" not in data and b"#" not in data)
     v4 = text_lines(out, "latest/ipv4-7d.txt")
     assert all(ipaddress.ip_address(ip).version == 4 for ip in v4)
     assert v4 == sorted(v4, key=lambda ip: int(ipaddress.ip_address(ip)))
@@ -46,6 +49,18 @@ def test_plain_lists(out):
 
 def test_control_characters_dropped(out):
     assert "bad\tagent" not in (out / "latest/user-agents-7d.txt").read_text()
+
+
+def test_hunting_lists_drop_generic_values(out):
+    uas = set(text_lines(out, "latest/user-agents-7d.txt"))
+    assert {"friendly-scanner", "gobuster/3.8.2", "Mozilla/5.0 zgrab/0.x"} <= uas
+    assert not any(ua.startswith(("curl/", "python-requests/")) or ua == "Mozilla/5.0" or "+http" in ua for ua in uas)
+    paths = set(text_lines(out, "latest/paths-7d.txt"))
+    assert {"/.env", "/.git/config", "/@vite/env", "/HNAP1/"} <= paths
+    assert paths.isdisjoint({"/login", "/api/graphql", "/user@example.php", "/autodiscover/autodiscover.json"})
+    assert not any("/s/" in p for p in paths)
+    dataset = {base64.b64decode(v).decode() for v in text_lines(out, "latest/suricata/datasets/paths.lst")}
+    assert dataset == {"/cgi-bin/.%2e/.%2e/.%2e/bin/sh", "/HNAP1/"}
 
 
 def test_top_lists_rank_by_confidence(snapshot_raw):
@@ -115,8 +130,67 @@ def test_firewall_formats(out):
     assert "add rule inet mirage_feed forward ip saddr @bad4 drop" in nft
     ipset = text_lines(out, "latest/ipset/mirage.ipset")
     assert "swap mirage4-tmp mirage4" in ipset and "destroy mirage6-tmp" in ipset
+
+
+def test_defender_rows(out, snapshot_raw):
+    tags = {r["ip"]: set(r["tags"]) for r in snapshot_raw["ips"]}
     with (out / "latest/defender/defender-top500.csv").open(newline="") as fh:
-        assert {r["GenerateAlert"] for r in csv.DictReader(fh)} == {"True"}
+        rows = list(csv.DictReader(fh))
+    assert rows
+    assert all(tags[r["IndicatorValue"]].isdisjoint({"vpn-exit", "tor-exit"}) for r in rows)
+    assert all(tags[r["IndicatorValue"]] - {"web-scan"} for r in rows)
+    assert {r["Severity"] for r in rows} >= {"High", "Low"}
+    assert all(r["GenerateAlert"] == str(r["Severity"] != "Low") for r in rows)
+
+
+def test_anonymizers_routed(out):
+    assert set(text_lines(out, "latest/anonymizers-7d.txt")) == ANONYMIZERS
+    blocked = set().union(*check._blocklists(out).values())
+    assert blocked and not blocked & ANONYMIZERS
+    assert check.check_anonymizers(out) == []
+    for rel in check.BASE64_FILES:
+        assert ANONYMIZERS.isdisjoint(base64.b64decode(v).decode() for v in text_lines(out, rel))
+    with (out / "latest/attackers-7d.csv").open(newline="") as fh:
+        rows = {r["ip"]: r for r in csv.DictReader(fh)}
+    assert "vpn-exit" in rows["198.51.100.24"]["tags"] and "tor-exit" in rows["2001:db8:3:32::/64"]["tags"]
+    recs = [
+        json.loads(line) for line in gzip.decompress((out / "latest/records-7d.ndjson.gz").read_bytes()).splitlines()
+    ]
+    assert {r["value"] for r in recs} >= ANONYMIZERS
+    indicators = {
+        o["pattern"]: o
+        for o in json.loads((out / "latest/stix/mirage.json").read_text())["objects"]
+        if o["type"] == "indicator"
+    }
+    anon = indicators["[ipv4-addr:value = '198.51.100.24']"]
+    assert anon["indicator_types"] == ["anonymization"] and "vpn-exit" in anon["labels"]
+    assert indicators["[ipv4-addr:value = '198.51.100.9']"]["indicator_types"] == ["malicious-activity"]
+    attrs = {
+        a["value"]: a
+        for p in (out / "misp").glob("*-*.json")
+        for a in json.loads(p.read_text())["Event"]["Attribute"]
+        if a["type"] == "ip-src"
+    }
+    assert {v for v, a in attrs.items() if not a["to_ids"]} == ANONYMIZERS
+    assert "vpn-exit" in attrs["198.51.100.24"]["comment"]
+    assert json.loads((out / "stats.json").read_text())["published"]["anonymizers"] == len(ANONYMIZERS)
+
+
+def test_cves_cover_every_ip_record(out):
+    with (out / "latest/cves-7d.csv").open(newline="") as fh:
+        cves = {r["cve"]: r for r in csv.DictReader(fh)}
+    with (out / "latest/attackers-7d.csv").open(newline="") as fh:
+        cited = {c for r in csv.DictReader(fh) for c in r["cves"].split(";") if c}
+    assert cited <= set(cves)
+    assert cves["CVE-2022-1388"]["kev"] == "true" and cves["CVE-2022-1388"]["name"] == ""
+    assert cves["CVE-2019-0708"]["kev"] == "false" and cves["CVE-2019-0708"]["sources"] == "1"
+    assert cves["CVE-2021-41773"]["name"] == "Apache HTTP Server path traversal"
+    assert json.loads((out / "stats.json").read_text())["published"]["cves"] == len(cves)
+
+
+def test_fingerprint_stats_match_rows(out):
+    rows = len(text_lines(out, "latest/fingerprints.csv")) + len(text_lines(out, "latest/hassh.csv")) - 2
+    assert json.loads((out / "stats.json").read_text())["published"]["fingerprints"] == rows == 4
 
 
 def test_spotlight_escapes_markdown(snapshot_raw):
@@ -145,7 +219,8 @@ def test_misp_feed(out):
         event = json.loads((out / f"misp/{event_uuid}.json").read_text())["Event"]
         assert event["uuid"] == event_uuid and event["Tag"][0]["name"] == "tlp:clear"
         for attr in event["Attribute"]:
-            assert attr["to_ids"] == (attr["type"] in ("ip-src", "url", "domain", "sha256"))
+            ids = attr["type"] in ("ip-src", "url", "domain", "sha256") and attr["value"] not in ANONYMIZERS
+            assert attr["to_ids"] == ids
             expected.append([hashlib.md5(attr["value"].encode()).hexdigest(), event_uuid])
     assert sorted(hashes) == sorted(expected)
 
@@ -221,12 +296,15 @@ def test_stats_are_whitelisted(snapshot_raw):
 
 def test_feed_index_and_sums(out):
     feed = json.loads((out / "feed.json").read_text())
+    assert feed["schema_version"] == "1.1"
+    assert "SHA256SUMS" not in {f["path"] for f in feed["files"]}
     by_path = {f["path"]: f for f in feed["files"]}
     assert by_path["latest/ipv4-7d.txt"]["count"] == len(text_lines(out, "latest/ipv4-7d.txt"))
     for f in feed["files"]:
         assert hashlib.sha256((out / f["path"]).read_bytes()).hexdigest() == f["sha256"]
     sums = text_lines(out, "SHA256SUMS")
     assert [line.split("  ", 1)[1] for line in sums] == sorted(p for p in tree(out) if p != "SHA256SUMS")
+    assert f"{hashlib.sha256((out / 'feed.json').read_bytes()).hexdigest()}  feed.json" in sums
     assert json.loads((out / "stats.json").read_text()) == Snapshot.load(SNAPSHOT).stats
     assert (out / "schema/record.schema.json").read_bytes() == check.RECORD_SCHEMA.read_bytes()
 
@@ -241,3 +319,103 @@ def test_readme_stats_idempotent(tmp_path):
     assert not readme.write(SNAPSHOT, template, target)
     assert target.read_text() == first
     assert first.split(readme.END)[1] == readme.render_template(template.read_text()).split(readme.END)[1]
+
+
+def test_readme_labels_windows(snapshot_raw):
+    block = readme.stats_block(Snapshot(snapshot_raw))
+    assert "| | Observed by Mirage, last 24 h | In the feed | Feed window |" in block
+    assert "| Events | 1.47M events | — | — |" in block and "Session transcripts" not in block
+    assert "| Source IPs active in the last 24 h | 8,715 | 14 | 24 h |" in block
+    assert "| IPv4 addresses (`ipv4-30d.txt`) | — | 74 | 30 days |" in block
+    assert "| Tooling fingerprints (JA4+, HASSH) | — | 4 | 7 days |" in block
+    assert "| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 3 | 7 days |" in block
+
+
+def test_readme_body_matches_template():
+    root = Path(__file__).parents[1]
+    current = (root / "README.md").read_text()
+    template = readme.render_template((root / "docs/README.template.md").read_text())
+    assert current.split(readme.START)[0] == template.split(readme.START)[0]
+    assert current.split(readme.END)[1] == template.split(readme.END)[1]
+
+
+def write_snapshot(tmp_path, raw: dict, name: str = "snap.json") -> Path:
+    path = tmp_path / name
+    path.write_text(json.dumps(raw))
+    return path
+
+
+def test_daily_diff(tmp_path, snapshot_raw):
+    boot = tmp_path / "boot"
+    build.build(SNAPSHOT, boot, allowlist=ALLOWLIST)
+    assert (boot / "latest/ipv4-added-1d.txt").read_bytes() == b""
+    assert (boot / "latest/ipv4-removed-1d.txt").read_bytes() == b""
+    current = text_lines(boot, "latest/ipv4-7d.txt")
+    prev = tmp_path / "prev"
+    (prev / "latest").mkdir(parents=True)
+    (prev / "latest/ipv4-7d.txt").write_text(
+        "\n".join([*current[1:], "10.0.0.1", "198.51.100.24", "203.0.113.8"]) + "\n"
+    )
+    out = tmp_path / "out"
+    build.build(SNAPSHOT, out, prev, ALLOWLIST)
+    assert text_lines(out, "latest/ipv4-added-1d.txt") == [current[0]]
+    assert text_lines(out, "latest/ipv4-removed-1d.txt") == ["203.0.113.8"]
+    assert check.check_ips(out, Allowlist(ALLOWLIST), Allowlist(CANARY)) == []
+    assert json.loads((out / "history.json").read_text())[-1]["added"] == 1
+
+
+def test_history_rolls_and_carries_over(tmp_path, snapshot_raw):
+    prev = tmp_path / "prev"
+    prev.mkdir()
+    old = [
+        {"day": "2026-07-25", "ips_7d": 1},
+        {"day": "2026-07-26", "ips_7d": 2, "ip": "198.51.100.9"},
+        {"day": "not-a-day", "ips_7d": 3},
+        {"day": "2026-10-23", "ips_7d": 4},
+    ]
+    (prev / "history.json").write_text(json.dumps(old))
+    out = tmp_path / "out"
+    build.build(SNAPSHOT, out, prev, ALLOWLIST)
+    history = json.loads((out / "history.json").read_text())
+    assert [h["day"] for h in history] == ["2026-07-26", "2026-10-23"]
+    assert history[0] == {"day": "2026-07-26", "ips_7d": 2}
+    today = history[-1]
+    assert today == {
+        "day": "2026-10-23",
+        "generated": "2026-10-24T03:05:00Z",
+        "ips_7d": 73,
+        "active_24h": 14,
+        "added": 0,
+        "removed": 0,
+        "cves": 6,
+        "urls": 4,
+        "hashes": 3,
+        "scanners": 3,
+        "anonymizers": 3,
+    }
+    nxt = {**snapshot_raw, "day": "2026-10-24", "generated": "2026-10-25T03:05:00Z"}
+    out2 = tmp_path / "out2"
+    build.build(write_snapshot(tmp_path, nxt), out2, out, ALLOWLIST)
+    assert [h["day"] for h in json.loads((out2 / "history.json").read_text())] == ["2026-10-23", "2026-10-24"]
+
+
+@pytest.mark.parametrize("corrupt", ['[{"day": "2026-10-20"', '{"day": "2026-10-20"}', "7", ""])
+def test_history_survives_corrupt_previous(tmp_path, corrupt):
+    prev = tmp_path / "prev"
+    prev.mkdir()
+    (prev / "history.json").write_text(corrupt)
+    out = tmp_path / "out"
+    build.build(SNAPSHOT, out, prev, ALLOWLIST)
+    assert [h["day"] for h in json.loads((out / "history.json").read_text())] == ["2026-10-23"]
+
+
+def test_og_images(out, snapshot_raw):
+    for rel, size in og.SIZES.items():
+        data = (out / rel).read_bytes()
+        assert data.startswith(b"\x89PNG") and b"tIME" not in data and b"tEXt" not in data
+        with Image.open(out / rel) as img:
+            assert img.size == size and img.mode == "RGB"
+    s = Snapshot(snapshot_raw)
+    assert og.card(s, (1200, 630)) == (out / "og.png").read_bytes()
+    snapshot_raw["stats"]["published"]["active_24h"] = 15
+    assert og.card(Snapshot(snapshot_raw), (1200, 630)) != (out / "og.png").read_bytes()

@@ -31,7 +31,10 @@ PUBLISHED_KEYS = (
     "hashes",
     "scanners",
     "fingerprints",
+    "anonymizers",
 )
+JA4_TYPES = frozenset({"ja4", "ja4s", "ja4h", "ja4x", "ja4t", "ja4tscan"})
+ANONYMIZER_TAGS = frozenset({"vpn-exit", "tor-exit"})
 MAX_BREAKDOWN = 50
 DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 GENERATED = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
@@ -178,12 +181,46 @@ def _valid(kind: str, rec: dict) -> bool:
         case "hashes":
             return bool(SHA256.fullmatch(value))
         case "fingerprints":
-            return isinstance(rec.get("type"), str) and bool(TOKEN.fullmatch(rec["type"]))
+            kind = rec.get("type")
+            return (
+                isinstance(kind, str)
+                and bool(TOKEN.fullmatch(kind))
+                and (kind in JA4_TYPES or kind.startswith("hassh"))
+            )
         case "user_agents":
             return benign.user_agent_ok(value)
         case "paths":
             return benign.path_ok(value)
     return bool(value)
+
+
+def anonymizer(rec: dict) -> bool:
+    return not ANONYMIZER_TAGS.isdisjoint(rec.get("tags", []))
+
+
+def _ip_cves(ips: list[dict], known: list[dict]) -> list[dict]:
+    """cves rows for CVEs cited by published IPs but missing from the snapshot's CVE list."""
+    have = {c["cve"] for c in known}
+    cited: dict[str, list[dict]] = {}
+    for r in ips:
+        for cve in r.get("cves", []):
+            if cve not in have and CVE.fullmatch(cve):
+                cited.setdefault(cve, []).append(r)
+    rows = []
+    for cve, recs in sorted(cited.items()):
+        # An IP's kev flag covers all its CVEs, so it only pins this one when it is the IP's sole CVE.
+        pinned = any(r.get("kev") and r["cves"] == [cve] for r in recs)
+        kev = True if pinned else (None if any(r.get("kev") for r in recs) else False)
+        rows.append(
+            {
+                "cve": cve,
+                "kev": kev,
+                "sources": len(recs),
+                "first_seen": min(r["first_seen"] for r in recs),
+                "last_seen": max(r["last_seen"] for r in recs),
+            }
+        )
+    return rows
 
 
 def _check_ip(i: int, rec) -> dict:
@@ -247,6 +284,12 @@ class Snapshot:
             self.lists[kind] = list(seen.values())
         if not self.lists["ips"] or not self.lists["scanners"]:
             raise SnapshotError("ips and scanners must not be empty")
+        self.lists["cves"] += _ip_cves(self.ips_in("7d"), self.lists["cves"])
+        self.stats["published"].update(
+            cves=len(self.lists["cves"]),
+            fingerprints=len(self.lists["fingerprints"]),
+            anonymizers=len(self.anonymizers()),
+        )
 
     @classmethod
     def load(cls, path: str | Path) -> "Snapshot":
@@ -261,6 +304,20 @@ class Snapshot:
             recs = [r for r in recs if network(r["ip"]).version == version]
         return sorted(recs, key=lambda r: ip_key(r["ip"]))
 
-    def ranked_v4(self, limit: int) -> list[dict]:
-        ranked = sorted(self.ips_in("7d", 4), key=lambda r: (-int(r["confidence"]), ip_key(r["ip"])))
+    def blockable(self, window: str, version: int | None = None) -> list[dict]:
+        """IPs for block lists: shared VPN and Tor exits go to anonymizers-7d.txt only."""
+        return [r for r in self.ips_in(window, version) if not anonymizer(r)]
+
+    def anonymizers(self) -> list[dict]:
+        return [r for r in self.ips_in("7d") if anonymizer(r)]
+
+    def ranked_v4(
+        self, limit: int, skip_tags: frozenset[str] = frozenset(), skip_only: frozenset[str] = frozenset()
+    ) -> list[dict]:
+        pool = [
+            r
+            for r in self.blockable("7d", 4)
+            if skip_tags.isdisjoint(r.get("tags", [])) and not (r.get("tags") and set(r["tags"]) <= skip_only)
+        ]
+        ranked = sorted(pool, key=lambda r: (-int(r["confidence"]), ip_key(r["ip"])))
         return sorted(ranked[:limit], key=lambda r: ip_key(r["ip"]))

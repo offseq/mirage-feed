@@ -19,26 +19,32 @@ class MemoryCache {
 }
 
 export class MemoryR2 {
-  objects = new Map<string, { body: Uint8Array; etag: string }>();
+  objects = new Map<string, { body: Uint8Array; etag: string; uploaded: Date }>();
   gets: string[] = [];
-  put(key: string, text: string) {
-    const body = new TextEncoder().encode(text);
-    this.objects.set(key, { body, etag: `"r2-${key.length}-${body.byteLength}"` });
+  failing = false;
+  put(key: string, data: string | Uint8Array, uploaded = new Date("2026-10-24T03:05:00Z")) {
+    const body = typeof data === "string" ? new TextEncoder().encode(data) : data;
+    this.objects.set(key, { body, etag: `"r2-${key.length}-${body.byteLength}"`, uploaded });
   }
-  async get(key: string, opts?: { onlyIf?: Headers }) {
+  async get(key: string) {
     this.gets.push(key);
+    if (this.failing) throw new Error("R2 unavailable");
     const o = this.objects.get(key);
     if (!o) return null;
-    const meta = { key, size: o.body.byteLength, httpEtag: o.etag };
-    if (opts?.onlyIf?.get("if-none-match") === o.etag) return meta;
     return {
-      ...meta,
+      key,
+      size: o.body.byteLength,
+      httpEtag: o.etag,
+      uploaded: o.uploaded,
       body: new Blob([o.body]).stream(),
       arrayBuffer: async () => o.body.slice().buffer,
       json: async () => JSON.parse(new TextDecoder().decode(o.body)),
     };
   }
 }
+
+export const gzip = async (text: string) =>
+  new Uint8Array(await new Response(new Blob([text]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
 
 export const fixture = (name: string) => readFileSync(new URL(`../fixtures/${name}`, import.meta.url), "utf8");
 

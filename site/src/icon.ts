@@ -1,0 +1,1 @@
+export const FAVICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#0b6e8a"/><path d="M3 12V4h2l3 4 3-4h2v8h-2V7.5L8 11 5 7.5V12z" fill="#fff"/></svg>`;

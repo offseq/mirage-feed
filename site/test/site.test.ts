@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderHome, technique } from "../src/home";
 import { isValidIp } from "../src/removal";
+import { APP_PATH, FONT_400, FONT_600 } from "../src/assets";
 import { CSS } from "../src/style";
 import { call, fixture, rawServing, setup } from "./harness";
 
@@ -33,13 +34,13 @@ describe("pages", () => {
     expect(html).toContain('<th scope="row">IPv4, 30-day list</th><td class="n dim">-</td><td class="n">3,904</td>');
     expect(html).toContain("Feed lists cover the last 7 days of activity (30 days for <code>ipv4-30d.txt</code>).");
     expect(html).toContain('<abbr title="');
-    expect(html).toContain("The gap is what the full feed holds");
+    expect(html).toContain('The gap is what the <a href="https://mirage.offseq.com/?auth=signup&amp;intent=premium&amp;utm_source=feeds&amp;utm_medium=web&amp;utm_campaign=mirage-feed&amp;utm_content=status">full feed</a> holds');
     expect(html).toContain('href="/mirage-feed/latest/ipv4-7d.txt"');
     expect(html).toContain("TLP:CLEAR");
     expect(html).toContain("utm_source=feeds");
     expect(html).toContain("Top 100 passwords, no usernames");
     expect(html).not.toContain("Stale:");
-    expect(html).not.toMatch(/<script>|<script [^>]*>[^<]/);
+    expect(html.replace(/<script type="application\/ld\+json">[^<]*<\/script>/, "")).not.toMatch(/<script>|<script [^>]*>[^<]/);
   });
 
   it("shows a stale notice when the snapshot is older than 36 hours", async () => {
@@ -87,18 +88,34 @@ describe("pages", () => {
     expect(privacy).toContain("the MISP feed carries up to 7 previous daily events");
     expect(await (await call(env, "/robots.txt")).text()).toContain("Sitemap: https://feeds.offseq.com/sitemap.xml");
     expect(await (await call(env, "/sitemap.xml")).text()).toContain("<loc>https://feeds.offseq.com/privacy</loc>");
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-24T15:30:00Z"));
     const sec = await (await call(env, "/.well-known/security.txt")).text();
-    expect(sec).toContain("Contact: mailto:abuse@offseq.com");
+    expect(sec).toContain("Contact: https://cvd.cert.lv/programs/view/101\nContact: mailto:security@offseq.com\n");
+    expect(sec).toContain("Expires: 2027-09-24T00:00:00.000Z");
     expect(sec).toContain("Policy: https://cvd.cert.lv/programs/view/101");
-    expect(sec).toMatch(/Expires: 2027-/);
+    expect(sec).toContain("Preferred-Languages: en, lv");
+    expect(sec).toContain("Canonical: https://feeds.offseq.com/.well-known/security.txt");
+    const moved = await call(env, "/security.txt");
+    expect(moved.status).toBe(301);
+    expect(moved.headers.get("location")).toBe("/.well-known/security.txt");
   });
 
   it("serves the font and script assets", async () => {
     const { env } = setup();
-    const font = await call(env, "/fonts/plex-mono-400.woff2");
+    for (const path of [FONT_400, FONT_600, APP_PATH]) {
+      expect(path).toMatch(/\.[0-9a-f]{8}\.(woff2|js)$/);
+      const res = await call(env, path);
+      expect(res.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+      expect(res.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+    }
+    const font = await call(env, FONT_400);
     expect(font.headers.get("content-type")).toBe("font/woff2");
     expect((await font.arrayBuffer()).byteLength).toBeGreaterThan(10_000);
-    expect((await call(env, "/app.js")).headers.get("content-type")).toContain("javascript");
+    expect((await call(env, APP_PATH)).headers.get("content-type")).toContain("javascript");
+    expect((await call(env, "/app.js")).status).toBe(404);
+    const html = await (await call(env, "/privacy")).text();
+    expect(html).toContain(`<link rel="preload" href="${FONT_600}" as="font"`);
+    expect(html).toContain(`<script src="${APP_PATH}" defer>`);
   });
 });
 
@@ -109,24 +126,37 @@ describe("security headers", () => {
     const res = await call(env, "/");
     const csp = res.headers.get("content-security-policy")!;
     expect(csp).toContain("default-src 'none'");
-    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain(`script-src https://feeds.offseq.com${APP_PATH};`);
+    expect(csp).not.toContain("'self' https://feeds");
     expect(csp).toContain(`style-src 'sha256-${await sha256b64(CSS)}'`);
+    expect(csp).toContain("require-trusted-types-for 'script'; trusted-types 'none'");
+    expect(csp).toContain("base-uri 'none'");
+    expect(csp).toContain("report-uri https://mirage.offseq.com/_t/csp");
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).not.toContain("unsafe-inline");
     expect(csp).not.toContain("challenges.cloudflare.com");
     expect((await res.text()).includes(`<style>${CSS}</style>`)).toBe(true);
-    expect(res.headers.get("strict-transport-security")).toContain("max-age=63072000");
+    expect(res.headers.get("strict-transport-security")).toBe("max-age=63072000; includeSubDomains; preload");
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     expect(res.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
-    expect(res.headers.get("permissions-policy")).toContain("camera=()");
+    const pp = res.headers.get("permissions-policy")!;
+    expect(pp.split(", ")).toHaveLength(25);
+    expect(pp).toContain("browsing-topics=()");
+    expect(pp).toContain("xr-spatial-tracking=()");
+    expect(pp).not.toContain("clipboard-write");
+    expect(res.headers.get("cross-origin-opener-policy")).toBe("same-origin");
+    expect(res.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
   });
 
   it("allows Turnstile only on /removal", async () => {
     const { env } = setup();
     const res = await call(env, "/removal");
     const csp = res.headers.get("content-security-policy")!;
-    expect(csp).toContain("script-src 'self' https://challenges.cloudflare.com");
+    expect(csp).toContain(`script-src https://feeds.offseq.com${APP_PATH} https://challenges.cloudflare.com;`);
     expect(csp).toContain("frame-src https://challenges.cloudflare.com");
+    expect(csp).not.toContain("trusted-types");
+    expect(res.headers.get("content-security-policy-report-only")).toBeNull();
     const html = await res.text();
     expect(html).toContain('data-sitekey="1x00000000000000000000AA"');
     expect(html).toContain("<noscript>");
@@ -201,10 +231,10 @@ describe("removal IP validation", () => {
 const UPSTREAM = "https://mirage.example/api/feed/removal";
 const SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
-function services(opts: { turnstile?: boolean; upstream?: Response } = {}) {
+function services(opts: { turnstile?: boolean; upstream?: Response; hostname?: string; action?: string } = {}) {
   return vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
     const url = String(input);
-    if (url === SITEVERIFY) return Response.json({ success: opts.turnstile ?? true });
+    if (url === SITEVERIFY) return Response.json({ success: opts.turnstile ?? true, hostname: opts.hostname ?? "feeds.offseq.com", action: opts.action ?? "removal" });
     if (url === UPSTREAM) return opts.upstream ?? new Response("{}", { status: 202 });
     return new Response("unexpected", { status: 500 });
   });

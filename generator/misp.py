@@ -2,7 +2,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from .common import Artifact, Snapshot, dumps, network, parse_ts, uid
+from .common import Artifact, Snapshot, anonymizer, dumps, network, parse_ts, uid
 from .netlist import DEFAULT_ALLOWLIST, Allowlist
 
 KEEP_EVENTS = 8
@@ -22,17 +22,19 @@ TYPES = {
 }
 
 
-def _attributes(s: Snapshot) -> list[tuple[str, str, str]]:
-    attrs = [
-        ("ip-src", r["ip"], f"confidence={r['confidence']} tags={';'.join(r.get('tags', []))}") for r in s.ips_in("7d")
+def _attributes(s: Snapshot) -> list[tuple[str, str, str, bool]]:
+    # VPN and Tor exits are shared egress: context for analysts, never an IDS or block signal.
+    ips = [
+        ("ip-src", r["ip"], f"confidence={r['confidence']} tags={';'.join(r.get('tags', []))}", not anonymizer(r))
+        for r in s.ips_in("7d")
     ]
-    attrs += [("url", r["url"], r["kind"]) for r in s.lists["urls"]]
+    attrs = [("url", r["url"], r["kind"]) for r in s.lists["urls"]]
     attrs += [("domain", r["domain"], "") for r in s.lists["domains"]]
     attrs += [("sha256", r["sha256"], "") for r in s.lists["hashes"]]
     attrs += [("user-agent", r["value"], "") for r in s.lists["user_agents"]]
     attrs += [("vulnerability", r["cve"], "CISA KEV" if r.get("kev") else "") for r in s.lists["cves"]]
     attrs += [("hassh-md5", r["value"], r.get("tool") or "") for r in s.lists["fingerprints"] if r["type"] == "hassh"]
-    return sorted(set(attrs))
+    return sorted(set(ips) | {(*a, TYPES[a[0]][1]) for a in attrs})
 
 
 def event(s: Snapshot) -> tuple[str, dict]:
@@ -44,12 +46,12 @@ def event(s: Snapshot) -> tuple[str, dict]:
             "type": kind,
             "category": TYPES[kind][0],
             "value": value,
-            "to_ids": TYPES[kind][1],
+            "to_ids": to_ids,
             "comment": comment,
             "timestamp": stamp,
             "distribution": "5",
         }
-        for kind, value, comment in _attributes(s)
+        for kind, value, comment, to_ids in _attributes(s)
     ]
     header = {
         "info": f"OffSeq Mirage community feed {s.day}",
@@ -66,7 +68,7 @@ def event(s: Snapshot) -> tuple[str, dict]:
 
 
 def _carried(prev: Path | None, today: str, live: set[str], allow: Allowlist) -> dict[str, dict]:
-    """Earlier events, with IPs no longer listed or now allowlisted removed."""
+    """Earlier events, with IPs no longer listed, now allowlisted or now anonymizers removed."""
     manifest = prev / "misp" / "manifest.json" if prev else None
     if not manifest or not manifest.is_file():
         return {}
@@ -87,7 +89,7 @@ def _carried(prev: Path | None, today: str, live: set[str], allow: Allowlist) ->
 
 def render(s: Snapshot, prev: Path | None = None, allow: Allowlist | None = None) -> list[Artifact]:
     today_uuid, today = event(s)
-    live = {r["ip"] for r in s.ips_in("30d")}
+    live = {r["ip"] for r in s.blockable("30d")}
     events = _carried(prev, s.day, live, allow or Allowlist(DEFAULT_ALLOWLIST))
     events[today_uuid] = today
     manifest, hashes, out = {}, [], []

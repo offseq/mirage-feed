@@ -2,6 +2,7 @@ export interface Env {
   FEED: R2Bucket;
   FETCHES?: AnalyticsEngineDataset;
   REMOVAL_LIMIT?: RateLimit;
+  LOOKUP_LIMIT?: RateLimit;
   SHADOW?: string;
   SHADOW_AUTH?: string;
   GITHUB_REPO: string;

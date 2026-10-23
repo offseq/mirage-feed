@@ -1,4 +1,5 @@
-import { ABUSE, BASE, CTA_URL, REPO_URL, bytes, cmd, copyable, esc, num, utc } from "./html";
+import { lookupForm } from "./lookup";
+import { ABUSE, BASE, ISO, REPO_URL, SITE, bytes, cmd, copyable, esc, num, pre, upsell, utc } from "./html";
 
 type Counts = Partial<Record<string, number>>;
 
@@ -40,6 +41,9 @@ const SUBSCRIBE: [string, string][] = [
   ["STIX 2.1 bundle", "latest/stix/mirage.json"],
   ["MISP feed, add as a MISP Feed", "misp/"],
   ["Research scanners we excluded, IPv4", "latest/known-scanners-ipv4.txt"],
+  ["VPN and Tor exits seen attacking, kept out of the blocklists", "latest/anonymizers-7d.txt"],
+  ["IPv4 added since the previous build", "latest/ipv4-added-1d.txt"],
+  ["IPv4 removed since the previous build", "latest/ipv4-removed-1d.txt"],
 ];
 
 const STAT_ROWS: [string, string | null, string | null][] = [
@@ -106,7 +110,7 @@ function headline(obs: Counts, pub: Counts): string {
   return `<p class="big">${num(Math.min(active, seen))}</p>
 <p class="lede">of ${num(seen)} source IPs seen in the last 24 hours are in the feed</p>
 ${gapBar(active, seen)}
-<p>Every address Mirage saw attacking in the last 24 hours counts as seen. Those in the feed have passed the <a href="#methodology">listing rules</a>. The gap is what the full feed holds.</p>`;
+<p>Every address Mirage saw attacking in the last 24 hours counts as seen. Those in the feed have passed the <a href="#methodology">listing rules</a>. The gap is what the <a href="${esc(upsell("status"))}">full feed</a> holds.</p>`;
 }
 
 function status(feed: FeedIndex | null, stats: Stats | null): string {
@@ -130,12 +134,12 @@ function status(feed: FeedIndex | null, stats: Stats | null): string {
   ].join("");
   return `${when ? `<p class="dim">${when}.</p>` : ""}
 ${headline(obs, pub)}
-<div class="scroll" tabindex="0" role="region" aria-label="Counts for the last 24 hours and in the feed"><table><thead><tr><th scope="col"></th><th scope="col" class="n">Last 24 h</th><th scope="col" class="n">In the feed</th></tr></thead><tbody>${rows}</tbody></table></div>
+<div class="scroll" tabindex="0" role="region" aria-label="Counts for the last 24 hours and in the feed"><table><thead><tr><td></td><th scope="col" class="n">Last 24 h</th><th scope="col" class="n">In the feed</th></tr></thead><tbody>${rows}</tbody></table></div>
 <p class="dim">Feed lists cover the last 7 days of activity (30 days for <code>ipv4-30d.txt</code>).</p>
 ${tops ? `<div class="tops">${tops}</div>` : ""}`;
 }
 
-const STALE_AFTER_H = 36;
+export const STALE_AFTER_H = 36;
 
 function staleNotice(feed: FeedIndex | null, now: number): string {
   const built = Date.parse(feed?.generated ?? "");
@@ -152,7 +156,7 @@ function files(feed: FeedIndex | null): string {
   }
   const rows = list
     .map(
-      (f) => `<tr><td class="nw"><a href="/mirage-feed/${esc(f.path)}">${esc(f.path)}</a>${f.consumers?.length ? `<span class="used">${esc(f.consumers.join(", "))}</span>` : ""}</td><td class="n">${num(f.count)}</td><td class="n">${bytes(f.bytes)}</td><td class="nw"><abbr title="${esc(f.sha256 ?? "")}">${esc((f.sha256 ?? "").slice(0, 12))}</abbr></td></tr>`,
+      (f) => `<tr><td class="nw"><a href="/mirage-feed/${esc(f.path)}">${esc(f.path)}</a>${f.consumers?.length ? `<span class="used">${esc(f.consumers.join(", "))}</span>` : ""}</td><td class="n">${num(f.count)}</td><td class="n">${bytes(f.bytes)}</td><td class="nw"><a href="/mirage-feed/SHA256SUMS" aria-label="SHA-256 ${esc(f.sha256 ?? "")}, full list in SHA256SUMS"><abbr title="${esc(f.sha256 ?? "")}">${esc((f.sha256 ?? "").slice(0, 12))}</abbr></a></td></tr>`,
     )
     .join("");
   const mirrors = (feed?.mirrors ?? [])
@@ -161,11 +165,11 @@ function files(feed: FeedIndex | null): string {
     .map((u) => `<a href="${esc(u)}">${esc(u.replace(/^https:\/\//, ""))}</a>`)
     .join(", ");
   return `<div class="scroll" tabindex="0" role="region" aria-label="File index"><table><thead><tr><th scope="col">path <span class="dim">and tools that read it</span></th><th scope="col" class="n">count</th><th scope="col" class="n">size</th><th scope="col">sha256</th></tr></thead><tbody>${rows}</tbody></table></div>
-<p class="dim">Full checksums in <a href="/mirage-feed/SHA256SUMS">SHA256SUMS</a>. Index as JSON: <a href="/mirage-feed/feed.json">feed.json</a>.${mirrors ? ` Mirrors: ${mirrors}.` : ""}</p>`;
+<p class="dim">Full checksums in <a href="/mirage-feed/SHA256SUMS">SHA256SUMS</a>. Index as JSON: <a href="/mirage-feed/feed.json">feed.json</a>.${mirrors ? ` Mirrors: ${mirrors}.` : ""}</p>
+<p><code>anonymizers-7d.txt</code> lists VPN and Tor exits seen attacking; they stay out of the blocklists because many people share them. <code>ipv4-added-1d.txt</code> and <code>ipv4-removed-1d.txt</code> hold the day-over-day change to <code>ipv4-7d.txt</code>, for change review.</p>`;
 }
 
 const recipe = (title: string, body: string) => `<details><summary>${title}</summary>${body}</details>`;
-const pre = (code: string) => `<pre><code>${esc(code)}</code></pre>`;
 
 function integrations(): string {
   const ip7 = `${BASE}/latest/ipv4-7d.txt`;
@@ -182,7 +186,7 @@ function integrations(): string {
         set resource "${ip7}"
         set refresh-rate 1440
     next
-end`),
+end`, "FortiGate configuration"),
     ),
     recipe(
       "Palo Alto (EDL)",
@@ -191,40 +195,40 @@ end`),
     recipe(
       "MikroTik RouterOS",
       pre(`/tool fetch url="${BASE}/latest/mikrotik/mirage-7d.rsc" dst-path=mirage.rsc
-/import file-name=mirage.rsc`) + `<p>Entries carry <code>timeout=7d</code>, so they expire on their own.</p>`,
+/import file-name=mirage.rsc`, "RouterOS commands") + `<p>Entries carry <code>timeout=7d</code>, so they expire on their own.</p>`,
     ),
     recipe(
       "nftables / ipset",
       `<p>nftables:</p>` +
         pre(`curl --create-dirs -fsSLo /etc/nftables.d/mirage.nft ${BASE}/latest/nft/mirage.nft
-nft -f /etc/nftables.d/mirage.nft`) +
+nft -f /etc/nftables.d/mirage.nft`, "nftables commands") +
         `<p>ipset with iptables, safe to re-run:</p>` +
         pre(`curl -fsSL ${BASE}/latest/ipset/mirage.ipset | ipset restore
 iptables -C INPUT -m set --match-set mirage4 src -j DROP 2>/dev/null \\
   || iptables -I INPUT -m set --match-set mirage4 src -j DROP
 ip6tables -C INPUT -m set --match-set mirage6 src -j DROP 2>/dev/null \\
-  || ip6tables -I INPUT -m set --match-set mirage6 src -j DROP`),
+  || ip6tables -I INPUT -m set --match-set mirage6 src -j DROP`, "ipset commands"),
     ),
     recipe(
       "CrowdSec",
       pre(`curl -fsSL ${ip7} -o mirage.txt
-cscli decisions import -i mirage.txt --format values --duration 48h --scope ip --reason mirage-feed`),
+cscli decisions import -i mirage.txt --format values --duration 48h --scope ip --reason mirage-feed`, "CrowdSec commands"),
     ),
     recipe(
       "Suricata and Zeek",
       `<p>Suricata IP reputation: <code>latest/suricata/categories.txt</code> and <code>latest/suricata/mirage-iprep.list</code>.</p>` +
-        pre(`alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; iprep:src,MirageAttacker,>,50; sid:1900001; rev:1;)`) +
+        pre(`alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; iprep:src,MirageAttacker,>,50; threshold:type limit,track by_src,count 1,seconds 3600; sid:1900001; rev:1;)`, "Suricata rule") +
         `<p>Zeek Intel framework, with <code>latest/zeek/mirage.intel</code> saved locally:</p>` +
-        pre(`redef Intel::read_files += { "/opt/mirage/mirage.intel" };`),
+        pre(`redef Intel::read_files += { "/opt/mirage/mirage.intel" };`, "Zeek configuration"),
     ),
     recipe(
       "MISP, OpenCTI, Sentinel, Defender, Splunk",
       `<ul>
 <li><b>MISP</b>: Sync Actions &gt; Feeds &gt; Add. Source format <b>MISP Feed</b>, URL ${copyable(`${BASE}/misp/`, "MISP feed URL")}.</li>
 <li><b>OpenCTI</b>: Data &gt; Ingestion &gt; CSV feeds on <code>latest/attackers-ipv4-7d.csv</code>, with the mapper in the <a href="${REPO_URL}">repository</a> under <code>docs/opencti-csv-mapper.json</code>. Or import <code>latest/stix/mirage.json</code> as a STIX bundle.</li>
-<li><b>Microsoft Sentinel</b>: send <code>latest/stix/mirage.json</code> to the STIX objects upload API, wrapped as <code>{"sourcesystem":"OffSeq Mirage","stixobjects":[...]}</code> with at most 100 objects per request:${pre(`jq -c '.objects as $o | range(0; $o | length; 100) | {sourcesystem: "OffSeq Mirage", stixobjects: $o[.:. + 100]}' mirage.json`)}</li>
+<li><b>Microsoft Sentinel</b>: the Upload Indicators API takes at most 100 objects per request, wrapped as <code>{"sourcesystem": "OffSeq Mirage", "stixobjects": [...]}</code>. <a href="${REPO_URL}/blob/main/scripts/sentinel-upload.sh">scripts/sentinel-upload.sh</a> splits <code>latest/stix/mirage.json</code> that way:${pre("WORKSPACE_ID=<workspace id> scripts/sentinel-upload.sh mirage.json", "Sentinel upload command")}</li>
 <li><b>Defender for Endpoint</b>: Settings &gt; Endpoints &gt; Indicators &gt; Import, with <code>latest/defender/defender-top500.csv</code>. The import takes 500 indicators per batch, which is why the file stops at 500.</li>
-<li><b>Splunk</b>: add <code>latest/attackers-7d.csv</code> as a lookup and match on <code>src_ip</code>.</li>
+<li><b>Splunk</b>: add <code>latest/attackers-7d.csv</code> as a lookup and match its <code>ip</code> column against <code>src_ip</code>.</li>
 </ul>`,
     ),
   ].join("\n");
@@ -242,6 +246,7 @@ export function renderHome(feed: FeedIndex | null, stats: Stats | null, now: num
 <section aria-labelledby="h-name"><h2 id="h-name">Name</h2>
 <p class="name"><b>mirage-feed</b> - daily attacker indicators from the OffSeq Mirage honeypot fleet</p>
 <p>Handshake-verified attacker IPs, exploited CVEs, payload URLs and tool fingerprints, rebuilt every day in the formats firewalls, SIEMs and threat-intel platforms already read. Free to use under CC BY 4.0, marked TLP:CLEAR.</p>
+<p>Need it in real time, with full session context? That is the <a href="${esc(upsell("hero"))}">full feed in OffSeq Mirage</a>.</p>
 </section>
 
 <section aria-labelledby="h-synopsis"><h2 id="h-synopsis">Synopsis</h2>
@@ -253,10 +258,23 @@ ${cmd(`curl -fsSL ${BASE}/latest/ipv4-7d.txt`, "curl command")}
 ${staleNotice(feed, now)}${status(feed, stats)}
 </section>
 
+<section id="lookup" aria-labelledby="h-lookup"><h2 id="h-lookup">Look up an address</h2>
+${lookupForm()}
+<p class="dim">Shows whether the address is in today's lists, and why.</p>
+</section>
+
 <section id="subscribe" aria-labelledby="h-subscribe"><h2 id="h-subscribe">Subscribe</h2>
 <p>Point your tool at a stable URL. Files are rebuilt every day; the paths never change.</p>
 <div class="scroll"><table><thead><tr><th scope="col">Use</th><th scope="col">URL</th></tr></thead><tbody>${subscribe}</tbody></table></div>
 <p>Plain lists hold one value per line with no comments, so they load as-is into pfBlockerNG, OPNsense aliases, FortiGate threat feeds and Palo Alto EDLs.</p>
+<h3>Which list do I want?</h3>
+<ul>
+<li>A firewall or EDL with room to spare: <code>ipv4-7d.txt</code>, plus <code>ipv6-7d.txt</code> if you filter IPv6.</li>
+<li>A small table, such as a 50k EDL budget or a home router: <code>ipv4-top1k.txt</code> or <code>ipv4-top10k.txt</code>.</li>
+<li>Only the most recent attackers: <code>ipv4-1d.txt</code>. Longer memory for detection rather than blocking: <code>ipv4-30d.txt</code>.</li>
+<li>A SIEM or threat-intel platform: <code>attackers-7d.csv</code>, the STIX bundle or the MISP feed, which carry ASN, tags, ATT&amp;CK and CVEs.</li>
+<li>Enrichment, not blocking: <code>anonymizers-7d.txt</code> and <code>known-scanners-ipv4.txt</code>.</li>
+</ul>
 </section>
 
 <section id="files" aria-labelledby="h-files"><h2 id="h-files">Files</h2>
@@ -276,13 +294,13 @@ ${integrations()}
 <li>Its first sighting is at least <b>${delay} hours</b> old.</li>
 </ol>
 <p>Entries expire <b>${ttl} days</b> after the last observed activity; new activity renews them. Research scanners are excluded from the blocklists and published separately in <code>known-scanners-ipv4.txt</code> and <code>known-scanners-ipv6.txt</code>, so you can allowlist them.</p>
-<p>Before every publish, the build is rejected if the list overlaps an allowlist, contains anything wider than a /32, or changes size by more than 30% from the previous day.</p>
+<p>Before every publish, the build is rejected if the list overlaps an allowlist, holds any entry other than one IPv4 address (/32) or one IPv6 /64, or changes size by more than 30% from the previous day.</p>
 <p>Most listed addresses are compromised devices or rented infrastructure. A listing means &quot;this address attacked honeypots&quot;, not a judgement about whoever holds it.</p>
 </section>
 
 <section id="full-feed" aria-labelledby="h-full"><h2 id="h-full">Community feed and full feed</h2>
 <p>This feed is free and stays free. The full feed is part of OffSeq Mirage.</p>
-<div class="scroll" tabindex="0" role="region" aria-label="Community and full feed compared"><table><thead><tr><th scope="col"></th><th scope="col">Community</th><th scope="col">Full feed</th></tr></thead><tbody>
+<div class="scroll" tabindex="0" role="region" aria-label="Community and full feed compared"><table><thead><tr><td></td><th scope="col">Community</th><th scope="col">Full feed</th></tr></thead><tbody>
 <tr><th scope="row">Cadence</th><td>Daily, ${delay} h delayed</td><td>Real time: API, webhook, TAXII</td></tr>
 <tr><th scope="row">Attacker IPs</th><td>Multi-sensor, high confidence</td><td>Every source, incl. targeted single-sensor activity</td></tr>
 <tr><th scope="row">Context per IP</th><td>ASN, country, tags</td><td>Ports, protocols, full session timeline</td></tr>
@@ -292,7 +310,7 @@ ${integrations()}
 <tr><th scope="row">History</th><td>7 to 30 days</td><td>365 days</td></tr>
 <tr><th scope="row">Private sensors</th><td class="dim">-</td><td>Mirage honeypots on your own IP space, with alerts</td></tr>
 </tbody></table></div>
-<a class="cta" href="${esc(CTA_URL)}">Sign up at mirage.offseq.com</a>
+<a class="cta" href="${esc(upsell("compare"))}">Sign up at mirage.offseq.com</a>
 </section>
 
 <section id="verify" aria-labelledby="h-verify"><h2 id="h-verify">Verify a download</h2>
@@ -301,8 +319,8 @@ ${integrations()}
 ${pre(`curl -fsSLO ${BASE}/SHA256SUMS -O ${BASE}/SHA256SUMS.minisig
 curl --create-dirs -fsSLo latest/ipv4-7d.txt ${BASE}/latest/ipv4-7d.txt
 minisign -Vm SHA256SUMS -P ${MINISIGN_PUBKEY}
-sha256sum -c --ignore-missing SHA256SUMS`)}
-<p class="dim">On macOS, use <code>shasum -a 256 -c</code> in place of <code>sha256sum -c</code>.</p>
+sha256sum -c --ignore-missing SHA256SUMS`, "Verification commands")}
+<p class="dim">On macOS, use <code>shasum -a 256 -c</code> in place of <code>sha256sum -c</code>. The public key is also published at <a href="/.well-known/mirage-feed-minisign.pub">/.well-known/mirage-feed-minisign.pub</a> and in the <a href="${REPO_URL}">repository</a>.</p>
 </section>
 
 <section id="removal" aria-labelledby="h-removal"><h2 id="h-removal">Removal</h2>
@@ -313,4 +331,34 @@ sha256sum -c --ignore-missing SHA256SUMS`)}
 <section aria-labelledby="h-see"><h2 id="h-see">See also</h2>
 <p><a href="/privacy">privacy</a>, <a href="${REPO_URL}">github.com/offseq/mirage-feed</a>, <a href="/mirage-feed/schema/record.schema.json">record.schema.json</a>, <a href="https://offseq.com/en/research/">OffSeq research</a>, <a href="https://www.first.org/tlp/">FIRST TLP 2.0</a></p>
 </section>`;
+}
+
+const MAIN_FORMATS: [string, string][] = [
+  ["latest/ipv4-7d.txt", "text/plain"],
+  ["latest/attackers-7d.csv", "text/csv"],
+  ["latest/records-7d.ndjson.gz", "application/x-ndjson"],
+  ["latest/stix/mirage.json", "application/stix+json"],
+  ["misp/manifest.json", "application/json"],
+];
+
+// Escaped so "</script>" can never close the data block early.
+export function datasetLd(feed: FeedIndex | null): string {
+  const modified = feed?.generated && ISO.test(feed.generated) && Number.isFinite(Date.parse(feed.generated)) ? feed.generated : undefined;
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    name: "Mirage Feed",
+    description:
+      "Daily threat intelligence from the OffSeq Mirage honeypot fleet: handshake-verified attacker IP addresses seen by several sensors, exploited CVEs, payload and C2 URLs, malware hashes and tool fingerprints.",
+    url: `${SITE}/`,
+    sameAs: REPO_URL,
+    license: "https://creativecommons.org/licenses/by/4.0/",
+    isAccessibleForFree: true,
+    creator: { "@type": "Organization", name: "OffSeq", url: "https://offseq.com" },
+    keywords: ["threat intelligence", "blocklist", "honeypot", "IP reputation", "STIX", "MISP", "CVE", "indicators of compromise"],
+    ...(modified ? { dateModified: modified } : {}),
+    temporalCoverage: modified ? `${new Date(Date.parse(modified) - 7 * 86_400_000).toISOString().slice(0, 10)}/${modified.slice(0, 10)}` : "P7D",
+    distribution: MAIN_FORMATS.map(([path, format]) => ({ "@type": "DataDownload", contentUrl: `${BASE}/${path}`, encodingFormat: format })),
+  };
+  return `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>`;
 }

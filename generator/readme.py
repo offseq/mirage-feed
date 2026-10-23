@@ -29,22 +29,24 @@ def stats_block(s: Snapshot) -> str:
     cve_label = "CVEs exploited" + (" (all CISA KEV)" if cves and kev == len(cves) else f" ({kev} in CISA KEV)")
     passwords = min(len(s.lists["passwords"]), 100)
     rows = [
-        ("Source IPs active in the last 24 h", _n(obs.get("ips")), _n(pub.get("active_24h"))),
-        ("Source IPs, 7-day list", NONE, _n(pub.get("ips"))),
-        ("IPv4, 30-day list", NONE, _n(pub.get("ips_30d"))),
-        ("Networks (ASNs)", _n(obs.get("asns")), _n(pub.get("asns"))),
-        ("Countries", _n(obs.get("countries")), _n(pub.get("countries"))),
-        (cve_label, _n(obs.get("cves")), _n(pub.get("cves"))),
-        ("Payload / download URLs", _n(obs.get("urls")), _n(pub.get("urls"))),
-        ("Malware hashes", _n(obs.get("hashes")), _n(pub.get("hashes"))),
-        ("Tooling fingerprints", NONE, _n(pub.get("fingerprints"))),
-        ("Research scanners (excluded)", NONE, _n(pub.get("scanners"))),
+        ("Source IPs active in the last 24 h", _n(obs.get("ips")), _n(pub.get("active_24h")), "24 h"),
+        ("Source IPs", NONE, _n(pub.get("ips")), "7 days"),
+        ("VPN / Tor exits (only in `anonymizers-7d.txt`)", NONE, _n(pub.get("anonymizers")), "7 days"),
+        ("IPv4 addresses (`ipv4-30d.txt`)", NONE, _n(pub.get("ips_30d")), "30 days"),
+        ("Networks (ASNs)", _n(obs.get("asns")), _n(pub.get("asns")), "7 days"),
+        ("Countries", _n(obs.get("countries")), _n(pub.get("countries")), "7 days"),
+        (cve_label, _n(obs.get("cves")), _n(pub.get("cves")), "7 days"),
+        ("Payload / download URLs", _n(obs.get("urls")), _n(pub.get("urls")), "7 days"),
+        ("Malware hashes", _n(obs.get("hashes")), _n(pub.get("hashes")), "7 days"),
+        ("Tooling fingerprints (JA4+, HASSH)", NONE, _n(pub.get("fingerprints")), "7 days"),
+        ("Research scanners (excluded)", NONE, _n(pub.get("scanners")), "7 days"),
         (
             "Credential pairs tried",
             _n(obs.get("credential_pairs")),
             f"top {passwords} passwords" if passwords else NONE,
+            "7 days",
         ),
-        ("Session transcripts", _events(obs.get("events")), NONE),
+        ("Events", _events(obs.get("events")), NONE, NONE),
     ]
     stamp = parse_ts(s.generated).strftime("%Y-%m-%d %H:%M UTC")
     delay = s.policy.get("delay_hours", 24)
@@ -53,11 +55,12 @@ def stats_block(s: Snapshot) -> str:
             START,
             "### Today's snapshot",
             "",
-            "| | Mirage, last 24 h | In the feed |",
-            "|---|---:|---:|",
-            *(f"| {a} | {b} | {c} |" for a, b, c in rows),
+            "| | Observed by Mirage, last 24 h | In the feed | Feed window |",
+            "|---|---:|---:|---|",
+            *(f"| {a} | {b} | {c} | {d} |" for a, b, c, d in rows),
             "",
-            f"<sub>Snapshot {stamp} · lists cover 7 days of activity (30 for ipv4-30d) · "
+            f"<sub>Snapshot {stamp} · the observed column counts everything the fleet saw in the 24 h before the "
+            f"snapshot; the feed column counts what passed the listing rules over the window shown · "
             f"entries are published {delay} h after first sighting · "
             '<a href="#how-an-ip-gets-listed">methodology</a></sub>',
             END,

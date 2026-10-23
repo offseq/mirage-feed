@@ -1,4 +1,6 @@
+import { APP_PATH } from "./assets";
 import { isShadow, type Env } from "./env";
+import { SITE } from "./html";
 import { CSS } from "./style";
 
 let styleHash: Promise<string> | null = null;
@@ -11,14 +13,19 @@ function cssHash(): Promise<string> {
   return styleHash;
 }
 
-export type Kind = "page" | "removal" | "file";
+// page: HTML; removal: HTML with Turnstile; lookup: HTML without CSP reports, whose document URL would carry
+// the looked-up address; feed: public cross-origin data; asset: same-origin static files.
+export type Kind = "page" | "removal" | "lookup" | "feed" | "asset";
 
 const TURNSTILE = "https://challenges.cloudflare.com";
+// The report collector accepts the legacy report-uri format only; it answers 422 to Reporting API batches.
+export const CSP_REPORT = "https://mirage.offseq.com/_t/csp";
+const TRUSTED_TYPES = "require-trusted-types-for 'script'; trusted-types 'none'";
 
-export async function pageCsp(turnstile = false): Promise<string> {
+export async function pageCsp(turnstile = false, report = true): Promise<string> {
   return [
     "default-src 'none'",
-    `script-src 'self'${turnstile ? ` ${TURNSTILE}` : ""}`,
+    `script-src ${SITE}${APP_PATH}${turnstile ? ` ${TURNSTILE}` : ""}`,
     ...(turnstile ? [`frame-src ${TURNSTILE}`] : []),
     `style-src ${await cssHash()}`,
     "font-src 'self'",
@@ -27,21 +34,32 @@ export async function pageCsp(turnstile = false): Promise<string> {
     "form-action 'self'",
     "base-uri 'none'",
     "frame-ancestors 'none'",
+    ...(turnstile ? [] : [TRUSTED_TYPES]),
+    ...(report ? [`report-uri ${CSP_REPORT}`] : []),
   ].join("; ");
 }
 
 const FILE_CSP = "default-src 'none'; frame-ancestors 'none'; sandbox";
 
+export const PERMISSIONS_POLICY = [
+  "accelerometer", "autoplay", "bluetooth", "browsing-topics", "camera", "display-capture", "encrypted-media", "gamepad",
+  "geolocation", "gyroscope", "hid", "idle-detection", "local-fonts", "magnetometer", "microphone", "midi", "payment",
+  "picture-in-picture", "publickey-credentials-create", "publickey-credentials-get", "screen-wake-lock", "serial", "usb",
+  "web-share", "xr-spatial-tracking",
+].map((f) => `${f}=()`).join(", ");
+
 export async function secure(res: Response, env: Env, kind: Kind): Promise<Response> {
   const out = new Response(res.body, res);
   const h = out.headers;
-  h.set("content-security-policy", kind === "file" ? FILE_CSP : await pageCsp(kind === "removal"));
-  h.set("strict-transport-security", "max-age=63072000; includeSubDomains");
+  const html = kind === "page" || kind === "removal" || kind === "lookup";
+  h.set("content-security-policy", html ? await pageCsp(kind === "removal", kind !== "lookup") : FILE_CSP);
+  h.set("strict-transport-security", "max-age=63072000; includeSubDomains; preload");
   h.set("x-content-type-options", "nosniff");
   h.set("referrer-policy", "strict-origin-when-cross-origin");
-  h.set("permissions-policy", "accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()");
+  h.set("permissions-policy", PERMISSIONS_POLICY);
   h.set("x-frame-options", "DENY");
   h.set("cross-origin-opener-policy", "same-origin");
+  h.set("cross-origin-resource-policy", kind === "feed" ? "cross-origin" : "same-origin");
   if (isShadow(env)) h.set("x-robots-tag", "noindex, nofollow");
   return out;
 }

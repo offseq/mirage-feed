@@ -1,9 +1,10 @@
 import type { Env } from "./env";
 
 const OCTET = "(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
-const V4 = new RegExp(`^${OCTET}(?:\\.${OCTET}){3}$`);
+export const V4 = new RegExp(`^${OCTET}(?:\\.${OCTET}){3}$`);
 const EMAIL = /^[^\s@<>"]{1,64}@[^\s@<>"]+\.[^\s@<>".]{2,}$/;
 export const MAX_BODY = 8192;
+const TURNSTILE_HOST = "feeds.offseq.com";
 export const REASON_MIN = 20;
 export const REASON_MAX = 2000;
 
@@ -13,13 +14,13 @@ const V4_BOGONS: [number, number][] = [
   [0xe0000000, 3],
 ];
 
-function publicV4(addr: string): boolean {
+export function publicV4(addr: string): boolean {
   const n = addr.split(".").reduce((acc, o) => acc * 256 + Number(o), 0);
   return !V4_BOGONS.some(([net, bits]) => Math.floor(n / 2 ** (32 - bits)) === Math.floor(net / 2 ** (32 - bits)));
 }
 
 // Global unicast 2000::/3 only, minus documentation space; this also rules out ::, ::1, v4-mapped, ULA, link-local and multicast.
-function publicV6(addr: string): boolean {
+export function publicV6(addr: string): boolean {
   if (addr.startsWith(":")) return false;
   const first = parseInt(addr.split(":")[0], 16);
   return first >= 0x2000 && first <= 0x3fff && !/^2001:0*db8(?::|$)/i.test(addr);
@@ -111,7 +112,8 @@ export async function verifyTurnstile(token: string, clientIp: string, env: Env)
       body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token, remoteip: clientIp }),
       signal: AbortSignal.timeout(10_000),
     });
-    return ((await res.json()) as { success?: boolean }).success === true;
+    const j = (await res.json()) as { success?: boolean; hostname?: string; action?: string };
+    return j.success === true && j.hostname === TURNSTILE_HOST && j.action === "removal";
   } catch {
     return false;
   }

@@ -22,13 +22,17 @@ IP_LISTS = {
     "latest/ipv4-top10k.txt": (4, "bare"),
     "latest/ipv4-7d-cidr32.txt": (4, "cidr"),
     "latest/ipv6-7d.txt": (6, "cidr"),
+    "latest/ipv4-added-1d.txt": (4, "bare"),
+    "latest/ipv4-removed-1d.txt": (4, "bare"),
 }
+ANONYMIZERS = "latest/anonymizers-7d.txt"
 SCANNER_LISTS = {"latest/known-scanners-ipv4.txt": 4, "latest/known-scanners-ipv6.txt": 6}
 IP_CSVS = ("latest/attackers-7d.csv", "latest/attackers-ipv4-7d.csv", "latest/defender/defender-top500.csv")
 REQUIRED = (
     *IP_LISTS,
     *SCANNER_LISTS,
     *IP_CSVS,
+    ANONYMIZERS,
     "latest/urls-7d.txt",
     "latest/domains-7d.txt",
     "latest/hashes-sha256-30d.txt",
@@ -53,6 +57,9 @@ REQUIRED = (
     "schema/record.schema.json",
     "feed.json",
     "stats.json",
+    "history.json",
+    "og.png",
+    "og-github.png",
     "SHA256SUMS",
 )
 HOST_PREFIX = {4: 32, 6: 64}
@@ -81,6 +88,7 @@ CONCENTRATION_MIN = 200
 # Hosting ASNs legitimately dominate some days; a poisoning swap shows up as a jump over yesterday's share.
 MAX_ASN_SHARE, ASN_JUMP = 0.25, 0.10
 MAX_SLASH16_SHARE, SLASH16_JUMP = 0.05, 0.05
+STIX_IP = re.compile(r"\[ipv[46]-addr:value = '([^']+)'\]")
 BASE64_FILES = ("latest/suricata/datasets/paths.lst", "latest/suricata/datasets/uas.lst")
 LEAK_ENV = ("MIRAGE_LEAK_PATTERNS", "MIRAGE_LEAK_LITERALS")
 
@@ -112,6 +120,7 @@ def _ip_entries(out: Path) -> list[tuple[str, str, int, str]]:
     entries = []
     for rel, (family, form) in IP_LISTS.items():
         entries += [(rel, v, family, form) for v in _lines(out, rel)]
+    entries += [_guess(ANONYMIZERS, v) for v in _lines(out, ANONYMIZERS)]
     entries += [
         _guess("latest/records-7d.ndjson.gz", r["value"]) for r in _records(out) if r.get("type") in ("ipv4", "ipv6")
     ]
@@ -131,6 +140,12 @@ def _ip_entries(out: Path) -> list[tuple[str, str, int, str]]:
 def check_ips(out: Path, allowlist: Allowlist, canary: Allowlist) -> list[str]:
     errors = []
     entries = _ip_entries(out)
+    aged = set(_lines(out, "latest/ipv4-30d.txt"))
+    errors += [
+        f"latest/ipv4-removed-1d.txt: {v} is not in ipv4-30d.txt"
+        for v in _lines(out, "latest/ipv4-removed-1d.txt")
+        if v not in aged
+    ]
     for (rel, value), n in sorted(Counter((e[0], e[1]) for e in entries).items()):
         if n > 1:
             errors.append(f"{rel}: duplicate entry {value}")
@@ -152,6 +167,52 @@ def check_ips(out: Path, allowlist: Allowlist, canary: Allowlist) -> list[str]:
         elif hit := allowlist.hit(net):
             errors.append(f"{rel}: {value} overlaps allowlisted {hit}")
     return errors
+
+
+def _blocklists(out: Path) -> dict[str, set[str]]:
+    """Entries, by path, of every file a firewall, IDS or EDR blocks or alerts on."""
+    found = {rel: set(_lines(out, rel)) for rel in IP_LISTS}
+    found["latest/ipv4-7d-cidr32.txt"] = {v.removesuffix("/32") for v in found["latest/ipv4-7d-cidr32.txt"]}
+    found["latest/defender/defender-top500.csv"] = set(_csv_column(out, IP_CSVS[2], "IndicatorValue"))
+    found["latest/crowdsec/mirage-7d.csv"] = set(_csv_column(out, "latest/crowdsec/mirage-7d.csv", "value"))
+    found["latest/suricata/mirage-iprep.list"] = {
+        line.split(",", 1)[0] for line in _lines(out, "latest/suricata/mirage-iprep.list")
+    }
+    found["latest/suricata/datasets/ips.lst"] = set(_lines(out, "latest/suricata/datasets/ips.lst"))
+    zeek = [line.split("\t") for line in _lines(out, "latest/zeek/mirage.intel")[1:]]
+    found["latest/zeek/mirage.intel"] = {r[0] for r in zeek if r[1] in ("Intel::ADDR", "Intel::SUBNET")}
+    found["latest/nft/mirage.nft"] = {
+        ip
+        for line in _lines(out, "latest/nft/mirage.nft")
+        if line.startswith("add element ")
+        for ip in line.split("{ ", 1)[1].removesuffix(" }").split(", ")
+    }
+    found["latest/ipset/mirage.ipset"] = {
+        line.split()[2] for line in _lines(out, "latest/ipset/mirage.ipset") if line.startswith("add ")
+    }
+    for path in sorted((out / "misp").glob("*.json")):
+        if path.name != "manifest.json":
+            attrs = json.loads(path.read_text(encoding="utf-8"))["Event"].get("Attribute", [])
+            found[f"misp/{path.name}"] = {a["value"] for a in attrs if a["type"] == "ip-src" and a.get("to_ids")}
+    bundle = json.loads((out / "latest/stix/mirage.json").read_text(encoding="utf-8"))
+    found["latest/stix/mirage.json"] = {
+        m.group(1)
+        for o in bundle.get("objects", [])
+        if o.get("type") == "indicator" and "malicious-activity" in o.get("indicator_types", [])
+        if (m := STIX_IP.fullmatch(o.get("pattern", "")))
+    }
+    rsc = (out / "latest/mikrotik/mirage-7d.rsc").read_text(encoding="utf-8")
+    found["latest/mikrotik/mirage-7d.rsc"] = set(re.findall(r"add list=mirage-feed address=(\S+)", rsc))
+    return found
+
+
+def check_anonymizers(out: Path) -> list[str]:
+    anon = set(_lines(out, ANONYMIZERS))
+    return [
+        f"{rel}: anonymizer {value} is in a block list"
+        for rel, values in sorted(_blocklists(out).items())
+        for value in sorted(anon & values)
+    ]
 
 
 def check_scanners(out: Path, canary: Allowlist) -> list[str]:
@@ -349,6 +410,7 @@ def run(
         *check_leaks(out, list(leak_patterns), list(leak_literals), require_leak_rules),
         *check_ips(out, Allowlist(allowlist), canaries),
         *check_scanners(out, canaries),
+        *check_anonymizers(out),
         *check_delta(out, prev, allow_delta, bootstrap),
         *([] if allow_delta else check_concentration(rows, prev_rows)),
         *check_schema(out),

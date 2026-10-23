@@ -33,7 +33,10 @@ export const APP_JS = `"use strict";
   const submit = form.querySelector("button[type=submit]");
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
-    for (const f of form.querySelectorAll("[aria-invalid]")) f.removeAttribute("aria-invalid");
+    for (const f of form.querySelectorAll("[aria-invalid]")) {
+      f.removeAttribute("aria-invalid");
+      f.setAttribute("aria-describedby", f.id + "-hint");
+    }
     submit.disabled = true;
     submit.textContent = "Sending";
     try {
@@ -55,10 +58,15 @@ export const APP_JS = `"use strict";
       msg.hidden = false;
       msg.textContent = data.error;
       const field = data.field && form.elements.namedItem(data.field);
-      if (field) { field.setAttribute("aria-invalid", "true"); field.focus(); }
+      if (field) {
+        field.setAttribute("aria-invalid", "true");
+        field.setAttribute("aria-describedby", field.id + "-hint form-msg");
+        field.focus();
+      } else msg.focus();
     } catch {
       msg.hidden = false;
       msg.textContent = "Network error. Try again, or write to abuse@offseq.com.";
+      msg.focus();
     }
     if (window.turnstile) window.turnstile.reset();
     submit.disabled = false;

@@ -121,7 +121,10 @@ def test_missing_previous_needs_bootstrap(out, tmp_path):
     assert any("--bootstrap" in e for e in run(out, empty))
 
 
-DOC_IPS = [f"{net}.{i}" for net in ("198.51.100", "203.0.113") for i in range(1, 255)]
+ANONYMIZERS = {"198.51.100.24", "203.0.113.31"}
+DOC_IPS = [
+    f"{net}.{i}" for net in ("198.51.100", "203.0.113") for i in range(1, 255) if f"{net}.{i}" not in ANONYMIZERS
+]
 
 
 def set_lists(out, prev, old: list[str], new: list[str], rel="latest/ipv4-7d.txt"):
@@ -171,6 +174,51 @@ def test_concentration():
     assert any("AS64500 holds 30%" in e for e in check.check_concentration(half))
     assert check.check_concentration(half, prev_rows=half[:380]) == []
     assert any("AS64500" in e for e in check.check_concentration(half, prev_rows=half[120:]))
+
+
+@pytest.mark.parametrize(
+    ("rel", "line"),
+    [
+        ("latest/ipv4-top1k.txt", "198.51.100.24"),
+        ("latest/ipv6-7d.txt", "2001:db8:3:32::/64"),
+        ("latest/suricata/mirage-iprep.list", "203.0.113.31,1,100"),
+        ("latest/suricata/datasets/ips.lst", "203.0.113.31"),
+        ("latest/ipset/mirage.ipset", "add mirage4-tmp 198.51.100.24"),
+        ("latest/nft/mirage.nft", "add element inet mirage_feed bad4 { 198.51.100.24 }"),
+        ("latest/mikrotik/mirage-7d.rsc", ":do { add list=mirage-feed address=198.51.100.24 timeout=7d }"),
+        ("latest/crowdsec/mirage-7d.csv", "168h,Ip,198.51.100.24,mirage-feed"),
+        ("latest/zeek/mirage.intel", "198.51.100.24\tIntel::ADDR\tmirage-feed\tx\ty"),
+    ],
+)
+def test_anonymizer_in_blocklist_trips(out, rel, line):
+    append(out / rel, line)
+    assert any(e.startswith(f"{rel}: anonymizer ") for e in run(out))
+
+
+def test_removed_must_have_aged_out(out):
+    append(out / "latest/ipv4-removed-1d.txt", "203.0.113.8")
+    assert run(out) == []
+    append(out / "latest/ipv4-removed-1d.txt", "198.51.100.250")
+    assert "latest/ipv4-removed-1d.txt: 198.51.100.250 is not in ipv4-30d.txt" in run(out)
+
+
+def test_anonymizer_with_ids_in_misp_trips(out):
+    event = next(p for p in (out / "misp").glob("*-*.json"))
+    body = json.loads(event.read_text())
+    attr = next(a for a in body["Event"]["Attribute"] if a["value"] == "198.51.100.24")
+    attr["to_ids"] = True
+    event.write_text(json.dumps(body))
+    assert any(e.startswith(f"misp/{event.name}: anonymizer 198.51.100.24") for e in run(out))
+
+
+def test_anonymizer_as_malicious_stix_indicator_trips(out):
+    path = out / "latest/stix/mirage.json"
+    bundle = json.loads(path.read_text())
+    for o in bundle["objects"]:
+        if o.get("pattern") == "[ipv4-addr:value = '198.51.100.24']":
+            o["indicator_types"] = ["malicious-activity"]
+    path.write_text(json.dumps(bundle))
+    assert "latest/stix/mirage.json: anonymizer 198.51.100.24 is in a block list" in run(out)
 
 
 def test_schema_violation_trips(out):

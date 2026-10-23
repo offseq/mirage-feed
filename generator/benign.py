@@ -119,19 +119,92 @@ PUBLIC_SUFFIXES = frozenset(
         "gq",
     ]
 )
-DENY_PATHS = frozenset({"/", "/favicon.ico", "/robots.txt", "/sitemap.xml", "/index.html"})
-# Self-identifying search and archive crawlers fetch everything; listing them as attackers is a false positive.
-CRAWLER_UA = re.compile(
-    r"\b(CCBot|Googlebot|bingbot|Applebot|YandexBot|DuckDuckBot|Baiduspider|AhrefsBot|SemrushBot|MJ12bot|DotBot"
-    r"|PetalBot|facebookexternalhit|GPTBot|ClaudeBot|Amazonbot|Bytespider|archive\.org_bot|ia_archiver)\b",
+DENY_PATHS = frozenset(
+    {
+        "/",
+        "/favicon.ico",
+        "/robots.txt",
+        "/sitemap.xml",
+        "/sitemap_index.xml",
+        "/index.html",
+        "/index.php",
+        "/ads.txt",
+        "/security.txt",
+        "/login",
+        "/signin",
+        "/sign-in",
+        "/logout",
+        "/admin",
+        "/admin/login",
+        "/auth",
+        "/auth/login",
+        "/user/login",
+        "/users/login",
+        "/account/login",
+        "/password/reset",
+        "/api",
+        "/graphql",
+        "/health",
+        "/about",
+        "/contact",
+        "/careers",
+        "/checkout",
+        "/privacy",
+        "/register",
+        "/signup",
+        "/dashboard",
+        "/docs",
+        "/feed",
+        "/services",
+        "/portal",
+        "/wp-login.php",
+        "/wp-admin",
+        "/wp-admin/admin-ajax.php",
+        "/wp-json",
+        "/xmlrpc.php",
+        "/autodiscover/autodiscover.json",
+        "/remote/login",
+        "/logon/logonpoint/index.html",
+        "/vpn/index.html",
+        "/actuator/health",
+        "/assets/js/app.min.js",
+        "/assets/css/app.min.css",
+        "/mcp",
+        "/sse",
+        "/v1/models",
+    }
+)
+# LeakIX encodes the scanned target in /s/<token>/; long hex or base64 runs are per-target tokens too.
+TOKEN_PATH = re.compile(
+    r"/s/[^/]+/|[0-9a-fA-F]{16,}|(?=[A-Za-z0-9+=]*[0-9])(?=[A-Za-z0-9+=]*[A-Za-z])[A-Za-z0-9+=]{16,}"
+)
+EXPLOIT_PATH = re.compile(
+    r"\.\.|;|%2e|%%32|\$\{|cgi-bin|/etc/passwd|/bin/sh|invoker/|/HNAP1|boaform|setup\.cgi|GponForm|tmUnblock\.cgi"
+    r"|php-cgi|eval-stdin\.php|\.php\?.*[;|`$&<>]",
     re.I,
 )
-BROWSER_UA = re.compile(r"^Mozilla/5\.0 .*\b(Chrome|Firefox|Safari|Edg)/")
-TOOL_UA = re.compile(
-    r"bot|crawl|spider|scan|curl|wget|python|go-http|zgrab|masscan|nmap|nikto|sqlmap|nuclei|gobuster|dirbuster|"
-    r"ffuf|httpx|java/|libwww|okhttp|axios|node-fetch|headless|phantom|selenium",
+# A tool named here is distinctive even when its UA would otherwise read as a scanner or a library.
+ATTACK_TOOL_UA = re.compile(
+    r"zgrab|masscan|nmap|nikto|sqlmap|nuclei|gobuster|dirbuster|ffuf|wpscan|hydra|friendly-scanner|sipvicious"
+    r"|libredtail|hello,? ?world",
     re.I,
 )
+SELF_ID_UA = re.compile(
+    r"bot|crawl|spider|scan|archiver|fetcher|externalagent|webindexer|inspect|measurement|infrawatch|xpanse"
+    r"|research|reconnaissance|authorized|cohere-ai|https?://|www\.|@",
+    re.I,
+)
+LIBRARY_UA = re.compile(
+    r"^(curl|wget|python-requests|python-urllib|python-httpx|aiohttp|go-http-client|okhttp|axios|node-fetch|undici"
+    r"|java|apache-httpclient|libwww-perl|vlc|ureq|reqwest|postmanruntime)\b",
+    re.I,
+)
+BROWSER_TOKENS = frozenset(
+    {"mozilla", "applewebkit", "chrome", "chromium", "safari", "firefox", "gecko", "version", "mobile", "edg", "edga",
+     "edge", "opr", "crios", "fxios", "yabrowser", "samsungbrowser", "trident", "vivaldi", "electron", "xiaomi",
+     "miuibrowser", "ucbrowser", "huaweibrowser"}
+)  # fmt: skip
+PARENS = re.compile(r"\([^)]*\)?")
 
 
 @cache
@@ -155,11 +228,31 @@ def domain_ok(domain: str) -> bool:
     return not any(s in deny for s in _suffixes(domain))
 
 
+def _path_key(path: str) -> str:
+    key = re.sub(r"/{2,}", "/", path.casefold()).rstrip("/") or "/"
+    return key.removeprefix("/api") if key.startswith("/api/") else key
+
+
 def path_ok(path: str) -> bool:
-    return len(path) >= 3 and path not in DENY_PATHS and not path.startswith("/.well-known/")
+    if len(path) < 3 or path.startswith("/.well-known/") or _path_key(path) in DENY_PATHS:
+        return False
+    if "@" in path.removeprefix("/@vite/"):
+        return False
+    return not TOKEN_PATH.search(path)
+
+
+def distinctive_path(path: str, cves) -> bool:
+    return bool(cves) or bool(EXPLOIT_PATH.search(path))
+
+
+def _browser(ua: str) -> bool:
+    products = PARENS.sub(" ", ua).split()
+    return all(p.split("/", 1)[0].casefold() in BROWSER_TOKENS for p in products)
 
 
 def user_agent_ok(ua: str) -> bool:
-    if not ua.strip() or CRAWLER_UA.search(ua):
+    if not ua.strip():
         return False
-    return not (BROWSER_UA.search(ua) and not TOOL_UA.search(ua))
+    if ATTACK_TOOL_UA.search(ua):
+        return True
+    return not (SELF_ID_UA.search(ua) or LIBRARY_UA.search(ua) or _browser(ua))

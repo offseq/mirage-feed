@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { APP_JS } from "../src/app";
-import { renderHome } from "../src/home";
+import { APP_PATH, FONT_400, FONT_600 } from "../src/assets";
+import { datasetLd, renderHome } from "../src/home";
 import { layout } from "../src/html";
 
 const read = (name: string) => JSON.parse(readFileSync(new URL(`../fixtures/${name}`, import.meta.url), "utf8"));
@@ -12,10 +13,11 @@ const html = layout({
   body: renderHome(feed, read("stats.json"), Date.parse(feed.generated)),
   shadow: false,
   day: feed.day,
+  head: datasetLd(feed),
 })
-  .replaceAll("/fonts/plex-mono-400.woff2", "../fonts/ibm-plex-mono-latin-400-normal.woff2")
-  .replaceAll("/fonts/plex-mono-600.woff2", "../fonts/ibm-plex-mono-latin-600-normal.woff2")
-  .replace('src="/app.js"', 'src="app.js"');
+  .replaceAll(FONT_400, "../fonts/ibm-plex-mono-latin-400-normal.woff2")
+  .replaceAll(FONT_600, "../fonts/ibm-plex-mono-latin-600-normal.woff2")
+  .replace(`src="${APP_PATH}"`, 'src="app.js"');
 
 const out = new URL("../preview/", import.meta.url);
 mkdirSync(out, { recursive: true });

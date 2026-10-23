@@ -2,8 +2,8 @@ export const CSS = `/* Hallmark · custom (tuned) · Long Document in man-page r
 @font-face{font-family:"Plex Mono";src:url(/fonts/plex-mono-400.woff2) format("woff2");font-weight:400;font-display:swap}
 @font-face{font-family:"Plex Mono";src:url(/fonts/plex-mono-600.woff2) format("woff2");font-weight:600;font-display:swap}
 :root{
---paper:oklch(97.6% .007 85);--paper-2:oklch(94.6% .009 85);--ink:oklch(23% .022 255);--ink-2:oklch(45% .02 255);
---rule:oklch(85% .012 85);--accent:oklch(47% .085 222);--accent-soft:oklch(84% .035 222);--focus:oklch(55% .15 230);
+--paper:oklch(97.6% .007 85);--paper-2:oklch(94.6% .009 85);--ink:oklch(23% .022 255);--ink-2:oklch(42% .02 255);
+--rule:oklch(85% .012 85);--accent:oklch(43% .085 222);--accent-soft:oklch(84% .035 222);--focus:oklch(55% .15 230);
 --error:oklch(48% .15 28);--tlp-bg:#000;--tlp-fg:#fff;
 --font-mono:"Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
 --space-1:.25rem;--space-2:.5rem;--space-3:1rem;--space-4:1.5rem;--space-5:2.5rem;--space-6:4rem;
@@ -37,6 +37,8 @@ h3{margin-top:var(--space-4)}
 section{padding-left:var(--indent);min-width:0}
 section>h1,section>h2{margin-left:calc(-1 * var(--indent))}
 p{margin:var(--space-2) 0 0;max-width:76ch}
+p,li{overflow-wrap:anywhere}
+.addr{text-transform:none;overflow-wrap:anywhere}
 ul,ol{margin:var(--space-2) 0 0;padding-left:3ch;max-width:74ch}
 li+li{margin-top:var(--space-1)}
 code,pre,kbd,samp{font:inherit}
@@ -85,12 +87,15 @@ details[open]>summary::before{content:"[-] "}
 summary:hover{color:var(--accent)}
 details>:last-child{margin-bottom:var(--space-3)}
 .empty{border:1px dashed var(--rule);padding:var(--space-3);margin-top:var(--space-3);color:var(--ink-2)}
-.cta{display:inline-block;margin-top:var(--space-4);padding:var(--space-2) 2ch;background:var(--ink);color:var(--paper);text-decoration:none;font-weight:600;white-space:nowrap}
+.cta{display:inline-block;margin-top:var(--space-4);padding:var(--space-2) 2ch;background:var(--ink);color:var(--paper);text-decoration:none;font-weight:600}
 .cta:hover{background:var(--accent);color:var(--paper)}
 .cta:active{transform:translateY(1px)}
 form{margin-top:var(--space-3);max-width:60ch}
 label{display:block;margin-top:var(--space-3);font-weight:600}
-label .dim{font-weight:400}
+.hint{display:block;color:var(--ink-2)}
+.lookup .row{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:stretch}
+.lookup input{flex:1 1 24ch;width:auto}
+.lookup button[type=submit]{margin-top:var(--space-1)}
 input,textarea{display:block;width:100%;margin-top:var(--space-1);font:inherit;color:var(--ink);background:var(--paper-2);border:1px solid var(--rule);border-radius:0;padding:var(--space-2)}
 input:hover,textarea:hover{border-color:var(--ink-2)}
 input:focus-visible,textarea:focus-visible{border-color:var(--focus)}

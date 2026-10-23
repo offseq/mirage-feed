@@ -1,7 +1,10 @@
-from .common import Artifact, Snapshot, csv_bytes, expiry, lines
+from .common import ANONYMIZER_TAGS, Artifact, Snapshot, csv_bytes, expiry, lines
 
 CHAINS = ("input", "forward")
 DEFENDER_TOP = 500
+# Defender raises tenant-wide alerts: shared egress stays out, and so does recon with nothing worse behind it.
+DEFENDER_SKIP_TAGS = ANONYMIZER_TAGS
+RECON_ONLY_TAGS = frozenset({"web-scan"})
 DEFENDER_COLS = (
     "IndicatorType",
     "IndicatorValue",
@@ -81,6 +84,7 @@ def _severity(confidence: int) -> str:
 def defender(recs: list[dict]) -> list[list]:
     rows = []
     for r in recs:
+        severity = _severity(int(r["confidence"]))
         tags = ", ".join(r.get("tags", [])) or "attacker"
         desc = (
             f"Attacked {r['sensors']} OffSeq Mirage honeypots in {r['networks']} networks "
@@ -92,26 +96,26 @@ def defender(recs: list[dict]) -> list[list]:
                 r["ip"],
                 expiry(r["last_seen"]).strftime("%Y-%m-%dT%H:%M:%S.0Z"),
                 "Block",
-                _severity(int(r["confidence"])),
+                severity,
                 "Mirage feed: known attacker",
                 desc,
                 "Block inbound connections from this address.",
                 "",
                 "SuspiciousActivity",
                 (r.get("attack") or [""])[0],
-                "True",
+                str(severity != "Low"),
             ]
         )
     return rows
 
 
 def render(s: Snapshot) -> list[Artifact]:
-    recs = s.ips_in("7d")
+    recs = s.blockable("7d")
     v4 = [r["ip"] for r in recs if "/" not in r["ip"]]
     v6 = [r["ip"] for r in recs if "/" in r["ip"]]
     n = len(recs)
     cs = crowdsec(recs)
-    top = defender(s.ranked_v4(DEFENDER_TOP))
+    top = defender(s.ranked_v4(DEFENDER_TOP, DEFENDER_SKIP_TAGS, RECON_ONLY_TAGS))
     return [
         Artifact("latest/mikrotik/mirage-7d.rsc", mikrotik(v4, v6), "routeros-script", n, "7d", ("mikrotik",)),
         Artifact("latest/nft/mirage.nft", nft(v4, v6), "nftables", n, "7d", ("nftables",)),

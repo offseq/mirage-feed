@@ -1,6 +1,7 @@
 import base64
 
 from . import BASE_URL
+from .benign import distinctive_path
 from .common import Artifact, Snapshot, lines, network
 
 ZEEK_HEADER = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url"
@@ -28,7 +29,7 @@ def _zeek_value(value: str) -> str:
 
 def zeek(s: Snapshot) -> bytes:
     rows = []
-    for r in s.ips_in("7d"):
+    for r in s.blockable("7d"):
         kind = "Intel::ADDR" if network(r["ip"]).version == 4 else "Intel::SUBNET"
         rows.append((r["ip"], kind, f"attacker confidence={r['confidence']}"))
     rows += [(_zeek_value(r["url"]), "Intel::URL", f"{r['kind']} url") for r in s.lists["urls"]]
@@ -48,11 +49,11 @@ def _b64(values) -> list[str]:
 
 
 def render(s: Snapshot) -> list[Artifact]:
-    ips = s.ips_in("7d")
+    ips = s.blockable("7d")
     iprep = [f"{r['ip']},{CATEGORY_ID},{_score(r['confidence'])}" for r in ips]
     v4 = [r["ip"] for r in ips if network(r["ip"]).version == 4]
     sha = sorted({r["sha256"] for r in s.lists["hashes"]})
-    paths = _b64(r["value"] for r in s.lists["paths"])
+    paths = _b64(r["value"] for r in s.lists["paths"] if distinctive_path(r["value"], r.get("cves")))
     uas = _b64(r["value"] for r in s.lists["user_agents"])
     zeek_data = zeek(s)
     suri = ("suricata",)

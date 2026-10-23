@@ -220,6 +220,7 @@ jobs:
               *.csv) echo "text/csv; charset=utf-8" ;;
               *.json) echo "application/json" ;;
               *.gz) echo "application/gzip" ;;
+              *.png) echo "image/png" ;;
               *) echo "text/plain; charset=utf-8" ;;
             esac
           }

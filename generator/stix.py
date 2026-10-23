@@ -1,4 +1,4 @@
-from .common import Artifact, Snapshot, dumps, expiry, network, parse_ts, uid
+from .common import Artifact, Snapshot, anonymizer, dumps, expiry, network, parse_ts, uid
 
 TLP_CLEAR_ID = "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487"
 TLP_EXTENSION = "extension-definition--60a3c5c5-0d10-413e-aab3-9e08dde9e88d"
@@ -46,7 +46,7 @@ def _sdo(kind: str, key: str, created: str, modified: str, **props) -> dict:
     }
 
 
-def _indicator(name: str, pattern: str, rec: dict, **props) -> dict:
+def _indicator(name: str, pattern: str, rec: dict, kind: str = "malicious-activity", **props) -> dict:
     return _sdo(
         "indicator",
         pattern,
@@ -57,7 +57,7 @@ def _indicator(name: str, pattern: str, rec: dict, **props) -> dict:
         pattern_type="stix",
         valid_from=ts(rec["first_seen"]),
         valid_until=expiry(rec["last_seen"]).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-        indicator_types=["malicious-activity"],
+        indicator_types=[kind],
         **props,
     )
 
@@ -114,6 +114,8 @@ def bundle(s: Snapshot) -> dict:
                 f"Mirage attacker {rec['ip']}",
                 f"[{family}:value = '{escape(rec['ip'])}']",
                 rec,
+                # Shared VPN and Tor egress: anonymization context, not a malicious-activity block signal.
+                "anonymization" if anonymizer(rec) else "malicious-activity",
                 description=desc,
                 confidence=int(rec["confidence"]),
                 **({"labels": labels} if labels else {}),
