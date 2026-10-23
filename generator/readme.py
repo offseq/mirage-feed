@@ -29,7 +29,9 @@ def stats_block(s: Snapshot) -> str:
     cve_label = "CVEs exploited" + (" (all CISA KEV)" if cves and kev == len(cves) else f" ({kev} in CISA KEV)")
     passwords = min(len(s.lists["passwords"]), 100)
     rows = [
-        ("Source IPs", _n(obs.get("ips")), _n(pub.get("ips"))),
+        ("Source IPs active in the last 24 h", _n(obs.get("ips")), _n(pub.get("active_24h"))),
+        ("Source IPs, 7-day list", NONE, _n(pub.get("ips"))),
+        ("IPv4, 30-day list", NONE, _n(pub.get("ips_30d"))),
         ("Networks (ASNs)", _n(obs.get("asns")), _n(pub.get("asns"))),
         ("Countries", _n(obs.get("countries")), _n(pub.get("countries"))),
         (cve_label, _n(obs.get("cves")), _n(pub.get("cves"))),
@@ -49,13 +51,14 @@ def stats_block(s: Snapshot) -> str:
     return "\n".join(
         [
             START,
-            "### Last 24 hours",
+            "### Today's snapshot",
             "",
-            "| | Mirage observed | In this feed |",
+            "| | Mirage, last 24 h | In the feed |",
             "|---|---:|---:|",
             *(f"| {a} | {b} | {c} |" for a, b, c in rows),
             "",
-            f"<sub>Snapshot {stamp} · entries are published {delay} h after first sighting · "
+            f"<sub>Snapshot {stamp} · lists cover 7 days of activity (30 for ipv4-30d) · "
+            f"entries are published {delay} h after first sighting · "
             '<a href="#how-an-ip-gets-listed">methodology</a></sub>',
             END,
         ]

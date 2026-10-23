@@ -236,7 +236,8 @@ def test_readme_stats_idempotent(tmp_path):
     target = tmp_path / "README.md"
     assert readme.write(SNAPSHOT, template, target)
     first = target.read_text()
-    assert "{{" not in first and "| Source IPs | 8,715 |" in first and "Snapshot 2026-10-24 03:05 UTC" in first
+    assert "{{" not in first and "Snapshot 2026-10-24 03:05 UTC" in first
+    assert "| Source IPs active in the last 24 h | 8,715 |" in first
     assert not readme.write(SNAPSHOT, template, target)
     assert target.read_text() == first
     assert first.split(readme.END)[1] == readme.render_template(template.read_text()).split(readme.END)[1]
