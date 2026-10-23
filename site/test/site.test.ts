@@ -81,7 +81,8 @@ describe("pages", () => {
     const privacy = await (await call(env, "/privacy")).text();
     expect(privacy).toContain("Article 6(1)(f)");
     expect(privacy).toContain("dvi.gov.lv");
-    expect(privacy).toContain("[Legal entity name]");
+    expect(privacy).toContain("SEQ SIA, registration no. 40203410806");
+    expect(privacy).not.toContain('class="ph"');
     expect(privacy).toContain("The 100 most attempted passwords, without usernames.");
     expect(privacy).toContain("the MISP feed carries up to 7 previous daily events");
     expect(await (await call(env, "/robots.txt")).text()).toContain("Sitemap: https://feeds.offseq.com/sitemap.xml");

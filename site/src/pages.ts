@@ -42,7 +42,6 @@ export function renderRemovalSent(): string {
 </section>`;
 }
 
-const ph = (s: string) => `<span class="ph">[${esc(s)}]</span>`;
 
 export const PRIVACY_UPDATED = "2026-10-23";
 
@@ -52,7 +51,7 @@ export function renderPrivacy(): string {
 </section>
 
 <section aria-labelledby="h-controller"><h2 id="h-controller">Controller</h2>
-<p>${ph("Legal entity name")}, registration no. ${ph("Registration no.")}, ${ph("Address")}, trading as OffSeq. Contact for data protection matters: ${ph("Privacy contact email")}. Listing and removal requests: <a href="mailto:${ABUSE}">${ABUSE}</a>.</p>
+<p>SEQ SIA, registration no. 40203410806, Lastādijas iela 12 k-3, Riga, LV-1050, Latvia, trading as OffSeq. Contact for data protection matters: <a href="mailto:support@offseq.com">support@offseq.com</a>. Listing and removal requests: <a href="mailto:${ABUSE}">${ABUSE}</a>.</p>
 </section>
 
 <section aria-labelledby="h-what"><h2 id="h-what">What the feed publishes</h2>
@@ -78,7 +77,7 @@ export function renderPrivacy(): string {
 </section>
 
 <section aria-labelledby="h-recipients"><h2 id="h-recipients">Recipients</h2>
-<p>The feed is public under CC BY 4.0, so anyone can receive it. It is stored on GitHub (<a href="${REPO_URL}">offseq/mirage-feed</a>) and served through Cloudflare. Transfers outside the EEA and their safeguards: ${ph("Transfer mechanism for GitHub and Cloudflare")}.</p>
+<p>The feed is public under CC BY 4.0, so anyone can receive it. It is stored on GitHub (<a href="${REPO_URL}">offseq/mirage-feed</a>) and served through Cloudflare. GitHub and Cloudflare are US companies; transfers to them rely on the European Commission adequacy decision for the EU-US Data Privacy Framework, with Standard Contractual Clauses as the fallback.</p>
 </section>
 
 <section aria-labelledby="h-site"><h2 id="h-site">This website</h2>
@@ -86,7 +85,7 @@ export function renderPrivacy(): string {
 </section>
 
 <section aria-labelledby="h-requests"><h2 id="h-requests">Removal requests</h2>
-<p>The removal form collects the IP address to remove, your email and a reason, and passes on the IP address you send the form from so we can limit abuse. We use them only to handle the request and reply, and keep them for ${ph("Retention period for removal requests")}.</p>
+<p>The removal form collects the IP address to remove, your email and a reason, and passes on the IP address you send the form from so we can limit abuse. We use them only to handle the request and reply, and keep them for 12 months after the request is closed.</p>
 </section>
 
 <section aria-labelledby="h-rights"><h2 id="h-rights">Your rights</h2>

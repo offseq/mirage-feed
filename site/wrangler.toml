@@ -3,8 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2026-10-01"
 workers_dev = true
 
-# Enable once the operator moves feeds.offseq.com to this Worker.
-# routes = [{ pattern = "feeds.offseq.com", custom_domain = true }]
+routes = [{ pattern = "feeds.offseq.com", custom_domain = true }]
 
 rules = [{ type = "Data", globs = ["**/*.woff2"], fallthrough = false }]
 
@@ -20,11 +19,11 @@ namespace_id = "1001"
 simple = { limit = 5, period = 60 }
 
 [vars]
-SHADOW = "1"
+SHADOW = "0"
 REMOVAL_UPSTREAM = "https://mirage.offseq.com/api/feed/removal"
 GITHUB_REPO = "offseq/mirage-feed"
 GITHUB_REF = "data"
-TURNSTILE_SITEKEY = "TURNSTILE_SITEKEY_PLACEHOLDER"
+TURNSTILE_SITEKEY = "0x4AAAAAAFi-F5MxBaDk0zXN"
 
 # Secrets (npx wrangler secret put <NAME>):
 #   TURNSTILE_SECRET   Turnstile secret key for TURNSTILE_SITEKEY
