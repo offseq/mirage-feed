@@ -11,6 +11,8 @@ TLP_CLEAR = {
     "extensions": {TLP_EXTENSION: {"extension_type": "property-extension", "tlp_2_0": "clear"}},
 }
 EPOCH = "2026-10-01T00:00:00.000Z"
+# Markings and the identity first, relationships last, so importers that resolve refs in one pass always succeed.
+ORDER = {"marking-definition": 0, "identity": 1, "relationship": 3}
 IDENTITY_ID = f"identity--{uid('identity', 'offseq')}"
 IDENTITY = {
     "type": "identity",
@@ -155,7 +157,8 @@ def bundle(s: Snapshot) -> dict:
         )
     for cve, is_kev in kev.items():
         add(_vulnerability(cve, is_kev))
-    return {"type": "bundle", "id": f"bundle--{uid('bundle', s.day)}", "objects": [objects[k] for k in sorted(objects)]}
+    ordered = sorted(objects.values(), key=lambda o: (ORDER.get(o["type"], 2), o["id"]))
+    return {"type": "bundle", "id": f"bundle--{uid('bundle', s.day)}", "objects": ordered}
 
 
 def render(s: Snapshot) -> list[Artifact]:

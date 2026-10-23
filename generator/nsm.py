@@ -10,8 +10,8 @@ CATEGORY_ID = 1
 CATEGORY = "MirageAttacker"
 THRESHOLD = "threshold:type limit,track by_src,count 1,seconds 3600;"
 RULES = f"""\
-alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; iprep:src,{CATEGORY},>,50; \
-{THRESHOLD} classtype:misc-attack; sid:1900001; rev:1;)
+alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; iprep:src,{CATEGORY},>,0; \
+{THRESHOLD} classtype:misc-attack; sid:1900001; rev:2;)
 alert http any any -> $HOME_NET any (msg:"Mirage feed: attacker user-agent"; flow:established,to_server; \
 http.user_agent; dataset:isset,mirage-uas,type string,load datasets/uas.lst; {THRESHOLD} classtype:misc-activity; \
 sid:1900002; rev:1;)

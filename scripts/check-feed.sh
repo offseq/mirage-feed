@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# Check a Mirage feed mirror end to end: minisign signature, SHA-256 of every file, freshness and list format.
-# Needs curl, minisign and sha256sum (or shasum); nft -c runs when nft and root are available.
-# Usage: scripts/check-feed.sh [base URL]
+# Check a Mirage feed mirror end to end: signature, SHA-256 of every file, freshness and list format. Needs curl,
+# minisign and sha256sum or shasum; runs nft -c as root. Usage: scripts/check-feed.sh [base URL of any mirror]
 set -euo pipefail
-base=${1:-https://feeds.offseq.com/mirage-feed}
-base=${base%/}
+base=${1:-https://feeds.offseq.com/mirage-feed} && base=${base%/}
 key=RWQeu/vC+HeSo+5whq+ViPiKFUe35GOuuVll6WA6QKlFNirw7IzweToA
 max_age=$((36 * 3600))
 dir=$(mktemp -d)
@@ -24,9 +22,15 @@ done < SHA256SUMS
 if command -v sha256sum > /dev/null; then sums=(sha256sum); else sums=(shasum -a 256); fi
 "${sums[@]}" -c --quiet SHA256SUMS || fail "checksums"
 
-age=$(curl -fsSI --proto =https "$base/feed.json" | tr -d '\r' |
-  awk -F': *' 'tolower($1) == "x-mirage-feed-age" { print $2 }')
-[[ "$age" =~ ^[0-9]+$ ]] || fail "missing x-mirage-feed-age header"
+# feed.json is covered by the verified SHA256SUMS; the header is only a fallback for older layouts.
+gen=$(sed -n 's/^  "generated": "\([0-9TZ:-]*\)",$/\1/p' feed.json)
+if [[ -n $gen ]]; then
+  ts=$(date -u -d "$gen" +%s 2> /dev/null || date -u -j -f %Y-%m-%dT%H:%M:%SZ "$gen" +%s)
+  age=$(($(date +%s) - ts))
+else
+  age=$(curl -fsSI --proto =https "$base/feed.json" | tr -d '\r' | awk -F': *' 'tolower($1) == "x-mirage-feed-age" { print $2 }')
+fi
+[[ "$age" =~ ^[0-9]+$ ]] || fail "cannot tell the feed's age"
 ((age < max_age)) || fail "feed is $((age / 3600)) h old"
 
 for f in latest/ipv4-*.txt latest/ipv6-7d.txt latest/anonymizers-7d.txt; do

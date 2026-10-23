@@ -142,7 +142,8 @@ describe("metadata endpoints", () => {
     const robots = await call(env, "/robots.txt");
     expect(robots.headers.get("cache-control")).toBe("public, max-age=3600");
     const map = await (await call(env, "/sitemap.xml")).text();
-    expect(map).toContain("<url><loc>https://feeds.offseq.com/</loc><lastmod>2026-10-24</lastmod></url>");
+    expect(map).toContain("<url><loc>https://feeds.offseq.com/</loc><lastmod>2026-10-24T03:05:00Z</lastmod></url>");
+    expect(map).toContain("<url><loc>https://feeds.offseq.com/removal</loc></url>");
     expect(map).toMatch(/<loc>https:\/\/feeds\.offseq\.com\/privacy<\/loc><lastmod>\d{4}-\d\d-\d\d<\/lastmod>/);
     expect(map).not.toContain("/ip");
     expect(map).not.toContain("/removal/sent");
@@ -264,9 +265,12 @@ describe("/ip lookup", () => {
     expect(html).toContain('<meta name="robots" content="noindex,nofollow">');
     expect(html).not.toContain('rel="canonical"');
     expect(html).toContain("Listed. Mirage sensors");
-    expect(html).toContain('<a href="/mirage-feed/latest/ipv4-1d.txt">ipv4-1d.txt</a>, <a href="/mirage-feed/latest/ipv4-7d.txt">ipv4-7d.txt</a>, <a href="/mirage-feed/latest/ipv4-30d.txt">ipv4-30d.txt</a>');
-    expect(html).toContain('<a href="https://mirage.offseq.com/cve/CVE-2024-3400">CVE-2024-3400</a>');
-    expect(html).toContain('<a href="https://attack.mitre.org/techniques/T1110/001/">T1110.001</a>');
+    expect(html).toContain('<a rel="noreferrer" href="/mirage-feed/latest/ipv4-1d.txt">ipv4-1d.txt</a>, <a rel="noreferrer" href="/mirage-feed/latest/ipv4-7d.txt">ipv4-7d.txt</a>, <a rel="noreferrer" href="/mirage-feed/latest/ipv4-30d.txt">ipv4-30d.txt</a>');
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(html.match(/<a /g)!.length).toBe(html.match(/<a rel="noreferrer" /g)!.length);
+    expect((await call(env, "/")).headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+    expect(html).toContain('<a rel="noreferrer" href="https://mirage.offseq.com/cve/CVE-2024-3400">CVE-2024-3400</a>');
+    expect(html).toContain('<a rel="noreferrer" href="https://attack.mitre.org/techniques/T1110/001/">T1110.001</a>');
     expect(html).toContain("AS64500 Example Hosting");
     expect(html).toContain("5 sensors in 3 networks, 812 hits");
     expect(html).toContain("88 / 100");
@@ -292,6 +296,16 @@ describe("/ip lookup", () => {
     expect(moved.headers.get("location")).toBe("/ip/2a01:4f8:1:2::");
     const res = await call(env, "/ip/2a01:4f8:1:2::.json");
     expect(await res.json()).toMatchObject({ ip: "2a01:4f8:1:2::/64", listed: true, lists: ["ipv6-7d.txt"], record: { asn: 64500 } });
+  });
+
+  it("redirects /ip/ to the form and sandboxes lookup JSON like a data file", async () => {
+    const { env, r2 } = setup();
+    await lookupData(r2);
+    const slash = await call(env, "/ip/");
+    expect(slash.status).toBe(302);
+    expect(slash.headers.get("location")).toBe("/ip");
+    const json = await call(env, "/ip/9.9.9.9.json");
+    expect(json.headers.get("content-security-policy")).toBe("default-src 'none'; frame-ancestors 'none'; sandbox");
   });
 
   it("redirects the no-JS form and rejects bad input with a 400", async () => {
@@ -385,6 +399,12 @@ describe("page metadata", () => {
       temporalCoverage: "2026-10-17/2026-10-24",
     });
     expect(ld.description.length).toBeGreaterThanOrEqual(50);
+    expect(ld.distribution).toContainEqual({
+      "@type": "DataDownload",
+      contentUrl: "https://feeds.offseq.com/mirage-feed/latest/records-7d.ndjson.gz",
+      encodingFormat: "application/gzip",
+      description: "Gzip-compressed NDJSON, one indicator record per line.",
+    });
     const odd = setup();
     published(odd.r2, "2026-10-24Tzz");
     const res = await call(odd.env, "/");
@@ -410,7 +430,7 @@ describe("page metadata", () => {
     await lookupData(r2);
     const pages = await Promise.all(["/", "/ip/9.9.9.9", "/privacy", "/nope"].map(async (p) => (await call(env, p)).text()));
     const links = pages.flatMap((html) => [...html.matchAll(/href="(https:\/\/mirage\.offseq\.com[^"]*)"/g)].map((m) => m[1].replaceAll("&amp;", "&")));
-    expect(pages.every((html) => html.includes('<a href="https://mirage.offseq.com">mirage.offseq.com</a>'))).toBe(true);
+    expect(pages.every((html) => /<a (?:rel="noreferrer" )?href="https:\/\/mirage\.offseq\.com">mirage\.offseq\.com<\/a>/.test(html))).toBe(true);
     const upsells = links.filter((u) => u.includes("?"));
     expect(upsells.length).toBeGreaterThanOrEqual(4);
     for (const u of upsells) {
@@ -453,6 +473,17 @@ describe("home content and accessibility", () => {
     expect(html).toContain("<h3>Which list do I want?</h3>");
     expect(html).toContain('<form class="lookup" method="get" action="/ip" role="search"');
     expect(html).toContain('href="/.well-known/mirage-feed-minisign.pub"');
+  });
+
+  it("points every CSS url() at a served path", async () => {
+    const urls = [...CSS.matchAll(/url\(([^)#]+)\)/g)].map((m) => m[1]);
+    expect(urls.length).toBe(2);
+    const env = setup().env;
+    for (const u of urls) {
+      const res = await call(env, u);
+      expect(res.status, u).toBe(200);
+      expect(res.headers.get("content-type")).toBe("font/woff2");
+    }
   });
 
   it("wraps long tokens instead of clipping at 320px", () => {

@@ -1,6 +1,8 @@
+import { FONT_400, FONT_600 } from "./assets";
+
 export const CSS = `/* Hallmark · custom (tuned) · Long Document in man-page register · nav N8 · footer Ft2 · light/mono/cool */
-@font-face{font-family:"Plex Mono";src:url(/fonts/plex-mono-400.woff2) format("woff2");font-weight:400;font-display:swap}
-@font-face{font-family:"Plex Mono";src:url(/fonts/plex-mono-600.woff2) format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Plex Mono";src:url(${FONT_400}) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Plex Mono";src:url(${FONT_600}) format("woff2");font-weight:600;font-display:swap}
 :root{
 --paper:oklch(97.6% .007 85);--paper-2:oklch(94.6% .009 85);--ink:oklch(23% .022 255);--ink-2:oklch(42% .02 255);
 --rule:oklch(85% .012 85);--accent:oklch(43% .085 222);--accent-soft:oklch(84% .035 222);--focus:oklch(55% .15 230);

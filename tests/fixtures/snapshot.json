@@ -629,7 +629,8 @@
       ],
       "cves": [
         "CVE-2019-0708",
-        "CVE-2021-41773"
+        "CVE-2021-41773",
+        "CVE-2099-0001"
       ],
       "kev": false,
       "sensors": 5,
@@ -1595,8 +1596,8 @@
     },
     {
       "ip": "203.0.113.33",
-      "asn": 64502,
-      "as_org": "Doc Cloud Ltd",
+      "asn": null,
+      "as_org": null,
       "country": "US",
       "first_seen": "2026-10-14T08:00:00Z",
       "last_seen": "2026-10-20T08:00:00Z",

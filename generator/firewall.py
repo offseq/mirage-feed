@@ -27,7 +27,7 @@ def mikrotik(v4: list[str], v6: list[str]) -> bytes:
             ":do {{ add list=mirage-feed address={0} timeout=7d comment=mirage-feed }} "
             "on-error={{ set [find list=mirage-feed address={0}] timeout=7d }}"
         )
-        return [header] + [add.format(ip) for ip in ips]
+        return [header] + [add.format(ip) for ip in ips] if ips else []
 
     return lines(section("/ip firewall address-list", v4) + section("/ipv6 firewall address-list", v6))
 

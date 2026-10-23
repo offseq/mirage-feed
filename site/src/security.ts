@@ -22,9 +22,9 @@ const TURNSTILE = "https://challenges.cloudflare.com";
 export const CSP_REPORT = "https://mirage.offseq.com/_t/csp";
 const TRUSTED_TYPES = "require-trusted-types-for 'script'; trusted-types 'none'";
 
-// Cloudflare injects its Web Analytics beacon into HTML; Plausible events go to the self-hosted collector.
-const CF_BEACON = "https://static.cloudflareinsights.com";
-const CF_RUM = "https://cloudflareinsights.com";
+// Cloudflare injects its Web Analytics beacon at a versioned path below beacon.min.js/ and the beacon reports to
+// same-origin /cdn-cgi/rum; Plausible events go to the self-hosted collector.
+const CF_BEACON = "https://static.cloudflareinsights.com/beacon.min.js/";
 export const PLAUSIBLE = "https://in.ainalytic.net";
 
 // Lookup pages get neither analytics origin nor a report endpoint, since their URL carries the looked-up address.
@@ -36,7 +36,7 @@ export async function pageCsp(turnstile = false, lookup = false): Promise<string
     `style-src ${await cssHash()}`,
     "font-src 'self'",
     "img-src 'self'",
-    `connect-src 'self'${lookup ? "" : ` ${CF_RUM} ${PLAUSIBLE}`}`,
+    `connect-src 'self'${lookup ? "" : ` ${PLAUSIBLE}`}`,
     "form-action 'self'",
     "base-uri 'none'",
     "frame-ancestors 'none'",
@@ -61,7 +61,8 @@ export async function secure(res: Response, env: Env, kind: Kind): Promise<Respo
   h.set("content-security-policy", html ? await pageCsp(kind === "removal", kind === "lookup") : FILE_CSP);
   h.set("strict-transport-security", "max-age=63072000; includeSubDomains; preload");
   h.set("x-content-type-options", "nosniff");
-  h.set("referrer-policy", "strict-origin-when-cross-origin");
+  // A lookup URL carries the looked-up address, so it must never become the next page's referrer.
+  h.set("referrer-policy", kind === "lookup" ? "no-referrer" : "strict-origin-when-cross-origin");
   h.set("permissions-policy", PERMISSIONS_POLICY);
   h.set("x-frame-options", "DENY");
   h.set("cross-origin-opener-policy", "same-origin");

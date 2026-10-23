@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
-from . import NAMESPACE, SCHEMA, benign
+from . import NAMESPACE, SCHEMA, benign, kev
 
 TTL = timedelta(days=7)
 WINDOWS = {"1d": ("1d",), "7d": ("1d", "7d"), "30d": ("1d", "7d", "30d")}
@@ -210,11 +210,10 @@ def _ip_cves(ips: list[dict], known: list[dict]) -> list[dict]:
     for cve, recs in sorted(cited.items()):
         # An IP's kev flag covers all its CVEs, so it only pins this one when it is the IP's sole CVE.
         pinned = any(r.get("kev") and r["cves"] == [cve] for r in recs)
-        kev = True if pinned else (None if any(r.get("kev") for r in recs) else False)
         rows.append(
             {
                 "cve": cve,
-                "kev": kev,
+                "kev": pinned or cve in kev.catalog(),
                 "sources": len(recs),
                 "first_seen": min(r["first_seen"] for r in recs),
                 "last_seen": max(r["last_seen"] for r in recs),
@@ -284,6 +283,7 @@ class Snapshot:
             self.lists[kind] = list(seen.values())
         if not self.lists["ips"] or not self.lists["scanners"]:
             raise SnapshotError("ips and scanners must not be empty")
+        self.lists["cves"] = [{**c, "kev": bool(c.get("kev")) or c["cve"] in kev.catalog()} for c in self.lists["cves"]]
         self.lists["cves"] += _ip_cves(self.ips_in("7d"), self.lists["cves"])
         self.stats["published"].update(
             cves=len(self.lists["cves"]),

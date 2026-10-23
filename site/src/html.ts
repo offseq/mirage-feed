@@ -52,9 +52,16 @@ export interface Page {
   head?: string;
   noindex?: boolean;
   canonical?: boolean;
+  // Belt to the no-referrer header, which a page restored from the back-forward cache may not re-apply.
+  noreferrer?: boolean;
 }
 
 export function layout(p: Page): string {
+  const html = render(p);
+  return p.noreferrer ? html.replace(/<a /g, '<a rel="noreferrer" ') : html;
+}
+
+function render(p: Page): string {
   const home = p.path === "/";
   const nav = NAV.map(([id, label]) => `<a href="${home ? "" : "/"}#${id}">${label}</a>`).join("");
   const title = `${p.shadow ? "[preview] " : ""}${p.title}`;

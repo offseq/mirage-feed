@@ -23,10 +23,10 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | Source IPs active in the last 24 h | 8,715 | 14 | 24 h |
 | Source IPs | — | 73 | 7 days |
 | VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 3 | 7 days |
-| IPv4 addresses (`ipv4-30d.txt`) | — | 74 | 30 days |
+| IPv4 addresses (`ipv4-30d.txt`) | — | 67 | 30 days |
 | Networks (ASNs) | 827 | 6 | 7 days |
 | Countries | 102 | 6 | 7 days |
-| CVEs exploited (5 in CISA KEV) | 8 | 6 | 7 days |
+| CVEs exploited (6 in CISA KEV) | 8 | 7 | 7 days |
 | Payload / download URLs | 21 | 4 | 7 days |
 | Malware hashes | 12 | 3 | 7 days |
 | Tooling fingerprints (JA4+, HASSH) | — | 4 | 7 days |
@@ -59,7 +59,7 @@ pfBlockerNG, OPNsense aliases, FortiGate threat feeds and Palo Alto EDLs.
 | You want to | Use |
 |---|---|
 | Block attackers on a firewall | `ipv4-7d.txt`, plus `ipv6-7d.txt` if you route IPv6 |
-| Block on a device with a small table | `ipv4-top1k.txt` or `ipv4-top10k.txt` (highest confidence first) |
+| Block on a device with a small table | `ipv4-top1k.txt` or `ipv4-top10k.txt`: the 1,000 or 10,000 highest-confidence addresses (file sorted by address) |
 | Block only what is active right now | `ipv4-1d.txt` |
 | Alert or enrich with a longer memory | `ipv4-30d.txt` (better for detection than for blocking) |
 | Review what changed since yesterday | `ipv4-added-1d.txt` and `ipv4-removed-1d.txt` |
@@ -147,13 +147,20 @@ cscli decisions import -i mirage.txt --format values --duration 48h --scope ip -
 <details>
 <summary><b>Suricata and Zeek</b></summary>
 
-Suricata IP reputation: `latest/suricata/categories.txt` and `latest/suricata/mirage-iprep.list`.
+Suricata IP reputation: `latest/suricata/categories.txt` and `latest/suricata/mirage-iprep.list`. Every listed
+address has a score from 1 to 127 (confidence × 1.27), so `>,0` matches any of them:
 
 ```
-alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; iprep:src,MirageAttacker,>,50; threshold:type limit,track by_src,count 1,seconds 3600; sid:1900001; rev:1;)
+alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; iprep:src,MirageAttacker,>,0; threshold:type limit,track by_src,count 1,seconds 3600; classtype:misc-attack; sid:1900001; rev:2;)
 ```
 
-`latest/suricata/mirage.rules` holds that rule plus alert-only, rate-limited hunting rules for attacker
+To alert only on high-confidence addresses (confidence 64 and up), raise the threshold:
+
+```
+alert ip any any -> $HOME_NET any (msg:"Mirage feed: high-confidence attacker"; iprep:src,MirageAttacker,>,80; threshold:type limit,track by_src,count 1,seconds 3600; classtype:misc-attack; sid:1900005; rev:1;)
+```
+
+`latest/suricata/mirage.rules` holds the first rule plus alert-only, rate-limited hunting rules for attacker
 user agents and request paths and a payload SHA-256 rule. Copy the whole `suricata/` directory so the
 `datasets/` paths resolve.
 
@@ -169,7 +176,9 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
 
 - **MISP**: Sync Actions → Feeds → Add. Source format **MISP Feed**, URL `{{BASE}}/misp/`.
 - **OpenCTI**: Data → Ingestion → CSV feeds, URL `{{BASE}}/latest/attackers-ipv4-7d.csv`, with the mapper in
-  [`docs/opencti-csv-mapper.json`](docs/opencti-csv-mapper.json). Or import `latest/stix/mirage.json` as a file.
+  [`docs/opencti-csv-mapper.json`](docs/opencti-csv-mapper.json). The file leaves out addresses without a known ASN,
+  which the mapper cannot link; they are in `attackers-7d.csv` and the STIX bundle. Or import `latest/stix/mirage.json`
+  as a file.
 - **Microsoft Sentinel**: the Upload Indicators API takes at most 100 objects per request, wrapped as
   `{"sourcesystem": "OffSeq Mirage", "stixobjects": [...]}`. [`scripts/sentinel-upload.sh`](scripts/sentinel-upload.sh)
   splits `latest/stix/mirage.json` that way.
@@ -185,14 +194,14 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
 | File | Contents |
 |---|---|
 | `ipv4-{1d,7d,30d}.txt` | Attacker IPv4 addresses by activity window |
-| `ipv4-top{1k,10k}.txt` | Ranked by confidence, sized for capped firewall tables |
+| `ipv4-top{1k,10k}.txt` | The 1,000 or 10,000 highest-confidence addresses (file sorted by address), sized for capped firewall tables |
 | `ipv4-7d-cidr32.txt` · `ipv6-7d.txt` | IPv4 with `/32` suffix (AWS WAF IP sets) and IPv6 `/64` networks |
 | `ipv4-added-1d.txt` · `ipv4-removed-1d.txt` | Addresses that entered `ipv4-7d.txt` since the previous build, and those that aged out of it (still in `ipv4-30d.txt`). Removals on request are not listed |
 | `anonymizers-7d.txt` | VPN and Tor exits that attacked the fleet (IPv4 and IPv6 `/64`). Kept out of every block list and rule file |
 | `known-scanners-ipv4.txt` · `known-scanners-ipv6.txt` | Research scanners we saw and **excluded** (Shodan, Censys, Shadowserver …). Allowlist these if you like. |
 | `urls-7d.txt` · `domains-7d.txt` | Payload, dropper and C2 locations from captured exploit attempts |
 | `hashes-sha256-30d.txt` | Files those payloads delivered |
-| `cves-7d.csv` | CVEs exploited against the fleet, with CISA KEV flag and attempt counts. Lists every CVE that appears in an IP record |
+| `cves-7d.csv` | CVEs exploited against the fleet, with CISA KEV flag and attempt counts. Lists every CVE that appears in an IP record; the KEV flag comes from the [CISA catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog), vendored in [`generator/kev.txt`](generator/kev.txt) |
 | `fingerprints.csv` · `hassh.csv` | JA4+ fingerprints of attacker tooling (FoxIO column layout) and SSH HASSH |
 | `user-agents-7d.txt` · `paths-7d.txt` | Distinctive HTTP user agents and request paths seen in attacks. For hunting, not blocking |
 | `passwords-top100.txt` | The 100 passwords attackers tried most, without usernames |

@@ -32,7 +32,7 @@ def stats_block(s: Snapshot) -> str:
         ("Source IPs active in the last 24 h", _n(obs.get("ips")), _n(pub.get("active_24h")), "24 h"),
         ("Source IPs", NONE, _n(pub.get("ips")), "7 days"),
         ("VPN / Tor exits (only in `anonymizers-7d.txt`)", NONE, _n(pub.get("anonymizers")), "7 days"),
-        ("IPv4 addresses (`ipv4-30d.txt`)", NONE, _n(pub.get("ips_30d")), "30 days"),
+        ("IPv4 addresses (`ipv4-30d.txt`)", NONE, _n(len(s.blockable("30d", 4))), "30 days"),
         ("Networks (ASNs)", _n(obs.get("asns")), _n(pub.get("asns")), "7 days"),
         ("Countries", _n(obs.get("countries")), _n(pub.get("countries")), "7 days"),
         (cve_label, _n(obs.get("cves")), _n(pub.get("cves")), "7 days"),

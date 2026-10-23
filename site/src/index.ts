@@ -63,6 +63,7 @@ interface PageOpts {
   description?: string;
   noindex?: boolean;
   canonical?: boolean;
+  noreferrer?: boolean;
   cache?: string;
 }
 
@@ -77,6 +78,7 @@ function page(env: Env, path: string, title: string, body: string, o: PageOpts =
     head: o.head,
     noindex: o.noindex,
     canonical: o.canonical,
+    noreferrer: o.noreferrer,
   });
   const headers: Record<string, string> = { "cache-control": isShadow(env) ? "private, no-store" : (o.cache ?? "public, max-age=300") };
   if (o.noindex) headers["x-robots-tag"] = "noindex";
@@ -163,7 +165,7 @@ const LOOKUP_DESCRIPTION = "Check whether an IP address is in the Mirage Feed, w
 
 // no-transform stops Cloudflare injecting its analytics beacon, which would report the looked-up address in the URL.
 function lookupPage(env: Env, path: string, title: string, body: string, status = 200, cache = "private, max-age=300"): Response {
-  const res = page(env, path, title, body, { status, noindex: true, canonical: false, description: LOOKUP_DESCRIPTION, cache });
+  const res = page(env, path, title, body, { status, noindex: true, canonical: false, noreferrer: true, description: LOOKUP_DESCRIPTION, cache });
   res.headers.set("cache-control", `${res.headers.get("cache-control")}, no-transform`);
   return res;
 }
@@ -251,7 +253,7 @@ function robots(env: Env): string {
 
 async function sitemap(req: Request, env: Env, ctx: ExecutionContext): Promise<string> {
   const feed = await getFeedJson<FeedIndex>("feed.json", env, new URL(req.url).origin, ctx);
-  const day = ISO.test(feed?.generated ?? "") ? feed!.generated!.slice(0, 10) : null;
+  const day = ISO.test(feed?.generated ?? "") ? feed!.generated! : null;
   const urls: [string, string | null][] = [["/", day], ["/removal", null], ["/privacy", PRIVACY_UPDATED]];
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -305,7 +307,11 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
     if (res.status === 200 || res.status === 206 || res.status === 304) count(req, env, feedPath);
     return [res, "feed"];
   }
-  if (path === "/ip" || path.startsWith("/ip/")) return [await ipLookup(req, env, ctx, path), "lookup"];
+  if (path === "/ip/") return [redirect("/ip"), "lookup"];
+  if (path === "/ip" || path.startsWith("/ip/")) {
+    const res = await ipLookup(req, env, ctx, path);
+    return [res, res.headers.get("content-type")?.startsWith("application/json") ? "asset" : "lookup"];
+  }
 
   const static_ = ASSETS[path];
   if (static_) {

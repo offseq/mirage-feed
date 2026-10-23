@@ -29,10 +29,18 @@ Changed:
   self-identified bots, crawlers and scanners are dropped.
 - `paths-7d.txt` drops common legitimate endpoints and paths that encode a target (`@`, long hex or base64 runs,
   `/s/<token>/`). `suricata/datasets/paths.lst` only holds CVE-linked paths or paths with an exploit pattern.
-- `cves-7d.csv` lists every CVE that appears in a published IP record; `name` may be empty and `kev` empty when
-  unknown. `stats.published.cves` counts its rows.
+- `cves-7d.csv` lists every CVE that appears in a published IP record (`name` may be empty);
+  `stats.published.cves` counts its rows. `kev` is true when the snapshot says so or the CVE is in the CISA KEV
+  catalog vendored as `generator/kev.txt` (refreshed by hand with `python -m generator.refresh_kev`).
 - `fingerprints.csv` and `hassh.csv` drop types they cannot represent (such as JA3); `stats.published.fingerprints`
   counts the rows they hold.
+- `attackers-ipv4-7d.csv` (the OpenCTI CSV feed) leaves out rows without an ASN, which the mapper's
+  Autonomous-System entity cannot take; `attackers-7d.csv` keeps them.
+- `suricata/mirage.rules` sid 1900001 rev 2 matches any listed address (`iprep:...,>,0`); rev 1 used `>,50`, which
+  missed addresses with confidence 39 or lower.
+- `stix/mirage.json` orders objects as marking definitions, identity, other objects, then relationships, so every
+  reference points to an earlier object.
+- `mikrotik/mirage-7d.rsc` omits the `/ipv6 firewall address-list` section when there are no IPv6 entries.
 - `SHA256SUMS` covers `feed.json` (it already did; now documented and tested).
 
 ## 1.0

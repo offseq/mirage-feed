@@ -217,7 +217,8 @@ cscli decisions import -i mirage.txt --format values --duration 48h --scope ip -
     recipe(
       "Suricata and Zeek",
       `<p>Suricata IP reputation: <code>latest/suricata/categories.txt</code> and <code>latest/suricata/mirage-iprep.list</code>.</p>` +
-        pre(`alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; iprep:src,MirageAttacker,>,50; threshold:type limit,track by_src,count 1,seconds 3600; sid:1900001; rev:1;)`, "Suricata rule") +
+        pre(`alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; iprep:src,MirageAttacker,>,0; threshold:type limit,track by_src,count 1,seconds 3600; classtype:misc-attack; sid:1900001; rev:2;)`, "Suricata rule") +
+        `<p>Scores are confidence × 1.27, so <code>&gt;,80</code> keeps only confidence 64 and up.</p>` +
         `<p>Zeek Intel framework, with <code>latest/zeek/mirage.intel</code> saved locally:</p>` +
         pre(`redef Intel::read_files += { "/opt/mirage/mirage.intel" };`, "Zeek configuration"),
     ),
@@ -333,10 +334,10 @@ sha256sum -c --ignore-missing SHA256SUMS`, "Verification commands")}
 </section>`;
 }
 
-const MAIN_FORMATS: [string, string][] = [
+const MAIN_FORMATS: [string, string, string?][] = [
   ["latest/ipv4-7d.txt", "text/plain"],
   ["latest/attackers-7d.csv", "text/csv"],
-  ["latest/records-7d.ndjson.gz", "application/x-ndjson"],
+  ["latest/records-7d.ndjson.gz", "application/gzip", "Gzip-compressed NDJSON, one indicator record per line."],
   ["latest/stix/mirage.json", "application/stix+json"],
   ["misp/manifest.json", "application/json"],
 ];
@@ -358,7 +359,12 @@ export function datasetLd(feed: FeedIndex | null): string {
     keywords: ["threat intelligence", "blocklist", "honeypot", "IP reputation", "STIX", "MISP", "CVE", "indicators of compromise"],
     ...(modified ? { dateModified: modified } : {}),
     temporalCoverage: modified ? `${new Date(Date.parse(modified) - 7 * 86_400_000).toISOString().slice(0, 10)}/${modified.slice(0, 10)}` : "P7D",
-    distribution: MAIN_FORMATS.map(([path, format]) => ({ "@type": "DataDownload", contentUrl: `${BASE}/${path}`, encodingFormat: format })),
+    distribution: MAIN_FORMATS.map(([path, format, description]) => ({
+      "@type": "DataDownload",
+      contentUrl: `${BASE}/${path}`,
+      encodingFormat: format,
+      ...(description ? { description } : {}),
+    })),
   };
   return `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>`;
 }

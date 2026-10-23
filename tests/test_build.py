@@ -9,8 +9,8 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from generator import build, check, og, readme, spotlight
-from generator.common import Snapshot, SnapshotError
+from generator import build, check, firewall, kev, og, readme, spotlight
+from generator.common import CVE, Snapshot, SnapshotError
 from generator.netlist import CANARY, Allowlist
 from generator.tables import ATTACKER_COLS
 
@@ -118,7 +118,27 @@ def test_suricata(out):
     uas = text_lines(out, "latest/suricata/datasets/uas.lst")
     assert base64.b64decode(uas[0]).decode() == "=cmd|' /C calc'!A0"
     rules = (out / "latest/suricata/mirage.rules").read_text()
-    assert "sid:1900001;" in rules and "iprep:src,MirageAttacker" in rules
+    assert "iprep:src,MirageAttacker,>,0;" in rules and "sid:1900001; rev:2;" in rules
+
+
+def test_mikrotik_skips_empty_family():
+    assert firewall.mikrotik(["198.51.100.2"], []).decode().splitlines()[0] == "/ip firewall address-list"
+    assert b"/ipv6" not in firewall.mikrotik(["198.51.100.2"], [])
+    assert firewall.mikrotik([], []) == b""
+
+
+def test_opencti_csv_needs_asn(out):
+    with (out / "latest/attackers-ipv4-7d.csv").open(newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    assert rows and all(r["asn"] for r in rows) and "203.0.113.33" not in {r["ip"] for r in rows}
+    with (out / "latest/attackers-7d.csv").open(newline="") as fh:
+        assert "203.0.113.33" in {r["ip"] for r in csv.DictReader(fh)}
+
+
+def test_kev_catalog():
+    assert {"CVE-2018-20062", "CVE-2021-21972", "CVE-2021-22005", "CVE-2022-40684", "CVE-2025-0108"} <= kev.catalog()
+    lines = [x for x in kev.KEV_FILE.read_text().splitlines() if not x.startswith("#")]
+    assert lines == sorted(set(lines)) and all(CVE.fullmatch(x) for x in lines)
 
 
 def test_firewall_formats(out):
@@ -183,7 +203,8 @@ def test_cves_cover_every_ip_record(out):
         cited = {c for r in csv.DictReader(fh) for c in r["cves"].split(";") if c}
     assert cited <= set(cves)
     assert cves["CVE-2022-1388"]["kev"] == "true" and cves["CVE-2022-1388"]["name"] == ""
-    assert cves["CVE-2019-0708"]["kev"] == "false" and cves["CVE-2019-0708"]["sources"] == "1"
+    assert cves["CVE-2019-0708"]["kev"] == "true" and cves["CVE-2019-0708"]["sources"] == "1"
+    assert cves["CVE-2099-0001"]["kev"] == "false"
     assert cves["CVE-2021-41773"]["name"] == "Apache HTTP Server path traversal"
     assert json.loads((out / "stats.json").read_text())["published"]["cves"] == len(cves)
 
@@ -205,6 +226,13 @@ def test_stix_bundle(out):
     bundle = json.loads((out / "latest/stix/mirage.json").read_text())
     ids = [o["id"] for o in bundle["objects"]]
     assert len(ids) == len(set(ids))
+    assert [o["type"] for o in bundle["objects"][:2]] == ["marking-definition", "identity"]
+    position = {i: n for n, i in enumerate(ids)}
+    for n, o in enumerate(bundle["objects"]):
+        refs = [o[k] for k in ("created_by_ref", "source_ref", "target_ref") if k in o] + o.get(
+            "object_marking_refs", []
+        )
+        assert all(position[r] < n for r in refs), o["id"]
     patterns = [o["pattern"] for o in bundle["objects"] if o["type"] == "indicator"]
     assert "[url:value = 'http://payload.example/bins/x86?arch=\\'mips\\'']" in patterns
     assert "[url:value = 'http://203.0.113.200/a\\\\b.sh']" in patterns
@@ -326,7 +354,7 @@ def test_readme_labels_windows(snapshot_raw):
     assert "| | Observed by Mirage, last 24 h | In the feed | Feed window |" in block
     assert "| Events | 1.47M events | — | — |" in block and "Session transcripts" not in block
     assert "| Source IPs active in the last 24 h | 8,715 | 14 | 24 h |" in block
-    assert "| IPv4 addresses (`ipv4-30d.txt`) | — | 74 | 30 days |" in block
+    assert "| IPv4 addresses (`ipv4-30d.txt`) | — | 67 | 30 days |" in block
     assert "| Tooling fingerprints (JA4+, HASSH) | — | 4 | 7 days |" in block
     assert "| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 3 | 7 days |" in block
 
@@ -387,7 +415,7 @@ def test_history_rolls_and_carries_over(tmp_path, snapshot_raw):
         "active_24h": 14,
         "added": 0,
         "removed": 0,
-        "cves": 6,
+        "cves": 7,
         "urls": 4,
         "hashes": 3,
         "scanners": 3,

@@ -5,7 +5,6 @@ from . import BASE_URL
 from .common import CVE, TOKEN, Snapshot, parse_ts
 
 TOP = 10
-KEV = {True: "yes", False: "no"}
 SIGNUP = "https://mirage.offseq.com/?auth=signup&intent=premium&utm_source=github&utm_medium=release&utm_campaign=mirage-feed"
 MD_META = re.compile(r"([`\[\]()<>#*_\\|!~])")
 
@@ -37,8 +36,7 @@ def notes(s: Snapshot) -> str:
     if cves:
         out += ["", "## CVEs first exploited this week", "", "| CVE | Name | KEV | Sources |", "|---|---|---|---:|"]
         out += [
-            f"| {c['cve']} | {md(c.get('name'))} | {KEV.get(c.get('kev'), 'unknown')} | {int(c['sources'])} |"
-            for c in cves
+            f"| {c['cve']} | {md(c.get('name'))} | {'yes' if c['kev'] else 'no'} | {int(c['sources'])} |" for c in cves
         ]
     urls = [u for u in _new(s.lists["urls"], s) if TOKEN.fullmatch(u["kind"])]
     if urls:

@@ -6,10 +6,14 @@ bundle=${1:?usage: sentinel-upload.sh mirage.json}
 api="https://api.ti.sentinel.azure.com/workspaces/${WORKSPACE_ID:?set WORKSPACE_ID}"
 api+="/threat-intelligence-stix-objects:upload?api-version=2024-02-01-preview"
 token=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
-total=$(jq '.objects | length' "$bundle")
-for ((i = 0; i < total; i += 100)); do
-  jq -c --argjson i "$i" '{sourcesystem: "OffSeq Mirage", stixobjects: .objects[$i:$i + 100]}' "$bundle" |
-    curl -fsS -X POST "$api" -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
-      --data-binary @- > /dev/null
-done
+chunks=$(jq -rc '.objects | length,
+  (. as $o | range(0; length; 100) | {sourcesystem: "OffSeq Mirage", stixobjects: $o[.:. + 100]})' "$bundle")
+{
+  read -r total
+  # curl honours Retry-After on 429 and 503 when retrying.
+  while read -r chunk; do
+    curl -fsS --retry 5 --retry-all-errors -X POST "$api" -H "Authorization: Bearer $token" \
+      -H "Content-Type: application/json" --data-binary @- > /dev/null <<< "$chunk"
+  done
+} <<< "$chunks"
 echo "uploaded $total objects"

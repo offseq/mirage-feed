@@ -106,7 +106,8 @@ def _fingerprints(s: Snapshot) -> tuple[list[list], list[list]]:
 
 def render(s: Snapshot) -> list[Artifact]:
     attackers = [[r.get(c) for c in ATTACKER_COLS] for r in s.ips_in("7d")]
-    attackers4 = [[r.get(c) for c in ATTACKER_COLS] for r in s.ips_in("7d", 4)]
+    # The OpenCTI mapper builds an Autonomous-System from every row, and a row without an ASN fails it.
+    attackers4 = [[r.get(c) for c in ATTACKER_COLS] for r in s.ips_in("7d", 4) if r.get("asn") is not None]
     cves = [[c.get(k) for k in CVE_COLS] for c in sorted(s.lists["cves"], key=lambda c: c["cve"])]
     foxio, hassh = _fingerprints(s)
     recs = records(s)
