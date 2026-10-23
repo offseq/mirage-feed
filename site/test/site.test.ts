@@ -126,7 +126,7 @@ describe("security headers", () => {
     const res = await call(env, "/");
     const csp = res.headers.get("content-security-policy")!;
     expect(csp).toContain("default-src 'none'");
-    expect(csp).toContain(`script-src https://feeds.offseq.com${APP_PATH};`);
+    expect(csp).toContain(`script-src https://feeds.offseq.com${APP_PATH} https://static.cloudflareinsights.com;`);
     expect(csp).not.toContain("'self' https://feeds");
     expect(csp).toContain(`style-src 'sha256-${await sha256b64(CSS)}'`);
     expect(csp).toContain("require-trusted-types-for 'script'; trusted-types 'none'");
@@ -140,9 +140,12 @@ describe("security headers", () => {
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     expect(res.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
     const pp = res.headers.get("permissions-policy")!;
-    expect(pp.split(", ")).toHaveLength(25);
-    expect(pp).toContain("browsing-topics=()");
+    expect(pp.split(", ")).toHaveLength(21);
     expect(pp).toContain("xr-spatial-tracking=()");
+    for (const dropped of ["publickey-credentials-create", "browsing-topics", "local-fonts", "gamepad"]) expect(pp).not.toContain(dropped);
+    expect(csp).toContain("script-src https://feeds.offseq.com/app.");
+    expect(csp).toContain(".js https://static.cloudflareinsights.com;");
+    expect(csp).toContain("connect-src 'self' https://cloudflareinsights.com https://in.ainalytic.net;");
     expect(pp).not.toContain("clipboard-write");
     expect(res.headers.get("cross-origin-opener-policy")).toBe("same-origin");
     expect(res.headers.get("cross-origin-resource-policy")).toBe("same-origin");
@@ -153,7 +156,7 @@ describe("security headers", () => {
     const { env } = setup();
     const res = await call(env, "/removal");
     const csp = res.headers.get("content-security-policy")!;
-    expect(csp).toContain(`script-src https://feeds.offseq.com${APP_PATH} https://challenges.cloudflare.com;`);
+    expect(csp).toContain(`script-src https://feeds.offseq.com${APP_PATH} https://static.cloudflareinsights.com https://challenges.cloudflare.com;`);
     expect(csp).toContain("frame-src https://challenges.cloudflare.com");
     expect(csp).not.toContain("trusted-types");
     expect(res.headers.get("content-security-policy-report-only")).toBeNull();

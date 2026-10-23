@@ -22,37 +22,43 @@ const TURNSTILE = "https://challenges.cloudflare.com";
 export const CSP_REPORT = "https://mirage.offseq.com/_t/csp";
 const TRUSTED_TYPES = "require-trusted-types-for 'script'; trusted-types 'none'";
 
-export async function pageCsp(turnstile = false, report = true): Promise<string> {
+// Cloudflare injects its Web Analytics beacon into HTML; Plausible events go to the self-hosted collector.
+const CF_BEACON = "https://static.cloudflareinsights.com";
+const CF_RUM = "https://cloudflareinsights.com";
+export const PLAUSIBLE = "https://in.ainalytic.net";
+
+// Lookup pages get neither analytics origin nor a report endpoint, since their URL carries the looked-up address.
+export async function pageCsp(turnstile = false, lookup = false): Promise<string> {
   return [
     "default-src 'none'",
-    `script-src ${SITE}${APP_PATH}${turnstile ? ` ${TURNSTILE}` : ""}`,
+    `script-src ${SITE}${APP_PATH}${lookup ? "" : ` ${CF_BEACON}`}${turnstile ? ` ${TURNSTILE}` : ""}`,
     ...(turnstile ? [`frame-src ${TURNSTILE}`] : []),
     `style-src ${await cssHash()}`,
     "font-src 'self'",
     "img-src 'self'",
-    "connect-src 'self'",
+    `connect-src 'self'${lookup ? "" : ` ${CF_RUM} ${PLAUSIBLE}`}`,
     "form-action 'self'",
     "base-uri 'none'",
     "frame-ancestors 'none'",
     ...(turnstile ? [] : [TRUSTED_TYPES]),
-    ...(report ? [`report-uri ${CSP_REPORT}`] : []),
+    ...(lookup ? [] : [`report-uri ${CSP_REPORT}`]),
   ].join("; ");
 }
 
 const FILE_CSP = "default-src 'none'; frame-ancestors 'none'; sandbox";
 
+// Standardized features from the W3C registry only; proposed and experimental names draw "invalid directive" warnings.
 export const PERMISSIONS_POLICY = [
-  "accelerometer", "autoplay", "bluetooth", "browsing-topics", "camera", "display-capture", "encrypted-media", "gamepad",
-  "geolocation", "gyroscope", "hid", "idle-detection", "local-fonts", "magnetometer", "microphone", "midi", "payment",
-  "picture-in-picture", "publickey-credentials-create", "publickey-credentials-get", "screen-wake-lock", "serial", "usb",
-  "web-share", "xr-spatial-tracking",
+  "accelerometer", "autoplay", "bluetooth", "camera", "display-capture", "encrypted-media", "geolocation", "gyroscope",
+  "hid", "idle-detection", "magnetometer", "microphone", "midi", "payment", "picture-in-picture",
+  "publickey-credentials-get", "screen-wake-lock", "serial", "usb", "web-share", "xr-spatial-tracking",
 ].map((f) => `${f}=()`).join(", ");
 
 export async function secure(res: Response, env: Env, kind: Kind): Promise<Response> {
   const out = new Response(res.body, res);
   const h = out.headers;
   const html = kind === "page" || kind === "removal" || kind === "lookup";
-  h.set("content-security-policy", html ? await pageCsp(kind === "removal", kind !== "lookup") : FILE_CSP);
+  h.set("content-security-policy", html ? await pageCsp(kind === "removal", kind === "lookup") : FILE_CSP);
   h.set("strict-transport-security", "max-age=63072000; includeSubDomains; preload");
   h.set("x-content-type-options", "nosniff");
   h.set("referrer-policy", "strict-origin-when-cross-origin");

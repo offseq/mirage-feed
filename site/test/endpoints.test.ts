@@ -312,7 +312,12 @@ describe("/ip lookup", () => {
     await lookupData(r2);
     const res = await call(env, "/ip/8.8.4.4");
     expect(await res.text()).toContain("Listed in ipv4-30d.txt only.");
-    expect(res.headers.get("content-security-policy")).not.toContain("report-uri");
+    const csp = res.headers.get("content-security-policy")!;
+    expect(csp).not.toContain("report-uri");
+    expect(csp).not.toContain("cloudflareinsights");
+    expect(csp).not.toContain("in.ainalytic.net");
+    expect(res.headers.get("cache-control")).toBe("private, max-age=300, no-transform");
+    expect((await call(env, "/ip/10.0.0.1")).headers.get("cache-control")).toBe("no-store, no-transform");
     expect((await call(env, "/")).headers.get("content-security-policy")).toContain("report-uri");
   });
 
@@ -459,6 +464,9 @@ describe("home content and accessibility", () => {
     const html = await (await call(setup().env, "/privacy")).text();
     expect(html).toContain("The addresses you look up are not logged");
     expect(html).toContain("<code>/status.json</code>");
+    expect(html).not.toContain("no tracking scripts");
+    expect(html).toContain("self-hosted Plausible at in.ainalytic.net");
+    expect(html).toContain("Lookup pages send nothing to either analytics tool");
     expect(html).toContain("SEQ SIA, registration no. 40203410806");
   });
 });

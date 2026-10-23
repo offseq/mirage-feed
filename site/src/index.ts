@@ -161,8 +161,11 @@ async function og(req: Request, env: Env, ctx: ExecutionContext): Promise<Respon
 
 const LOOKUP_DESCRIPTION = "Check whether an IP address is in the Mirage Feed, with its sightings, network, services and ATT&CK techniques.";
 
+// no-transform stops Cloudflare injecting its analytics beacon, which would report the looked-up address in the URL.
 function lookupPage(env: Env, path: string, title: string, body: string, status = 200, cache = "private, max-age=300"): Response {
-  return page(env, path, title, body, { status, noindex: true, canonical: false, description: LOOKUP_DESCRIPTION, cache });
+  const res = page(env, path, title, body, { status, noindex: true, canonical: false, description: LOOKUP_DESCRIPTION, cache });
+  res.headers.set("cache-control", `${res.headers.get("cache-control")}, no-transform`);
+  return res;
 }
 
 async function ipLookup(req: Request, env: Env, ctx: ExecutionContext, path: string): Promise<Response> {

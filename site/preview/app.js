@@ -1,5 +1,84 @@
 "use strict";
 (() => {
+const track = (() => {
+  const SITE = "https://feeds.offseq.com";
+  const ENDPOINT = "https://in.ainalytic.net/api/event";
+  const TAG = /^[a-z0-9][a-z0-9._~-]{0,99}$/i;
+  const CAMPAIGN = ["utm_source", "utm_medium", "utm_campaign", "utm_content"];
+
+  const allowed = () => {
+    if (location.origin !== SITE || navigator.webdriver || /^\/ip(?:\/|$)/.test(location.pathname)) return false;
+    if (navigator.globalPrivacyControl || ["1", "yes"].includes(navigator.doNotTrack || "")) return false;
+    if (/bot|crawler|spider|headless/i.test(navigator.userAgent)) return false;
+    const robots = document.querySelector('meta[name="robots"]');
+    if (robots && /\bnoindex\b/i.test(robots.content)) return false;
+    try { if (localStorage.getItem("plausible_ignore") === "true") return false; } catch {}
+    return true;
+  };
+
+  const pageUrl = () => {
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) return;
+    try {
+      const url = new URL(canonical.href);
+      if (url.origin !== SITE || url.pathname !== location.pathname) return;
+      url.search = "";
+      url.hash = "";
+      const query = new URLSearchParams(location.search);
+      for (const key of CAMPAIGN) {
+        const value = query.get(key);
+        if (value && TAG.test(value)) url.searchParams.set(key, value);
+      }
+      return url.href;
+    } catch {}
+  };
+
+  const referrer = () => {
+    try {
+      const url = new URL(document.referrer);
+      if (url.protocol === "http:" || url.protocol === "https:") return url.origin;
+    } catch {}
+  };
+
+  const send = (name, props) => {
+    if (!allowed()) return;
+    const url = pageUrl();
+    if (!url) return;
+    const body = JSON.stringify({ name, domain: "feeds.offseq.com", url, referrer: referrer(), ...(props ? { props } : {}) });
+    try {
+      fetch(ENDPOINT, {
+        method: "POST", body, keepalive: true, credentials: "omit", referrerPolicy: "no-referrer",
+        headers: { "Content-Type": "text/plain" },
+      }).catch(() => {});
+    } catch {}
+  };
+
+  const upsell = (anchor) => {
+    try {
+      const url = new URL(anchor.href);
+      if (url.origin !== "https://mirage.offseq.com" || url.searchParams.get("intent") !== "premium") return;
+      const placement = url.searchParams.get("utm_content");
+      return { destination: url.hostname + url.pathname, placement: placement && TAG.test(placement) ? placement : "content" };
+    } catch {}
+  };
+
+  const onClick = (event) => {
+    if (!event.isTrusted || event.defaultPrevented || (event.type === "click" ? event.button !== 0 : event.button !== 1)) return;
+    const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    const props = anchor && upsell(anchor);
+    if (props) send("OffSeq CTA Click", props);
+  };
+
+  if (allowed()) {
+    document.addEventListener("click", onClick);
+    document.addEventListener("onauxclick" in document ? "auxclick" : "mouseup", onClick);
+    if (document.prerendering) document.addEventListener("prerenderingchange", () => send("pageview"), { once: true });
+    else send("pageview");
+    window.addEventListener("pageshow", (event) => { if (event.persisted) send("pageview"); });
+  }
+  return send;
+})();
+
   const live = document.createElement("p");
   live.className = "sr";
   live.setAttribute("role", "status");
@@ -14,6 +93,8 @@
     btn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(el.textContent.trim());
+        const file = /https:\/\/feeds\.offseq\.com\/mirage-feed\/([A-Za-z0-9._/-]*)/.exec(el.textContent);
+        if (file) track("Feed URL Copied", { file: file[1] || "/" });
         btn.dataset.state = "done";
         btn.textContent = "copied";
         live.textContent = "Copied to clipboard";
@@ -47,6 +128,7 @@
       });
       const data = await res.json();
       if (data.ok) {
+        track("Removal Submitted");
         const done = document.createElement("div");
         done.className = "msg";
         done.setAttribute("tabindex", "-1");
