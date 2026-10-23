@@ -1,0 +1,30 @@
+name: Format request
+description: Ask for an output format or integration we do not publish yet
+labels: [format-request]
+body:
+  - type: input
+    id: consumer
+    attributes:
+      label: Product or tool
+      description: What will read the file, and which version?
+      placeholder: e.g. Check Point R81.20 Custom Intelligence Feeds
+    validations:
+      required: true
+  - type: textarea
+    id: format
+    attributes:
+      label: Expected format
+      description: Link the vendor documentation or paste a short example.
+    validations:
+      required: true
+  - type: dropdown
+    id: data
+    attributes:
+      label: Data
+      multiple: true
+      options: [IPv4, IPv6, URLs, Domains, SHA-256, CVEs, Fingerprints, User agents]
+  - type: textarea
+    id: notes
+    attributes:
+      label: Limits or notes
+      description: Size caps, refresh limits, authentication.

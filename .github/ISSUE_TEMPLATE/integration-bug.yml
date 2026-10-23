@@ -1,0 +1,34 @@
+name: Integration bug
+description: A published file fails to load or parse in a tool
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: For a listed address that should not be listed, use https://feeds.offseq.com/removal instead.
+  - type: input
+    id: file
+    attributes:
+      label: File
+      placeholder: latest/nft/mirage.nft
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Tool and version
+      placeholder: nftables 1.0.9
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: What happened
+      description: Command you ran and the full error output.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: day
+    attributes:
+      label: Feed day
+      description: The `day` field from feed.json.

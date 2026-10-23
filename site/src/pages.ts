@@ -1,0 +1,106 @@
+import { ABUSE, REPO_URL, esc } from "./html";
+import { REASON_MAX, REASON_MIN } from "./removal";
+
+export interface RemovalForm {
+  ip?: string;
+  email?: string;
+  reason?: string;
+  error?: string;
+  field?: string;
+}
+
+const invalid = (f: RemovalForm, name: string) => (f.field === name ? ' aria-invalid="true" aria-describedby="form-msg"' : "");
+
+export function renderRemoval(f: RemovalForm, sitekey: string): string {
+  return `<section aria-labelledby="h-removal"><h1 id="h-removal">Removal request</h1>
+<p>Ask for an address to be taken out of the Mirage Feed. No account needed. Requests are handled within 72 hours and you get a reply at the email you give. An address that resumes attacking is listed again.</p>
+<p>Prefer email? Write to <a href="mailto:${ABUSE}">${ABUSE}</a>.</p>
+<form method="post" action="/removal" data-removal>
+<p class="msg err" id="form-msg" role="alert" data-msg${f.error ? "" : " hidden"}>${esc(f.error ?? "")}</p>
+<label for="ip">IP address <span class="dim">one public IPv4 address, or IPv6 address or /64 as listed</span></label>
+<input id="ip" name="ip" required maxlength="64" autocomplete="off" spellcheck="false" inputmode="text" value="${esc(f.ip)}"${invalid(f, "ip")}>
+<label for="email">Email <span class="dim">for our reply</span></label>
+<input id="email" name="email" type="email" required maxlength="254" autocomplete="email" value="${esc(f.email)}"${invalid(f, "email")}>
+<label for="reason">Reason <span class="dim">${REASON_MIN} to ${REASON_MAX.toLocaleString("en-US")} characters, e.g. who holds the address and why it is not hostile</span></label>
+<textarea id="reason" name="reason" required minlength="${REASON_MIN}" maxlength="${REASON_MAX}"${invalid(f, "reason")}>${esc(f.reason)}</textarea>
+<div class="hp" aria-hidden="true"><label for="website">Website</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
+<div class="cf-turnstile" data-sitekey="${esc(sitekey)}"></div>
+<noscript><p class="msg err">The anti-abuse check on this form needs JavaScript. Without it, send the same details to <a href="mailto:${ABUSE}">${ABUSE}</a>.</p></noscript>
+<button type="submit">Send request</button>
+</form>
+<p class="dim">We use these details only to handle this request. See the <a href="/privacy">privacy notice</a>.</p>
+</section>`;
+}
+
+export const REMOVAL_SENT =
+  "Request received. You will hear from abuse@offseq.com within 72 hours. Listed addresses also drop out on their own 7 days after the last observed activity.";
+
+export function renderRemovalSent(): string {
+  return `<section aria-labelledby="h-sent"><h1 id="h-sent">Request received</h1>
+<p>${esc(REMOVAL_SENT)}</p>
+<p><a href="/">Back to the feed</a></p>
+</section>`;
+}
+
+const ph = (s: string) => `<span class="ph">[${esc(s)}]</span>`;
+
+export const PRIVACY_UPDATED = "2026-10-23";
+
+export function renderPrivacy(): string {
+  return `<section aria-labelledby="h-privacy"><h1 id="h-privacy">Privacy notice</h1>
+<p class="dim">Mirage Feed and feeds.offseq.com. Last updated ${PRIVACY_UPDATED}.</p>
+</section>
+
+<section aria-labelledby="h-controller"><h2 id="h-controller">Controller</h2>
+<p>${ph("Legal entity name")}, registration no. ${ph("Registration no.")}, ${ph("Address")}, trading as OffSeq. Contact for data protection matters: ${ph("Privacy contact email")}. Listing and removal requests: <a href="mailto:${ABUSE}">${ABUSE}</a>.</p>
+</section>
+
+<section aria-labelledby="h-what"><h2 id="h-what">What the feed publishes</h2>
+<ul>
+<li>Attacker IP addresses (IPv6 as /64 prefixes) with their network (ASN and its registered name), country, first and last sighting truncated to the hour, and tags.</li>
+<li>Payload and command-and-control URLs, domains, and SHA-256 hashes of delivered files.</li>
+<li>Tool fingerprints (HASSH and JA4H).</li>
+<li>The most common attacker user agents and request paths.</li>
+<li>The 100 most attempted passwords, without usernames.</li>
+<li>Aggregate statistics: counts by network, country, service and ATT&amp;CK technique.</li>
+</ul>
+<p>An IP address can be personal data when it can be linked to a person, so we treat every listed address as personal data. The feed does not publish usernames, session contents or captured credential pairs.</p>
+</section>
+
+<section aria-labelledby="h-basis"><h2 id="h-basis">Purpose and legal basis</h2>
+<p>The purpose is network and information security: helping operators block addresses that are actively attacking systems. The legal basis is our legitimate interest and that of the feed's users under Article 6(1)(f) GDPR. Recital 49 names ensuring network and information security, including stopping attacks and damage to systems, as a legitimate interest.</p>
+<p>To keep the impact on address holders low, an address is listed only after a completed TCP handshake, seen by several sensors in different networks, at least 24 hours after first sighting, and it drops out 7 days after its last activity. See <a href="/#methodology">how an IP gets listed</a>.</p>
+</section>
+
+<section aria-labelledby="h-retention"><h2 id="h-retention">Retention</h2>
+<p>Lists are rebuilt every day. An address leaves the 1-day and 7-day lists 7 days after its last observed activity, and the 30-day list 30 days after it.</p>
+<p>The published data branch is force-pushed on every build, so its git history is not kept. Two places hold older data: the MISP feed carries up to 7 previous daily events, and weekly release archives keep statistics and indicators other than IP addresses. Copies already downloaded by third parties are outside our control.</p>
+</section>
+
+<section aria-labelledby="h-recipients"><h2 id="h-recipients">Recipients</h2>
+<p>The feed is public under CC BY 4.0, so anyone can receive it. It is stored on GitHub (<a href="${REPO_URL}">offseq/mirage-feed</a>) and served through Cloudflare. Transfers outside the EEA and their safeguards: ${ph("Transfer mechanism for GitHub and Cloudflare")}.</p>
+</section>
+
+<section aria-labelledby="h-site"><h2 id="h-site">This website</h2>
+<p>No cookies, no tracking scripts, no third-party fonts. The removal form alone loads Cloudflare Turnstile to block automated submissions. When a feed file is downloaded we count the download in aggregate: file path, network (ASN), country and client type such as curl or a firewall product. The IP address and full user agent are not stored. Cloudflare processes requests as our hosting provider.</p>
+</section>
+
+<section aria-labelledby="h-requests"><h2 id="h-requests">Removal requests</h2>
+<p>The removal form collects the IP address to remove, your email and a reason, and passes on the IP address you send the form from so we can limit abuse. We use them only to handle the request and reply, and keep them for ${ph("Retention period for removal requests")}.</p>
+</section>
+
+<section aria-labelledby="h-rights"><h2 id="h-rights">Your rights</h2>
+<p>You can ask for access to, rectification or erasure of data about you, restriction of processing, and you can object to processing based on legitimate interest under Article 21 GDPR. The quickest route for a listed address is the <a href="/removal">removal form</a>.</p>
+<p>You can complain to the Latvian supervisory authority, Datu valsts inspekcija, at <a href="https://www.dvi.gov.lv">dvi.gov.lv</a>, or to the authority where you live or work.</p>
+</section>`;
+}
+
+export function renderNotFound(path: string): string {
+  return `<section aria-labelledby="h-404"><h1 id="h-404">Not found</h1>
+<p>Nothing at <code>${esc(path)}</code>.</p>
+<pre><code><a href="/">/</a>                         index, status and files
+<a href="/removal">/removal</a>                  removal request
+<a href="/privacy">/privacy</a>                  privacy notice
+<a href="/mirage-feed/feed.json">/mirage-feed/feed.json</a>    file index</code></pre>
+</section>`;
+}

@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mirage Feed: daily honeypot threat intelligence</title>
+<meta name="description" content="Preview rendered from fixtures.">
+<link rel="canonical" href="https://feeds.offseq.com/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="../fonts/ibm-plex-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>/* Hallmark · custom (tuned) · Long Document in man-page register · nav N8 · footer Ft2 · light/mono/cool */
+@font-face{font-family:"Plex Mono";src:url(../fonts/ibm-plex-mono-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Plex Mono";src:url(../fonts/ibm-plex-mono-latin-600-normal.woff2) format("woff2");font-weight:600;font-display:swap}
+:root{
+--paper:oklch(97.6% .007 85);--paper-2:oklch(94.6% .009 85);--ink:oklch(23% .022 255);--ink-2:oklch(45% .02 255);
+--rule:oklch(85% .012 85);--accent:oklch(47% .085 222);--accent-soft:oklch(84% .035 222);--focus:oklch(55% .15 230);
+--error:oklch(48% .15 28);--tlp-bg:#000;--tlp-fg:#fff;
+--font-mono:"Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+--space-1:.25rem;--space-2:.5rem;--space-3:1rem;--space-4:1.5rem;--space-5:2.5rem;--space-6:4rem;
+--indent:clamp(2ch,6vw - 1ch,7ch);--sheet:92ch;--ease-out:cubic-bezier(.2,.7,.2,1);--dur:120ms;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+--paper:oklch(20.5% .022 252);--paper-2:oklch(24.5% .024 252);--ink:oklch(91% .012 85);--ink-2:oklch(72% .018 250);
+--rule:oklch(35% .022 252);--accent:oklch(79% .085 212);--accent-soft:oklch(40% .045 222);--focus:oklch(82% .12 212);--error:oklch(75% .13 30)}}
+:root[data-theme=dark]{--paper:oklch(20.5% .022 252);--paper-2:oklch(24.5% .024 252);--ink:oklch(91% .012 85);--ink-2:oklch(72% .018 250);
+--rule:oklch(35% .022 252);--accent:oklch(79% .085 212);--accent-soft:oklch(40% .045 222);--focus:oklch(82% .12 212);--error:oklch(75% .13 30)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{overflow-x:clip}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.6 var(--font-mono);font-variant-numeric:tabular-nums}
+@media (min-width:48em){body{font-size:16px}}
+.sheet{max-width:var(--sheet);margin:0 auto;padding:var(--space-4) 16px var(--space-6)}
+a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.2em}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.skip{position:absolute;left:-999px}
+.skip:focus{left:16px;top:var(--space-2);background:var(--paper);padding:var(--space-1) var(--space-2)}
+.run{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--space-1) var(--space-3);align-items:center;color:var(--ink-2)}
+.run b{color:var(--ink);font-weight:600}
+.tlp{background:var(--tlp-bg);color:var(--tlp-fg);font-weight:600;padding:0 .6ch;outline:1px solid var(--rule);white-space:nowrap}
+.preview{border:1px dashed var(--ink-2);padding:0 .6ch;margin-left:1ch;white-space:nowrap}
+nav.toc{display:flex;flex-wrap:wrap;gap:0 2ch;margin:var(--space-3) 0 0;padding-bottom:var(--space-3);border-bottom:1px solid var(--rule)}
+nav.toc a{white-space:nowrap}
+main{margin-top:var(--space-4);min-width:0}
+h1,h2,h3{font:600 1em/1.6 var(--font-mono);margin:0;font-style:normal}
+h1,h2{text-transform:uppercase;letter-spacing:.04em;margin-top:var(--space-5)}
+h3{margin-top:var(--space-4)}
+section{padding-left:var(--indent);min-width:0}
+section>h1,section>h2{margin-left:calc(-1 * var(--indent))}
+p{margin:var(--space-2) 0 0;max-width:76ch}
+ul,ol{margin:var(--space-2) 0 0;padding-left:3ch;max-width:74ch}
+li+li{margin-top:var(--space-1)}
+code,pre,kbd,samp{font:inherit}
+.dim{color:var(--ink-2)}
+.name{font-size:1.0625em}
+.cmd{display:flex;align-items:flex-start;gap:var(--space-2);margin-top:var(--space-3);border-left:2px solid var(--accent);padding:var(--space-2) var(--space-3);background:var(--paper-2)}
+.cmd code,.sel{user-select:all;-webkit-user-select:all;overflow-wrap:anywhere;min-width:0;flex:1}
+.cmd .p{user-select:none;-webkit-user-select:none;color:var(--ink-2)}
+pre{margin:var(--space-3) 0 0;padding:var(--space-3);background:var(--paper-2);border-left:2px solid var(--rule);overflow-x:auto;line-height:1.5;max-width:100%}
+.copy{font:inherit;font-size:.8125em;color:var(--ink-2);background:transparent;border:1px solid var(--rule);padding:0 .8ch;cursor:pointer;white-space:nowrap;transition:color var(--dur) var(--ease-out),border-color var(--dur) var(--ease-out)}
+.copy:hover{color:var(--ink);border-color:var(--ink-2)}
+.copy:active{transform:translateY(1px)}
+.copy[data-state=done]{color:var(--accent);border-color:var(--accent)}
+.copy[data-state=fail]{color:var(--error);border-color:var(--error)}
+.big{font-size:clamp(2.25rem,7vw,4rem);font-weight:600;line-height:1.1;letter-spacing:-.02em;margin-top:var(--space-3)}
+.lede{margin-top:var(--space-1);color:var(--ink-2)}
+.gap{display:block;width:100%;height:1.5rem;margin-top:var(--space-3);outline:1px solid var(--ink-2);outline-offset:-1px}
+.gap .pub{fill:var(--accent)}
+.gap .obs{fill:url(#hatch)}
+.gap .hl{stroke:var(--ink-2);stroke-width:1}
+.legend{display:flex;flex-wrap:wrap;gap:0 3ch;margin-top:var(--space-2);color:var(--ink-2)}
+.legend i{display:inline-block;width:1.4ch;height:.8em;margin-right:1ch;vertical-align:-.05em;background:var(--accent)}
+.legend i.h{background:repeating-linear-gradient(135deg,var(--ink-2) 0 1px,transparent 1px 4px);outline:1px solid var(--ink-2)}
+.scroll{overflow-x:auto;max-width:100%;margin-top:var(--space-3)}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:var(--space-1) 2ch var(--space-1) 0;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-weight:600;color:var(--ink-2)}
+th:last-child,td:last-child{padding-right:0}
+.n{text-align:right;white-space:nowrap}
+.nw{white-space:nowrap}
+.used{display:block;white-space:normal;font-size:.8125em;color:var(--ink-2)}
+abbr[title]{text-decoration:none;cursor:help}
+td.bar{width:40%;min-width:6ch;vertical-align:middle}
+.bar svg{display:block;width:100%;height:.7em}
+.bar .t{fill:var(--paper-2)}
+.bar .v{fill:var(--accent)}
+.tops{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,32ch),1fr));gap:0 4ch}
+.tops>:first-child{grid-column:1/-1}
+.tops h3{color:var(--ink-2);font-weight:400}
+details{border-bottom:1px solid var(--rule)}
+details:first-of-type{border-top:1px solid var(--rule);margin-top:var(--space-3)}
+summary{cursor:pointer;list-style:none;padding:var(--space-2) 0}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"[+] ";color:var(--ink-2)}
+details[open]>summary::before{content:"[-] "}
+summary:hover{color:var(--accent)}
+details>:last-child{margin-bottom:var(--space-3)}
+.empty{border:1px dashed var(--rule);padding:var(--space-3);margin-top:var(--space-3);color:var(--ink-2)}
+.cta{display:inline-block;margin-top:var(--space-4);padding:var(--space-2) 2ch;background:var(--ink);color:var(--paper);text-decoration:none;font-weight:600;white-space:nowrap}
+.cta:hover{background:var(--accent);color:var(--paper)}
+.cta:active{transform:translateY(1px)}
+form{margin-top:var(--space-3);max-width:60ch}
+label{display:block;margin-top:var(--space-3);font-weight:600}
+label .dim{font-weight:400}
+input,textarea{display:block;width:100%;margin-top:var(--space-1);font:inherit;color:var(--ink);background:var(--paper-2);border:1px solid var(--rule);border-radius:0;padding:var(--space-2)}
+input:hover,textarea:hover{border-color:var(--ink-2)}
+input:focus-visible,textarea:focus-visible{border-color:var(--focus)}
+input[aria-invalid=true]{border-color:var(--error)}
+textarea{min-height:7em;resize:vertical}
+.hp,.sr{position:absolute;left:-999px;width:1px;height:1px;overflow:hidden}
+button[type=submit]{margin-top:var(--space-4);font:inherit;font-weight:600;color:var(--paper);background:var(--ink);border:0;padding:var(--space-2) 2ch;cursor:pointer;white-space:nowrap}
+button[type=submit]:hover{background:var(--accent)}
+button[type=submit]:active{transform:translateY(1px)}
+button[type=submit]:disabled{opacity:.55;cursor:progress}
+.msg{margin-top:var(--space-3);padding:var(--space-2) var(--space-3);border-left:2px solid var(--accent)}
+.msg.err{border-color:var(--error);color:var(--error)}
+.ph{background:var(--paper-2);outline:1px dashed var(--ink-2);padding:0 .5ch}
+footer{margin-top:var(--space-6);padding-top:var(--space-3);border-top:1px solid var(--rule)}
+footer p{max-width:none;color:var(--ink-2)}
+footer .run{margin-top:var(--space-3)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{nav.toc,.copy,.cta{display:none}}
+</style>
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="sheet">
+<header>
+<div class="run"><a href="/"><b>MIRAGE-FEED(7)</b></a><span><span class="tlp">TLP:CLEAR</span></span><span>OffSeq Mirage</span></div>
+<nav class="toc" aria-label="Sections"><a href="#status">status</a><a href="#subscribe">subscribe</a><a href="#files">files</a><a href="#integrate">integrate</a><a href="#methodology">listing</a><a href="#full-feed">full feed</a><a href="#verify">verify</a><a href="/removal">removal</a><a href="/privacy">privacy</a></nav>
+</header>
+<main id="main">
+<h1 class="sr">Mirage Feed: daily honeypot threat intelligence from OffSeq</h1>
+<section aria-labelledby="h-name"><h2 id="h-name">Name</h2>
+<p class="name"><b>mirage-feed</b> - daily attacker indicators from the OffSeq Mirage honeypot fleet</p>
+<p>Handshake-verified attacker IPs, exploited CVEs, payload URLs and tool fingerprints, rebuilt every day in the formats firewalls, SIEMs and threat-intel platforms already read. Free to use under CC BY 4.0, marked TLP:CLEAR.</p>
+</section>
+
+<section aria-labelledby="h-synopsis"><h2 id="h-synopsis">Synopsis</h2>
+<div class="cmd"><span class="p" aria-hidden="true">$</span><code class="sel" data-copy="curl command">curl -fsSL https://feeds.offseq.com/mirage-feed/latest/ipv4-7d.txt</code></div>
+<p class="dim">One address per line, no comments. Paths are stable; contents change daily.</p>
+</section>
+
+<section id="status" aria-labelledby="h-status"><h2 id="h-status">Status</h2>
+<p class="dim">Snapshot of 2026-10-23, built 2026-10-24 03:05 UTC.</p>
+<p class="big">1,052</p>
+<p class="lede">of 8,715 source IPs seen in the last 24 hours are in the feed</p>
+<svg class="gap" role="img" aria-label="1,052 of 8,715 source IPs seen in the last 24 hours are in the feed, 12.1 percent">
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="hl" x1="0" y1="0" x2="0" y2="6"/></pattern></defs>
+<rect class="obs" width="100%" height="100%"/><rect class="pub" width="12.07%" height="100%"/></svg>
+<div class="legend"><span><i aria-hidden="true"></i>in the feed 12.1%</span><span><i class="h" aria-hidden="true"></i>seen, not in the feed</span></div>
+<p>Every address Mirage saw attacking in the last 24 hours counts as seen. Those in the feed have passed the <a href="#methodology">listing rules</a>. The gap is what the full feed holds.</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Counts for the last 24 hours and in the feed"><table><thead><tr><th scope="col"></th><th scope="col" class="n">Last 24 h</th><th scope="col" class="n">In the feed</th></tr></thead><tbody><tr><th scope="row">Source IPs</th><td class="n">8,715</td><td class="n">2,140</td></tr><tr><th scope="row">IPv4, 30-day list</th><td class="n dim">-</td><td class="n">3,904</td></tr><tr><th scope="row">Networks (ASNs)</th><td class="n">827</td><td class="n">311</td></tr><tr><th scope="row">Countries</th><td class="n">102</td><td class="n">64</td></tr><tr><th scope="row">CVEs exploited</th><td class="n">8</td><td class="n">8</td></tr><tr><th scope="row">Payload and C2 URLs</th><td class="n">21</td><td class="n">17</td></tr><tr><th scope="row">Malware hashes</th><td class="n">12</td><td class="n">9</td></tr><tr><th scope="row">Credential pairs tried</th><td class="n">47,454</td><td class="n dim">-</td></tr><tr><th scope="row">Events</th><td class="n">1,470,000</td><td class="n dim">-</td></tr><tr><th scope="row">Research scanners excluded</th><td class="n dim">-</td><td class="n">790</td></tr><tr><th scope="row">Tool fingerprints</th><td class="n dim">-</td><td class="n">14</td></tr></tbody></table></div>
+<p class="dim">Feed lists cover the last 7 days of activity (30 days for <code>ipv4-30d.txt</code>).</p>
+<div class="tops"><div><h3>ATT&amp;CK techniques</h3><table><thead><tr><th scope="col"><span class="sr">Item</span></th><th scope="col"><span class="sr">Share</span></th><th scope="col" class="n">IPs</th></tr></thead><tbody><tr><td>T1110 <span class="dim">Brute Force</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="100.00" height="1"/></svg></td><td class="n">5,100</td></tr><tr><td>T1190 <span class="dim">Exploit Public-Facing Application</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="35.88" height="1"/></svg></td><td class="n">1,830</td></tr><tr><td>T1595 <span class="dim">Active Scanning</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="28.63" height="1"/></svg></td><td class="n">1,460</td></tr><tr><td>T1059 <span class="dim">Command and Scripting Interpreter</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="11.96" height="1"/></svg></td><td class="n">610</td></tr><tr><td>T1105 <span class="dim">Ingress Tool Transfer</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="4.71" height="1"/></svg></td><td class="n">240</td></tr><tr><td>T1078 <span class="dim">Valid Accounts</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="1.86" height="1"/></svg></td><td class="n">95</td></tr><tr><td>T1657</td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="1.08" height="1"/></svg></td><td class="n">55</td></tr></tbody></table></div><div><h3>Services</h3><table><thead><tr><th scope="col"><span class="sr">Item</span></th><th scope="col"><span class="sr">Share</span></th><th scope="col" class="n">IPs</th></tr></thead><tbody><tr><td>ssh</td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="100.00" height="1"/></svg></td><td class="n">4,200</td></tr><tr><td>http</td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="63.10" height="1"/></svg></td><td class="n">2,650</td></tr><tr><td>telnet</td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="31.19" height="1"/></svg></td><td class="n">1,310</td></tr><tr><td>smb</td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="10.00" height="1"/></svg></td><td class="n">420</td></tr><tr><td>sip</td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="6.19" height="1"/></svg></td><td class="n">260</td></tr><tr><td>rdp</td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="4.52" height="1"/></svg></td><td class="n">190</td></tr><tr><td>redis</td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="1.67" height="1"/></svg></td><td class="n">70</td></tr></tbody></table></div><div><h3>Countries</h3><table><thead><tr><th scope="col"><span class="sr">Item</span></th><th scope="col"><span class="sr">Share</span></th><th scope="col" class="n">IPs</th></tr></thead><tbody><tr><td>CN <span class="dim">China</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="100.00" height="1"/></svg></td><td class="n">210</td></tr><tr><td>US <span class="dim">United States</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="76.19" height="1"/></svg></td><td class="n">160</td></tr><tr><td>BR <span class="dim">Brazil</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="43.81" height="1"/></svg></td><td class="n">92</td></tr><tr><td>IN <span class="dim">India</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="38.57" height="1"/></svg></td><td class="n">81</td></tr><tr><td>VN <span class="dim">Vietnam</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="30.48" height="1"/></svg></td><td class="n">64</td></tr><tr><td>RU <span class="dim">Russia</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="27.62" height="1"/></svg></td><td class="n">58</td></tr><tr><td>DE <span class="dim">Germany</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="19.52" height="1"/></svg></td><td class="n">41</td></tr><tr><td>NL <span class="dim">Netherlands</span></td><td class="bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true"><rect class="t" width="100" height="1"/><rect class="v" width="17.62" height="1"/></svg></td><td class="n">37</td></tr></tbody></table></div></div>
+</section>
+
+<section id="subscribe" aria-labelledby="h-subscribe"><h2 id="h-subscribe">Subscribe</h2>
+<p>Point your tool at a stable URL. Files are rebuilt every day; the paths never change.</p>
+<div class="scroll"><table><thead><tr><th scope="col">Use</th><th scope="col">URL</th></tr></thead><tbody><tr><td>IPv4 blocklist, last 7 days</td><td><code class="sel" data-copy="IPv4 blocklist, last 7 days">https://feeds.offseq.com/mirage-feed/latest/ipv4-7d.txt</code></td></tr><tr><td>IPv4 top 1,000, for small firewall tables</td><td><code class="sel" data-copy="IPv4 top 1,000, for small firewall tables">https://feeds.offseq.com/mirage-feed/latest/ipv4-top1k.txt</code></td></tr><tr><td>Payload and C2 URLs</td><td><code class="sel" data-copy="Payload and C2 URLs">https://feeds.offseq.com/mirage-feed/latest/urls-7d.txt</code></td></tr><tr><td>Malware SHA-256</td><td><code class="sel" data-copy="Malware SHA-256">https://feeds.offseq.com/mirage-feed/latest/hashes-sha256-30d.txt</code></td></tr><tr><td>Full records, CSV</td><td><code class="sel" data-copy="Full records, CSV">https://feeds.offseq.com/mirage-feed/latest/attackers-7d.csv</code></td></tr><tr><td>STIX 2.1 bundle</td><td><code class="sel" data-copy="STIX 2.1 bundle">https://feeds.offseq.com/mirage-feed/latest/stix/mirage.json</code></td></tr><tr><td>MISP feed, add as a MISP Feed</td><td><code class="sel" data-copy="MISP feed, add as a MISP Feed">https://feeds.offseq.com/mirage-feed/misp/</code></td></tr><tr><td>Research scanners we excluded, IPv4</td><td><code class="sel" data-copy="Research scanners we excluded, IPv4">https://feeds.offseq.com/mirage-feed/latest/known-scanners-ipv4.txt</code></td></tr></tbody></table></div>
+<p>Plain lists hold one value per line with no comments, so they load as-is into pfBlockerNG, OPNsense aliases, FortiGate threat feeds and Palo Alto EDLs.</p>
+</section>
+
+<section id="files" aria-labelledby="h-files"><h2 id="h-files">Files</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="File index"><table><thead><tr><th scope="col">path <span class="dim">and tools that read it</span></th><th scope="col" class="n">count</th><th scope="col" class="n">size</th><th scope="col">sha256</th></tr></thead><tbody><tr><td class="nw"><a href="/mirage-feed/latest/ipv4-1d.txt">latest/ipv4-1d.txt</a><span class="used">pfSense, OPNsense, FortiGate, Palo Alto</span></td><td class="n">612</td><td class="n">8.7 KiB</td><td class="nw"><abbr title="1628db7d81fa2ba74087633c8f3d5149514440e392a82db325f372db5a9616df">1628db7d81fa</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/ipv4-7d.txt">latest/ipv4-7d.txt</a><span class="used">pfSense, OPNsense, FortiGate, Palo Alto</span></td><td class="n">1,052</td><td class="n">14.9 KiB</td><td class="nw"><abbr title="cba03edddabdaadc8f3bad2bc7fad32d9612df37191af702475badd8c2f3bed5">cba03edddabd</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/ipv4-30d.txt">latest/ipv4-30d.txt</a><span class="used">pfSense, OPNsense</span></td><td class="n">3,904</td><td class="n">55.0 KiB</td><td class="nw"><abbr title="45a821bd0bc3f351c0f27bedf5e3ade950d0f11e29da39a767d3e869caad9c8f">45a821bd0bc3</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/ipv4-top1k.txt">latest/ipv4-top1k.txt</a><span class="used">Palo Alto, FortiGate</span></td><td class="n">1,000</td><td class="n">14.1 KiB</td><td class="nw"><abbr title="6a91a3b9e6a9e3f6e607aec75c52fb89d65af0b9e10cab97238832d82cac645d">6a91a3b9e6a9</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/known-scanners-ipv4.txt">latest/known-scanners-ipv4.txt</a><span class="used">allowlists</span></td><td class="n">790</td><td class="n">11.2 KiB</td><td class="nw"><abbr title="b2376396bf564ac0b168f6aed77f07183ca6a2fb62652347ee1c65cc07ba0e80">b2376396bf56</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/urls-7d.txt">latest/urls-7d.txt</a><span class="used">proxies, SIEM</span></td><td class="n">17</td><td class="n">702 B</td><td class="nw"><abbr title="7f33df27fd8b339941ce2799a2611a4183ba32c045ae8e0239ae53b4cfa28764">7f33df27fd8b</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/hashes-sha256-30d.txt">latest/hashes-sha256-30d.txt</a><span class="used">EDR, SIEM</span></td><td class="n">9</td><td class="n">585 B</td><td class="nw"><abbr title="7852d1896bc864fa8f85fc1961667f5507d64ef48b1b4a084d93f7bd82d4ebf2">7852d1896bc8</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/cves-7d.csv">latest/cves-7d.csv</a><span class="used">SIEM</span></td><td class="n">8</td><td class="n">744 B</td><td class="nw"><abbr title="72e1ab5d1e47537f34aae9f9188bfb160596d669296bc9266dd8bef340209846">72e1ab5d1e47</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/attackers-7d.csv">latest/attackers-7d.csv</a><span class="used">Splunk, OpenCTI</span></td><td class="n">1,052</td><td class="n">147.8 KiB</td><td class="nw"><abbr title="28d5db29cb21cc24f9cff924213c8f4d5db16dd86ac3e2fa30e58836aa47d2c2">28d5db29cb21</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/records-7d.ndjson.gz">latest/records-7d.ndjson.gz</a><span class="used">data pipelines</span></td><td class="n">1,052</td><td class="n">47.1 KiB</td><td class="nw"><abbr title="905dd11770d4bf12599de6588e96711737a86df97d605ab036dbe57fc0e6976e">905dd11770d4</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/stix/mirage.json">latest/stix/mirage.json</a><span class="used">Sentinel, OpenCTI</span></td><td class="n">1,086</td><td class="n">891.0 KiB</td><td class="nw"><abbr title="9cc4b6a27b2b76beded4ecb3a3de4dfe965d6fcdf004a12c8159ff110a838849">9cc4b6a27b2b</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/mikrotik/mirage-7d.rsc">latest/mikrotik/mirage-7d.rsc</a><span class="used">MikroTik</span></td><td class="n">1,052</td><td class="n">70.4 KiB</td><td class="nw"><abbr title="7c565844482a57ec88a79673ce6cd86a67d69f02b1a7cbdc3e08d08c9841ea28">7c565844482a</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/nft/mirage.nft">latest/nft/mirage.nft</a><span class="used">nftables</span></td><td class="n">1,052</td><td class="n">17.5 KiB</td><td class="nw"><abbr title="a045beb41dbbf38502f06af97ded6aac5a22b87ae85991d5d309d1ef437ade72">a045beb41dbb</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/ipset/mirage.ipset">latest/ipset/mirage.ipset</a><span class="used">ipset</span></td><td class="n">1,052</td><td class="n">25.8 KiB</td><td class="nw"><abbr title="b4667be435a9860f64c1547b7829e7ebf1592507659736b6a432bbc19e6c5d2c">b4667be435a9</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/suricata/mirage-iprep.list">latest/suricata/mirage-iprep.list</a><span class="used">Suricata</span></td><td class="n">1,052</td><td class="n">19.5 KiB</td><td class="nw"><abbr title="452a593a41ad2fd34ee3d410db04062c0f16e94f973777bcef11e69473bd9ddb">452a593a41ad</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/zeek/mirage.intel">latest/zeek/mirage.intel</a><span class="used">Zeek</span></td><td class="n">1,078</td><td class="n">62.8 KiB</td><td class="nw"><abbr title="38fcf70493ad8150a24762e6784777f90624bbc514d83834766990593dfbc7c6">38fcf70493ad</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/latest/defender/defender-top500.csv">latest/defender/defender-top500.csv</a><span class="used">Defender for Endpoint</span></td><td class="n">500</td><td class="n">31.1 KiB</td><td class="nw"><abbr title="2af9d1c3e0624256390b94a2662b646b350a870c1cd6630b735aca159c5e21fd">2af9d1c3e062</abbr></td></tr><tr><td class="nw"><a href="/mirage-feed/misp/manifest.json">misp/manifest.json</a><span class="used">MISP</span></td><td class="n">1</td><td class="n">1.2 KiB</td><td class="nw"><abbr title="f2a534aa309e8e7f430b283e0a1b7ab8d326db57f12a11baff870846e1422c55">f2a534aa309e</abbr></td></tr></tbody></table></div>
+<p class="dim">Full checksums in <a href="/mirage-feed/SHA256SUMS">SHA256SUMS</a>. Index as JSON: <a href="/mirage-feed/feed.json">feed.json</a>. Mirrors: <a href="https://github.com/offseq/mirage-feed/tree/data">github.com/offseq/mirage-feed/tree/data</a>.</p>
+</section>
+
+<section id="integrate" aria-labelledby="h-integrate"><h2 id="h-integrate">Integration</h2>
+<details><summary>pfSense / OPNsense</summary><p>Firewall &gt; Aliases &gt; Add. Type <b>URL Table (IPs)</b>, URL <code class="sel" data-copy="pfSense URL">https://feeds.offseq.com/mirage-feed/latest/ipv4-7d.txt</code>, refresh <b>1 day</b>. Use the alias as the source of a block rule on WAN.</p></details>
+<details><summary>FortiGate</summary><pre><code>config system external-resource
+    edit &quot;mirage-feed&quot;
+        set type address
+        set resource &quot;https://feeds.offseq.com/mirage-feed/latest/ipv4-7d.txt&quot;
+        set refresh-rate 1440
+    next
+end</code></pre></details>
+<details><summary>Palo Alto (EDL)</summary><p>Objects &gt; External Dynamic Lists &gt; Add. Type <b>IP List</b>, source <code class="sel" data-copy="EDL URL">https://feeds.offseq.com/mirage-feed/latest/ipv4-7d.txt</code>, repeat <b>Daily</b>. Firewalls with a 50k EDL budget should use <code>ipv4-top1k.txt</code> or <code>ipv4-top10k.txt</code>.</p></details>
+<details><summary>MikroTik RouterOS</summary><pre><code>/tool fetch url=&quot;https://feeds.offseq.com/mirage-feed/latest/mikrotik/mirage-7d.rsc&quot; dst-path=mirage.rsc
+/import file-name=mirage.rsc</code></pre><p>Entries carry <code>timeout=7d</code>, so they expire on their own.</p></details>
+<details><summary>nftables / ipset</summary><p>nftables:</p><pre><code>curl --create-dirs -fsSLo /etc/nftables.d/mirage.nft https://feeds.offseq.com/mirage-feed/latest/nft/mirage.nft
+nft -f /etc/nftables.d/mirage.nft</code></pre><p>ipset with iptables, safe to re-run:</p><pre><code>curl -fsSL https://feeds.offseq.com/mirage-feed/latest/ipset/mirage.ipset | ipset restore
+iptables -C INPUT -m set --match-set mirage4 src -j DROP 2&gt;/dev/null \
+  || iptables -I INPUT -m set --match-set mirage4 src -j DROP
+ip6tables -C INPUT -m set --match-set mirage6 src -j DROP 2&gt;/dev/null \
+  || ip6tables -I INPUT -m set --match-set mirage6 src -j DROP</code></pre></details>
+<details><summary>CrowdSec</summary><pre><code>curl -fsSL https://feeds.offseq.com/mirage-feed/latest/ipv4-7d.txt -o mirage.txt
+cscli decisions import -i mirage.txt --format values --duration 48h --scope ip --reason mirage-feed</code></pre></details>
+<details><summary>Suricata and Zeek</summary><p>Suricata IP reputation: <code>latest/suricata/categories.txt</code> and <code>latest/suricata/mirage-iprep.list</code>.</p><pre><code>alert ip any any -&gt; $HOME_NET any (msg:&quot;Mirage feed: known attacker&quot;; iprep:src,MirageAttacker,&gt;,50; sid:1900001; rev:1;)</code></pre><p>Zeek Intel framework, with <code>latest/zeek/mirage.intel</code> saved locally:</p><pre><code>redef Intel::read_files += { &quot;/opt/mirage/mirage.intel&quot; };</code></pre></details>
+<details><summary>MISP, OpenCTI, Sentinel, Defender, Splunk</summary><ul>
+<li><b>MISP</b>: Sync Actions &gt; Feeds &gt; Add. Source format <b>MISP Feed</b>, URL <code class="sel" data-copy="MISP feed URL">https://feeds.offseq.com/mirage-feed/misp/</code>.</li>
+<li><b>OpenCTI</b>: Data &gt; Ingestion &gt; CSV feeds on <code>latest/attackers-ipv4-7d.csv</code>, with the mapper in the <a href="https://github.com/offseq/mirage-feed">repository</a> under <code>docs/opencti-csv-mapper.json</code>. Or import <code>latest/stix/mirage.json</code> as a STIX bundle.</li>
+<li><b>Microsoft Sentinel</b>: send <code>latest/stix/mirage.json</code> to the STIX objects upload API, wrapped as <code>{"sourcesystem":"OffSeq Mirage","stixobjects":[...]}</code> with at most 100 objects per request:<pre><code>jq -c &#39;.objects as $o | range(0; $o | length; 100) | {sourcesystem: &quot;OffSeq Mirage&quot;, stixobjects: $o[.:. + 100]}&#39; mirage.json</code></pre></li>
+<li><b>Defender for Endpoint</b>: Settings &gt; Endpoints &gt; Indicators &gt; Import, with <code>latest/defender/defender-top500.csv</code>. The import takes 500 indicators per batch, which is why the file stops at 500.</li>
+<li><b>Splunk</b>: add <code>latest/attackers-7d.csv</code> as a lookup and match on <code>src_ip</code>.</li>
+</ul></details>
+</section>
+
+<section id="methodology" aria-labelledby="h-method"><h2 id="h-method">How an IP gets listed</h2>
+<p>An address is published only when <b>all</b> of these hold:</p>
+<ol>
+<li>It completed a TCP handshake and sent application data. UDP-only and spoofable traffic never qualifies.</li>
+<li>At least <b>3 Mirage sensors in at least 2 networks</b> saw it within 7 days. One-off hits stay out.</li>
+<li>It is not a known research scanner, CDN, public resolver, bogon or any range on the <a href="https://github.com/MISP/misp-warninglists">MISP warninglists</a>.</li>
+<li>Its first sighting is at least <b>24 hours</b> old.</li>
+</ol>
+<p>Entries expire <b>7 days</b> after the last observed activity; new activity renews them. Research scanners are excluded from the blocklists and published separately in <code>known-scanners-ipv4.txt</code> and <code>known-scanners-ipv6.txt</code>, so you can allowlist them.</p>
+<p>Before every publish, the build is rejected if the list overlaps an allowlist, contains anything wider than a /32, or changes size by more than 30% from the previous day.</p>
+<p>Most listed addresses are compromised devices or rented infrastructure. A listing means &quot;this address attacked honeypots&quot;, not a judgement about whoever holds it.</p>
+</section>
+
+<section id="full-feed" aria-labelledby="h-full"><h2 id="h-full">Community feed and full feed</h2>
+<p>This feed is free and stays free. The full feed is part of OffSeq Mirage.</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Community and full feed compared"><table><thead><tr><th scope="col"></th><th scope="col">Community</th><th scope="col">Full feed</th></tr></thead><tbody>
+<tr><th scope="row">Cadence</th><td>Daily, 24 h delayed</td><td>Real time: API, webhook, TAXII</td></tr>
+<tr><th scope="row">Attacker IPs</th><td>Multi-sensor, high confidence</td><td>Every source, incl. targeted single-sensor activity</td></tr>
+<tr><th scope="row">Context per IP</th><td>ASN, country, tags</td><td>Ports, protocols, full session timeline</td></tr>
+<tr><th scope="row">Payloads</th><td>URLs and hashes</td><td>Decoded payloads, shell transcripts, stage-2 captures</td></tr>
+<tr><th scope="row">Credentials</th><td>Top 100 passwords, no usernames</td><td>Attempted credentials and captured hashes</td></tr>
+<tr><th scope="row">Attribution</th><td class="dim">-</td><td>Actor clusters, campaigns, intent verdicts</td></tr>
+<tr><th scope="row">History</th><td>7 to 30 days</td><td>365 days</td></tr>
+<tr><th scope="row">Private sensors</th><td class="dim">-</td><td>Mirage honeypots on your own IP space, with alerts</td></tr>
+</tbody></table></div>
+<a class="cta" href="https://mirage.offseq.com/?utm_source=feeds&amp;utm_medium=web&amp;utm_campaign=mirage-feed">Sign up at mirage.offseq.com</a>
+</section>
+
+<section id="verify" aria-labelledby="h-verify"><h2 id="h-verify">Verify a download</h2>
+<p>Every build ships <code>SHA256SUMS</code> and a minisign signature over it.</p>
+<p>Download into the same paths as the feed, so the names match the checksum file:</p>
+<pre><code>curl -fsSLO https://feeds.offseq.com/mirage-feed/SHA256SUMS -O https://feeds.offseq.com/mirage-feed/SHA256SUMS.minisig
+curl --create-dirs -fsSLo latest/ipv4-7d.txt https://feeds.offseq.com/mirage-feed/latest/ipv4-7d.txt
+minisign -Vm SHA256SUMS -P RWQ_PUBLIC_KEY_PLACEHOLDER
+sha256sum -c --ignore-missing SHA256SUMS</code></pre>
+<p class="dim">On macOS, use <code>shasum -a 256 -c</code> in place of <code>sha256sum -c</code>.</p>
+</section>
+
+<section id="removal" aria-labelledby="h-removal"><h2 id="h-removal">Removal</h2>
+<p>If your address is listed and should not be, use the <a href="/removal">removal form</a> or write to <a href="mailto:abuse@offseq.com">abuse@offseq.com</a>. No GitHub account needed. Requests are handled within 72 hours. An address that resumes attacking is listed again.</p>
+<p>A bug in a file format or an integration? <a href="https://github.com/offseq/mirage-feed/issues">Open an issue</a>.</p>
+</section>
+
+<section aria-labelledby="h-see"><h2 id="h-see">See also</h2>
+<p><a href="/privacy">privacy</a>, <a href="https://github.com/offseq/mirage-feed">github.com/offseq/mirage-feed</a>, <a href="/mirage-feed/schema/record.schema.json">record.schema.json</a>, <a href="https://offseq.com/en/research/">OffSeq research</a>, <a href="https://www.first.org/tlp/">FIRST TLP 2.0</a></p>
+</section>
+</main>
+<footer>
+<p>Data <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, credit &quot;OffSeq Mirage&quot; with a link to this site. Marked TLP:CLEAR. Provided as is, without warranty. You decide what to block.</p>
+<p><a href="https://offseq.com">offseq.com</a> &middot; <a href="https://mirage.offseq.com">mirage.offseq.com</a> &middot; <a href="https://github.com/offseq/mirage-feed">github.com/offseq/mirage-feed</a> &middot; <a href="/privacy">privacy</a> &middot; <a href="/removal">removal</a> &middot; <a href="/.well-known/security.txt">security.txt</a></p>
+<div class="run"><span>OffSeq</span><span>2026-10-23</span><span>MIRAGE-FEED(7)</span></div>
+</footer>
+</div>
+</body>
+</html>

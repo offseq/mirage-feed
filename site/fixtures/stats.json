@@ -1,0 +1,132 @@
+{
+  "observed": {
+    "ips": 8715,
+    "asns": 827,
+    "countries": 102,
+    "events": 1470000,
+    "cves": 8,
+    "urls": 21,
+    "credential_pairs": 47454,
+    "hashes": 12
+  },
+  "published": {
+    "ips": 2140,
+    "asns": 311,
+    "countries": 64,
+    "cves": 8,
+    "urls": 17,
+    "hashes": 9,
+    "scanners": 790,
+    "fingerprints": 14,
+    "active_24h": 1052,
+    "ips_30d": 3904
+  },
+  "attack": [
+    {
+      "technique": "T1190",
+      "name": "Exploit Public-Facing Application",
+      "events": 41000,
+      "ips": 1830
+    },
+    {
+      "technique": "T1110",
+      "name": "T1110 Brute Force",
+      "events": 1100000,
+      "ips": 5100
+    },
+    {
+      "technique": "T1595",
+      "name": "Active Scanning",
+      "events": 210000,
+      "ips": 1460
+    },
+    {
+      "technique": "T1657",
+      "name": "T1657",
+      "events": 120,
+      "ips": 55
+    },
+    {
+      "technique": "T1059",
+      "name": "Command and Scripting Interpreter",
+      "events": 9300,
+      "ips": 610
+    },
+    {
+      "technique": "T1105",
+      "name": "Ingress Tool Transfer",
+      "events": 2200,
+      "ips": 240
+    },
+    {
+      "technique": "T1078",
+      "name": "Valid Accounts",
+      "events": 800,
+      "ips": 95
+    }
+  ],
+  "services": [
+    {
+      "service": "ssh",
+      "ips": 4200
+    },
+    {
+      "service": "http",
+      "ips": 2650
+    },
+    {
+      "service": "telnet",
+      "ips": 1310
+    },
+    {
+      "service": "smb",
+      "ips": 420
+    },
+    {
+      "service": "sip",
+      "ips": 260
+    },
+    {
+      "service": "rdp",
+      "ips": 190
+    },
+    {
+      "service": "redis",
+      "ips": 70
+    }
+  ],
+  "countries": [
+    {
+      "country": "CN",
+      "ips": 210
+    },
+    {
+      "country": "US",
+      "ips": 160
+    },
+    {
+      "country": "BR",
+      "ips": 92
+    },
+    {
+      "country": "IN",
+      "ips": 81
+    },
+    {
+      "country": "VN",
+      "ips": 64
+    },
+    {
+      "country": "RU",
+      "ips": 58
+    },
+    {
+      "country": "DE",
+      "ips": 41
+    },
+    {
+      "country": "NL",
+      "ips": 37
+    }
+  ]
+}

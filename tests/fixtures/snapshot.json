@@ -1,0 +1,2313 @@
+{
+  "schema": "mirage-community/1",
+  "generated": "2026-10-24T03:05:00Z",
+  "day": "2026-10-23",
+  "policy": {
+    "min_sensors": 3,
+    "min_networks": 2,
+    "delay_hours": 24,
+    "ttl_days": 7,
+    "ipv6_prefix": 64
+  },
+  "stats": {
+    "observed": {
+      "ips": 8715,
+      "asns": 827,
+      "countries": 102,
+      "events": 1470000,
+      "cves": 8,
+      "urls": 21,
+      "credential_pairs": 47454,
+      "hashes": 12
+    },
+    "published": {
+      "active_24h": 14,
+      "ips_30d": 74,
+      "ips": 73,
+      "asns": 6,
+      "countries": 6,
+      "cves": 4,
+      "urls": 4,
+      "hashes": 3,
+      "scanners": 3,
+      "fingerprints": 4
+    },
+    "attack": [
+      {
+        "technique": "T1110",
+        "name": "Brute Force",
+        "events": 1100000,
+        "ips": 5100
+      },
+      {
+        "technique": "T1190",
+        "name": "Exploit Public-Facing Application",
+        "events": 21000,
+        "ips": 300
+      }
+    ],
+    "services": [
+      {
+        "service": "ssh",
+        "ips": 4200
+      },
+      {
+        "service": "http",
+        "ips": 2100
+      }
+    ],
+    "countries": [
+      {
+        "country": "CN",
+        "ips": 210
+      },
+      {
+        "country": "DE",
+        "ips": 90
+      }
+    ]
+  },
+  "ips": [
+    {
+      "ip": "198.51.100.9",
+      "asn": 64505,
+      "as_org": "Lab ISP",
+      "country": "IN",
+      "first_seen": "2026-10-14T23:00:00Z",
+      "last_seen": "2026-10-17T17:00:00Z",
+      "services": [
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 5,
+      "networks": 5,
+      "hits": 699,
+      "confidence": 100,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.5",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-13T19:00:00Z",
+      "last_seen": "2026-10-21T13:00:00Z",
+      "services": [
+        "http",
+        "https"
+      ],
+      "tags": [
+        "web-exploit",
+        "web-scan"
+      ],
+      "attack": [
+        "T1190",
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-26855",
+        "CVE-2021-41773",
+        "CVE-2023-46805"
+      ],
+      "kev": true,
+      "sensors": 10,
+      "networks": 5,
+      "hits": 8111,
+      "confidence": 99,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.40",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-15T15:00:00Z",
+      "last_seen": "2026-10-19T09:00:00Z",
+      "services": [
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 6,
+      "networks": 5,
+      "hits": 6523,
+      "confidence": 98,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.36",
+      "asn": 64505,
+      "as_org": "Lab ISP",
+      "country": "IN",
+      "first_seen": "2026-10-14T11:00:00Z",
+      "last_seen": "2026-10-23T05:00:00Z",
+      "services": [
+        "http",
+        "https"
+      ],
+      "tags": [
+        "web-exploit",
+        "web-scan"
+      ],
+      "attack": [
+        "T1190",
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-26855",
+        "CVE-2021-41773",
+        "CVE-2023-46805"
+      ],
+      "kev": true,
+      "sensors": 11,
+      "networks": 5,
+      "hits": 4935,
+      "confidence": 97,
+      "window": "1d"
+    },
+    {
+      "ip": "203.0.113.32",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-16T07:00:00Z",
+      "last_seen": "2026-10-21T01:00:00Z",
+      "services": [
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 7,
+      "networks": 5,
+      "hits": 3347,
+      "confidence": 96,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.28",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-18T03:00:00Z",
+      "last_seen": "2026-10-19T21:00:00Z",
+      "services": [
+        "http",
+        "https"
+      ],
+      "tags": [
+        "web-exploit",
+        "web-scan"
+      ],
+      "attack": [
+        "T1190",
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-26855",
+        "CVE-2021-41773",
+        "CVE-2023-46805"
+      ],
+      "kev": true,
+      "sensors": 3,
+      "networks": 5,
+      "hits": 1759,
+      "confidence": 95,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.24",
+      "asn": 64505,
+      "as_org": "Lab ISP",
+      "country": "IN",
+      "first_seen": "2026-10-11T23:00:00Z",
+      "last_seen": "2026-10-17T17:00:00Z",
+      "services": [
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 8,
+      "networks": 5,
+      "hits": 171,
+      "confidence": 94,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.20",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-19T19:00:00Z",
+      "last_seen": "2026-10-21T13:00:00Z",
+      "services": [
+        "http",
+        "https"
+      ],
+      "tags": [
+        "web-exploit",
+        "web-scan"
+      ],
+      "attack": [
+        "T1190",
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-26855",
+        "CVE-2021-41773",
+        "CVE-2023-46805"
+      ],
+      "kev": true,
+      "sensors": 4,
+      "networks": 5,
+      "hits": 7583,
+      "confidence": 93,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.28",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-18T18:00:00Z",
+      "last_seen": "2026-10-22T06:00:00Z",
+      "services": [
+        "http"
+      ],
+      "tags": [
+        "web-scan"
+      ],
+      "attack": [
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-41773"
+      ],
+      "kev": true,
+      "sensors": 6,
+      "networks": 4,
+      "hits": 8242,
+      "confidence": 92,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.16",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-16T15:00:00Z",
+      "last_seen": "2026-10-23T09:00:00Z",
+      "services": [
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 9,
+      "networks": 5,
+      "hits": 5995,
+      "confidence": 92,
+      "window": "1d"
+    },
+    {
+      "ip": "198.51.100.24",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-11T14:00:00Z",
+      "last_seen": "2026-10-20T02:00:00Z",
+      "services": [
+        "redis"
+      ],
+      "tags": [
+        "redis-rce"
+      ],
+      "attack": [
+        "T1059",
+        "T1190"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 11,
+      "networks": 4,
+      "hits": 6654,
+      "confidence": 91,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.12",
+      "asn": 64505,
+      "as_org": "Lab ISP",
+      "country": "IN",
+      "first_seen": "2026-10-14T11:00:00Z",
+      "last_seen": "2026-10-17T05:00:00Z",
+      "services": [
+        "http",
+        "https"
+      ],
+      "tags": [
+        "web-exploit",
+        "web-scan"
+      ],
+      "attack": [
+        "T1190",
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-26855",
+        "CVE-2021-41773",
+        "CVE-2023-46805"
+      ],
+      "kev": true,
+      "sensors": 5,
+      "networks": 5,
+      "hits": 4407,
+      "confidence": 91,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.20",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-13T10:00:00Z",
+      "last_seen": "2026-10-18T22:00:00Z",
+      "services": [
+        "http"
+      ],
+      "tags": [
+        "web-scan"
+      ],
+      "attack": [
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-41773"
+      ],
+      "kev": true,
+      "sensors": 7,
+      "networks": 4,
+      "hits": 5066,
+      "confidence": 90,
+      "window": "7d"
+    },
+    {
+      "ip": "2001:db8:4:48::/64",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-18T02:00:00Z",
+      "last_seen": "2026-10-22T08:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 7,
+      "networks": 2,
+      "hits": 303,
+      "confidence": 90,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.8",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-01T07:00:00Z",
+      "last_seen": "2026-10-08T01:00:00Z",
+      "services": [
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 10,
+      "networks": 5,
+      "hits": 2819,
+      "confidence": 90,
+      "window": "30d"
+    },
+    {
+      "ip": "198.51.100.16",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-21T06:00:00Z",
+      "last_seen": "2026-10-22T18:00:00Z",
+      "services": [
+        "redis"
+      ],
+      "tags": [
+        "redis-rce"
+      ],
+      "attack": [
+        "T1059",
+        "T1190"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 3,
+      "networks": 4,
+      "hits": 3478,
+      "confidence": 89,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.4",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-15T03:00:00Z",
+      "last_seen": "2026-10-19T21:00:00Z",
+      "services": [
+        "http",
+        "https"
+      ],
+      "tags": [
+        "web-exploit",
+        "web-scan"
+      ],
+      "attack": [
+        "T1190",
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-26855",
+        "CVE-2021-41773",
+        "CVE-2023-46805"
+      ],
+      "kev": true,
+      "sensors": 6,
+      "networks": 5,
+      "hits": 1231,
+      "confidence": 89,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.12",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-17T02:00:00Z",
+      "last_seen": "2026-10-23T14:00:00Z",
+      "services": [
+        "http"
+      ],
+      "tags": [
+        "web-scan"
+      ],
+      "attack": [
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-41773"
+      ],
+      "kev": true,
+      "sensors": 8,
+      "networks": 4,
+      "hits": 1890,
+      "confidence": 88,
+      "window": "1d"
+    },
+    {
+      "ip": "198.51.100.8",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-16T22:00:00Z",
+      "last_seen": "2026-10-18T10:00:00Z",
+      "services": [
+        "redis"
+      ],
+      "tags": [
+        "redis-rce"
+      ],
+      "attack": [
+        "T1059",
+        "T1190"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 4,
+      "networks": 4,
+      "hits": 302,
+      "confidence": 87,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.4",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-01T18:00:00Z",
+      "last_seen": "2026-10-08T06:00:00Z",
+      "services": [
+        "http"
+      ],
+      "tags": [
+        "web-scan"
+      ],
+      "attack": [
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-41773"
+      ],
+      "kev": true,
+      "sensors": 9,
+      "networks": 4,
+      "hits": 7714,
+      "confidence": 86,
+      "window": "30d"
+    },
+    {
+      "ip": "203.0.113.39",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-17T14:00:00Z",
+      "last_seen": "2026-10-20T02:00:00Z",
+      "services": [
+        "redis"
+      ],
+      "tags": [
+        "redis-rce"
+      ],
+      "attack": [
+        "T1059",
+        "T1190"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 5,
+      "networks": 4,
+      "hits": 6126,
+      "confidence": 85,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.35",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-10T10:00:00Z",
+      "last_seen": "2026-10-18T22:00:00Z",
+      "services": [
+        "http"
+      ],
+      "tags": [
+        "web-scan"
+      ],
+      "attack": [
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-41773"
+      ],
+      "kev": true,
+      "sensors": 10,
+      "networks": 4,
+      "hits": 4538,
+      "confidence": 84,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.31",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-19T06:00:00Z",
+      "last_seen": "2026-10-23T18:00:00Z",
+      "services": [
+        "redis"
+      ],
+      "tags": [
+        "redis-rce"
+      ],
+      "attack": [
+        "T1059",
+        "T1190"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 6,
+      "networks": 4,
+      "hits": 2950,
+      "confidence": 83,
+      "window": "1d"
+    },
+    {
+      "ip": "203.0.113.27",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-11T02:00:00Z",
+      "last_seen": "2026-10-20T14:00:00Z",
+      "services": [
+        "http"
+      ],
+      "tags": [
+        "web-scan"
+      ],
+      "attack": [
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-41773"
+      ],
+      "kev": true,
+      "sensors": 11,
+      "networks": 4,
+      "hits": 1362,
+      "confidence": 82,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.23",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-13T22:00:00Z",
+      "last_seen": "2026-10-18T10:00:00Z",
+      "services": [
+        "redis"
+      ],
+      "tags": [
+        "redis-rce"
+      ],
+      "attack": [
+        "T1059",
+        "T1190"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 7,
+      "networks": 4,
+      "hits": 8774,
+      "confidence": 81,
+      "window": "7d"
+    },
+    {
+      "ip": "2001:db8:3:32::/64",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-17T02:00:00Z",
+      "last_seen": "2026-10-22T07:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 6,
+      "networks": 2,
+      "hits": 302,
+      "confidence": 80,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.19",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-21T18:00:00Z",
+      "last_seen": "2026-10-22T06:00:00Z",
+      "services": [
+        "http"
+      ],
+      "tags": [
+        "web-scan"
+      ],
+      "attack": [
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-41773"
+      ],
+      "kev": true,
+      "sensors": 3,
+      "networks": 4,
+      "hits": 7186,
+      "confidence": 80,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.27",
+      "asn": 64505,
+      "as_org": "Lab ISP",
+      "country": "IN",
+      "first_seen": "2026-10-20T17:00:00Z",
+      "last_seen": "2026-10-23T23:00:00Z",
+      "services": [
+        "ssh",
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like",
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 5,
+      "networks": 3,
+      "hits": 7845,
+      "confidence": 79,
+      "window": "1d"
+    },
+    {
+      "ip": "203.0.113.15",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-01T14:00:00Z",
+      "last_seen": "2026-10-06T02:00:00Z",
+      "services": [
+        "redis"
+      ],
+      "tags": [
+        "redis-rce"
+      ],
+      "attack": [
+        "T1059",
+        "T1190"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 8,
+      "networks": 4,
+      "hits": 5598,
+      "confidence": 79,
+      "window": "30d"
+    },
+    {
+      "ip": "198.51.100.23",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-13T13:00:00Z",
+      "last_seen": "2026-10-21T19:00:00Z",
+      "services": [
+        "sip"
+      ],
+      "tags": [
+        "sip-bruteforce"
+      ],
+      "attack": [
+        "T1110"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 10,
+      "networks": 3,
+      "hits": 6257,
+      "confidence": 78,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.11",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-21T10:00:00Z",
+      "last_seen": "2026-10-23T22:00:00Z",
+      "services": [
+        "http"
+      ],
+      "tags": [
+        "web-scan"
+      ],
+      "attack": [
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-41773"
+      ],
+      "kev": true,
+      "sensors": 4,
+      "networks": 4,
+      "hits": 4010,
+      "confidence": 78,
+      "window": "1d"
+    },
+    {
+      "ip": "198.51.100.19",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-15T09:00:00Z",
+      "last_seen": "2026-10-19T15:00:00Z",
+      "services": [
+        "ssh",
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like",
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 6,
+      "networks": 3,
+      "hits": 4669,
+      "confidence": 77,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.7",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-15T06:00:00Z",
+      "last_seen": "2026-10-22T18:00:00Z",
+      "services": [
+        "redis"
+      ],
+      "tags": [
+        "redis-rce"
+      ],
+      "attack": [
+        "T1059",
+        "T1190"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 9,
+      "networks": 4,
+      "hits": 2422,
+      "confidence": 77,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.15",
+      "asn": 64505,
+      "as_org": "Lab ISP",
+      "country": "IN",
+      "first_seen": "2026-10-08T05:00:00Z",
+      "last_seen": "2026-10-17T11:00:00Z",
+      "services": [
+        "sip"
+      ],
+      "tags": [
+        "sip-bruteforce"
+      ],
+      "attack": [
+        "T1110"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 11,
+      "networks": 3,
+      "hits": 3081,
+      "confidence": 76,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.3",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-17T02:00:00Z",
+      "last_seen": "2026-10-20T14:00:00Z",
+      "services": [
+        "http"
+      ],
+      "tags": [
+        "web-scan"
+      ],
+      "attack": [
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-41773"
+      ],
+      "kev": true,
+      "sensors": 5,
+      "networks": 4,
+      "hits": 834,
+      "confidence": 76,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.11",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-01T01:00:00Z",
+      "last_seen": "2026-10-06T07:00:00Z",
+      "services": [
+        "ssh",
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like",
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 7,
+      "networks": 3,
+      "hits": 1493,
+      "confidence": 75,
+      "window": "30d"
+    },
+    {
+      "ip": "198.51.100.7",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-22T21:00:00Z",
+      "last_seen": "2026-10-23T03:00:00Z",
+      "services": [
+        "sip"
+      ],
+      "tags": [
+        "sip-bruteforce"
+      ],
+      "attack": [
+        "T1110"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 3,
+      "networks": 3,
+      "hits": 8905,
+      "confidence": 74,
+      "window": "1d"
+    },
+    {
+      "ip": "198.51.100.3",
+      "asn": 64505,
+      "as_org": "Lab ISP",
+      "country": "IN",
+      "first_seen": "2026-10-11T17:00:00Z",
+      "last_seen": "2026-10-17T23:00:00Z",
+      "services": [
+        "ssh",
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like",
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 8,
+      "networks": 3,
+      "hits": 7317,
+      "confidence": 73,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.38",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-19T13:00:00Z",
+      "last_seen": "2026-10-21T19:00:00Z",
+      "services": [
+        "sip"
+      ],
+      "tags": [
+        "sip-bruteforce"
+      ],
+      "attack": [
+        "T1110"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 4,
+      "networks": 3,
+      "hits": 5729,
+      "confidence": 72,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.34",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-12T09:00:00Z",
+      "last_seen": "2026-10-19T15:00:00Z",
+      "services": [
+        "ssh",
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like",
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 9,
+      "networks": 3,
+      "hits": 4141,
+      "confidence": 71,
+      "window": "7d"
+    },
+    {
+      "ip": "2001:db8:2:16::/64",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-16T02:00:00Z",
+      "last_seen": "2026-10-22T06:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 5,
+      "networks": 2,
+      "hits": 301,
+      "confidence": 70,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.30",
+      "asn": 64505,
+      "as_org": "Lab ISP",
+      "country": "IN",
+      "first_seen": "2026-10-14T05:00:00Z",
+      "last_seen": "2026-10-17T11:00:00Z",
+      "services": [
+        "sip"
+      ],
+      "tags": [
+        "sip-bruteforce"
+      ],
+      "attack": [
+        "T1110"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 5,
+      "networks": 3,
+      "hits": 2553,
+      "confidence": 70,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.26",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-15T01:00:00Z",
+      "last_seen": "2026-10-23T07:00:00Z",
+      "services": [
+        "ssh",
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like",
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 10,
+      "networks": 3,
+      "hits": 965,
+      "confidence": 69,
+      "window": "1d"
+    },
+    {
+      "ip": "203.0.113.22",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-05T21:00:00Z",
+      "last_seen": "2026-10-09T03:00:00Z",
+      "services": [
+        "sip"
+      ],
+      "tags": [
+        "sip-bruteforce"
+      ],
+      "attack": [
+        "T1110"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 6,
+      "networks": 3,
+      "hits": 8377,
+      "confidence": 68,
+      "window": "30d"
+    },
+    {
+      "ip": "198.51.100.30",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-14T20:00:00Z",
+      "last_seen": "2026-10-20T20:00:00Z",
+      "services": [
+        "smb"
+      ],
+      "tags": [
+        "smb-scan"
+      ],
+      "attack": [
+        "T1046"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 8,
+      "networks": 2,
+      "hits": 9036,
+      "confidence": 67,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.18",
+      "asn": 64505,
+      "as_org": "Lab ISP",
+      "country": "IN",
+      "first_seen": "2026-10-08T17:00:00Z",
+      "last_seen": "2026-10-17T23:00:00Z",
+      "services": [
+        "ssh",
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like",
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 11,
+      "networks": 3,
+      "hits": 6789,
+      "confidence": 67,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.26",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-16T16:00:00Z",
+      "last_seen": "2026-10-18T16:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 4,
+      "networks": 2,
+      "hits": 7448,
+      "confidence": 66,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.14",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-16T13:00:00Z",
+      "last_seen": "2026-10-21T19:00:00Z",
+      "services": [
+        "sip"
+      ],
+      "tags": [
+        "sip-bruteforce"
+      ],
+      "attack": [
+        "T1110"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 7,
+      "networks": 3,
+      "hits": 5201,
+      "confidence": 66,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.22",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-16T12:00:00Z",
+      "last_seen": "2026-10-23T12:00:00Z",
+      "services": [
+        "smb"
+      ],
+      "tags": [
+        "smb-scan"
+      ],
+      "attack": [
+        "T1046"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 9,
+      "networks": 2,
+      "hits": 5860,
+      "confidence": 65,
+      "window": "1d"
+    },
+    {
+      "ip": "203.0.113.10",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-18T09:00:00Z",
+      "last_seen": "2026-10-19T15:00:00Z",
+      "services": [
+        "ssh",
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like",
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 3,
+      "networks": 3,
+      "hits": 3613,
+      "confidence": 65,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.18",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-06T08:00:00Z",
+      "last_seen": "2026-10-09T08:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 5,
+      "networks": 2,
+      "hits": 4272,
+      "confidence": 64,
+      "window": "30d"
+    },
+    {
+      "ip": "203.0.113.6",
+      "asn": 64505,
+      "as_org": "Lab ISP",
+      "country": "IN",
+      "first_seen": "2026-10-17T05:00:00Z",
+      "last_seen": "2026-10-23T11:00:00Z",
+      "services": [
+        "sip"
+      ],
+      "tags": [
+        "sip-bruteforce"
+      ],
+      "attack": [
+        "T1110"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 8,
+      "networks": 3,
+      "hits": 2025,
+      "confidence": 64,
+      "window": "1d"
+    },
+    {
+      "ip": "198.51.100.14",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-10T04:00:00Z",
+      "last_seen": "2026-10-18T04:00:00Z",
+      "services": [
+        "smb"
+      ],
+      "tags": [
+        "smb-scan"
+      ],
+      "attack": [
+        "T1046"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 10,
+      "networks": 2,
+      "hits": 2684,
+      "confidence": 63,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.2",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-19T01:00:00Z",
+      "last_seen": "2026-10-21T07:00:00Z",
+      "services": [
+        "ssh",
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like",
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 4,
+      "networks": 3,
+      "hits": 437,
+      "confidence": 63,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.10",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-18T00:00:00Z",
+      "last_seen": "2026-10-22T00:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 6,
+      "networks": 2,
+      "hits": 1096,
+      "confidence": 62,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.6",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-11T20:00:00Z",
+      "last_seen": "2026-10-20T20:00:00Z",
+      "services": [
+        "smb"
+      ],
+      "tags": [
+        "smb-scan"
+      ],
+      "attack": [
+        "T1046"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 11,
+      "networks": 2,
+      "hits": 8508,
+      "confidence": 61,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.2",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-18T16:00:00Z",
+      "last_seen": "2026-10-23T16:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 7,
+      "networks": 2,
+      "hits": 6920,
+      "confidence": 60,
+      "window": "1d"
+    },
+    {
+      "ip": "2001:db8:1:0::/64",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-15T02:00:00Z",
+      "last_seen": "2026-10-22T05:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 4,
+      "networks": 2,
+      "hits": 300,
+      "confidence": 60,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.37",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-21T12:00:00Z",
+      "last_seen": "2026-10-22T12:00:00Z",
+      "services": [
+        "smb"
+      ],
+      "tags": [
+        "smb-scan"
+      ],
+      "attack": [
+        "T1046"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 3,
+      "networks": 2,
+      "hits": 5332,
+      "confidence": 59,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.33",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-14T08:00:00Z",
+      "last_seen": "2026-10-20T08:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 8,
+      "networks": 2,
+      "hits": 3744,
+      "confidence": 58,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.29",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-05T04:00:00Z",
+      "last_seen": "2026-10-07T04:00:00Z",
+      "services": [
+        "smb"
+      ],
+      "tags": [
+        "smb-scan"
+      ],
+      "attack": [
+        "T1046"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 4,
+      "networks": 2,
+      "hits": 2156,
+      "confidence": 57,
+      "window": "30d"
+    },
+    {
+      "ip": "203.0.113.25",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-15T00:00:00Z",
+      "last_seen": "2026-10-22T00:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 9,
+      "networks": 2,
+      "hits": 568,
+      "confidence": 56,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.21",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-20T20:00:00Z",
+      "last_seen": "2026-10-23T20:00:00Z",
+      "services": [
+        "smb"
+      ],
+      "tags": [
+        "smb-scan"
+      ],
+      "attack": [
+        "T1046"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 5,
+      "networks": 2,
+      "hits": 7980,
+      "confidence": 55,
+      "window": "1d"
+    },
+    {
+      "ip": "198.51.100.29",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-16T19:00:00Z",
+      "last_seen": "2026-10-21T13:00:00Z",
+      "services": [
+        "http",
+        "https"
+      ],
+      "tags": [
+        "web-exploit",
+        "web-scan"
+      ],
+      "attack": [
+        "T1190",
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-26855",
+        "CVE-2021-41773",
+        "CVE-2023-46805"
+      ],
+      "kev": true,
+      "sensors": 7,
+      "networks": 5,
+      "hits": 8639,
+      "confidence": 54,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.17",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-10T16:00:00Z",
+      "last_seen": "2026-10-18T16:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 10,
+      "networks": 2,
+      "hits": 6392,
+      "confidence": 54,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.25",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-06T15:00:00Z",
+      "last_seen": "2026-10-07T09:00:00Z",
+      "services": [
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 3,
+      "networks": 5,
+      "hits": 7051,
+      "confidence": 53,
+      "window": "30d"
+    },
+    {
+      "ip": "203.0.113.13",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-18T12:00:00Z",
+      "last_seen": "2026-10-22T12:00:00Z",
+      "services": [
+        "smb"
+      ],
+      "tags": [
+        "smb-scan"
+      ],
+      "attack": [
+        "T1046"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 6,
+      "networks": 2,
+      "hits": 4804,
+      "confidence": 53,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.21",
+      "asn": 64505,
+      "as_org": "Lab ISP",
+      "country": "IN",
+      "first_seen": "2026-10-11T11:00:00Z",
+      "last_seen": "2026-10-17T05:00:00Z",
+      "services": [
+        "http",
+        "https"
+      ],
+      "tags": [
+        "web-exploit",
+        "web-scan"
+      ],
+      "attack": [
+        "T1190",
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-26855",
+        "CVE-2021-41773",
+        "CVE-2023-46805"
+      ],
+      "kev": true,
+      "sensors": 8,
+      "networks": 5,
+      "hits": 5463,
+      "confidence": 52,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.9",
+      "asn": 64502,
+      "as_org": "Doc Cloud Ltd",
+      "country": "US",
+      "first_seen": "2026-10-11T08:00:00Z",
+      "last_seen": "2026-10-20T08:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 11,
+      "networks": 2,
+      "hits": 3216,
+      "confidence": 52,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.17",
+      "asn": 64501,
+      "as_org": "Sample Broadband",
+      "country": "CN",
+      "first_seen": "2026-10-21T07:00:00Z",
+      "last_seen": "2026-10-23T01:00:00Z",
+      "services": [
+        "telnet"
+      ],
+      "tags": [
+        "mirai-like"
+      ],
+      "attack": [
+        "T1059.004",
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 4,
+      "networks": 5,
+      "hits": 3875,
+      "confidence": 51,
+      "window": "1d"
+    },
+    {
+      "ip": "203.0.113.5",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-13T04:00:00Z",
+      "last_seen": "2026-10-18T04:00:00Z",
+      "services": [
+        "smb"
+      ],
+      "tags": [
+        "smb-scan"
+      ],
+      "attack": [
+        "T1046"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 7,
+      "networks": 2,
+      "hits": 1628,
+      "confidence": 51,
+      "window": "7d"
+    },
+    {
+      "ip": "198.51.100.13",
+      "asn": 64503,
+      "as_org": "=HYPERLINK(\"http://x\")",
+      "country": "BR",
+      "first_seen": "2026-10-12T03:00:00Z",
+      "last_seen": "2026-10-19T21:00:00Z",
+      "services": [
+        "http",
+        "https"
+      ],
+      "tags": [
+        "web-exploit",
+        "web-scan"
+      ],
+      "attack": [
+        "T1190",
+        "T1595.002"
+      ],
+      "cves": [
+        "CVE-2021-26855",
+        "CVE-2021-41773",
+        "CVE-2023-46805"
+      ],
+      "kev": true,
+      "sensors": 9,
+      "networks": 5,
+      "hits": 2287,
+      "confidence": 50,
+      "window": "7d"
+    },
+    {
+      "ip": "203.0.113.1",
+      "asn": 64500,
+      "as_org": "Example Hosting AS",
+      "country": "DE",
+      "first_seen": "2026-10-22T00:00:00Z",
+      "last_seen": "2026-10-23T00:00:00Z",
+      "services": [
+        "ssh"
+      ],
+      "tags": [
+        "ssh-bruteforce"
+      ],
+      "attack": [
+        "T1110.001"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 3,
+      "networks": 2,
+      "hits": 40,
+      "confidence": 50,
+      "window": "1d"
+    },
+    {
+      "ip": "203.0.113.5/32",
+      "asn": 64504,
+      "as_org": "-Test Transit",
+      "country": "VN",
+      "first_seen": "2026-10-13T04:00:00Z",
+      "last_seen": "2026-10-18T04:00:00Z",
+      "services": [
+        "smb"
+      ],
+      "tags": [
+        "smb-scan"
+      ],
+      "attack": [
+        "T1046"
+      ],
+      "cves": [],
+      "kev": false,
+      "sensors": 7,
+      "networks": 2,
+      "hits": 1628,
+      "confidence": 1,
+      "window": "7d"
+    }
+  ],
+  "scanners": [
+    {
+      "ip": "192.0.2.10",
+      "asn": 64510,
+      "as_org": "Example Research",
+      "name": "example-research"
+    },
+    {
+      "ip": "192.0.2.11",
+      "asn": 64510,
+      "as_org": "Example Research",
+      "name": "example-research"
+    },
+    {
+      "ip": "2001:db8:ffff::/64",
+      "asn": 64511,
+      "as_org": "Doc Scanner",
+      "name": "doc-scanner"
+    },
+    {
+      "ip": "192.0.2.10",
+      "asn": 64510,
+      "as_org": "Example Research",
+      "name": "example-research"
+    }
+  ],
+  "cves": [
+    {
+      "cve": "CVE-2021-41773",
+      "kev": true,
+      "attempts": 80,
+      "sources": 22,
+      "first_seen": "2026-10-01T00:00:00Z",
+      "last_seen": "2026-10-23T00:00:00Z",
+      "name": "Apache HTTP Server path traversal"
+    },
+    {
+      "cve": "CVE-2021-26855",
+      "kev": true,
+      "attempts": 34,
+      "sources": 9,
+      "first_seen": "2026-10-02T01:00:00Z",
+      "last_seen": "2026-10-23T01:00:00Z",
+      "name": "ProxyLogon"
+    },
+    {
+      "cve": "CVE-2023-46805",
+      "kev": true,
+      "attempts": 12,
+      "sources": 4,
+      "first_seen": "2026-10-20T04:00:00Z",
+      "last_seen": "2026-10-23T02:00:00Z",
+      "name": "Ivanti Connect Secure auth bypass"
+    },
+    {
+      "cve": "CVE-2024-3400",
+      "kev": true,
+      "attempts": 5,
+      "sources": 2,
+      "first_seen": "2026-10-21T09:00:00Z",
+      "last_seen": "2026-10-22T09:00:00Z",
+      "name": "PAN-OS GlobalProtect | command injection"
+    }
+  ],
+  "urls": [
+    {
+      "url": "http://198.51.100.77/t/cmd.txt",
+      "kind": "download",
+      "sightings": 221,
+      "sources": 41,
+      "first_seen": "2026-10-18T03:00:00Z",
+      "last_seen": "2026-10-23T01:00:00Z"
+    },
+    {
+      "url": "http://payload.example/bins/x86?arch='mips'",
+      "kind": "download",
+      "sightings": 30,
+      "sources": 7,
+      "first_seen": "2026-10-10T03:00:00Z",
+      "last_seen": "2026-10-22T01:00:00Z"
+    },
+    {
+      "url": "https://c2.example.net:8443/gate.php",
+      "kind": "c2",
+      "sightings": 9,
+      "sources": 3,
+      "first_seen": "2026-10-21T03:00:00Z",
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "url": "http://203.0.113.200/a\\b.sh",
+      "kind": "download",
+      "sightings": 4,
+      "sources": 2,
+      "first_seen": "2026-10-22T03:00:00Z",
+      "last_seen": "2026-10-23T00:00:00Z"
+    }
+  ],
+  "domains": [
+    {
+      "domain": "payload.example",
+      "sightings": 30,
+      "sources": 7,
+      "first_seen": "2026-10-10T03:00:00Z",
+      "last_seen": "2026-10-22T01:00:00Z"
+    },
+    {
+      "domain": "c2.example.net",
+      "sightings": 9,
+      "sources": 3,
+      "first_seen": "2026-10-21T03:00:00Z",
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "domain": "github.com",
+      "sightings": 5,
+      "sources": 3,
+      "first_seen": "2026-10-20T00:00:00Z",
+      "last_seen": "2026-10-22T00:00:00Z"
+    },
+    {
+      "domain": "raw.githubusercontent.com",
+      "sightings": 5,
+      "sources": 3,
+      "first_seen": "2026-10-20T00:00:00Z",
+      "last_seen": "2026-10-22T00:00:00Z"
+    },
+    {
+      "domain": "localhost",
+      "sightings": 5,
+      "sources": 3,
+      "first_seen": "2026-10-20T00:00:00Z",
+      "last_seen": "2026-10-22T00:00:00Z"
+    },
+    {
+      "domain": "co.uk",
+      "sightings": 5,
+      "sources": 3,
+      "first_seen": "2026-10-20T00:00:00Z",
+      "last_seen": "2026-10-22T00:00:00Z"
+    }
+  ],
+  "hashes": [
+    {
+      "sha256": "bddd3a6e5dab59fa05fa8fb0d789a3c2ad3c9982dcc4a368f3d5719f421ffda8",
+      "sightings": 5,
+      "sources": 4,
+      "first_seen": "2026-10-07T00:00:00Z",
+      "last_seen": "2026-10-22T00:00:00Z"
+    },
+    {
+      "sha256": "2e6709af8dbfe7cd5abb2f716924848e527b4486c30c4509b0e4aa8171987335",
+      "sightings": 4,
+      "sources": 3,
+      "first_seen": "2026-10-06T00:00:00Z",
+      "last_seen": "2026-10-21T00:00:00Z"
+    },
+    {
+      "sha256": "d449acb92215ed502901c9e6f6a4dc6d28e6856fb6754892becd148dee1b3e85",
+      "sightings": 3,
+      "sources": 2,
+      "first_seen": "2026-10-05T00:00:00Z",
+      "last_seen": "2026-10-20T00:00:00Z"
+    }
+  ],
+  "fingerprints": [
+    {
+      "type": "hassh",
+      "value": "ec7378c1a92f5a8dde7e8b7a1ddf33d1",
+      "sources": 10,
+      "hits": 5300,
+      "tool": "go-x-crypto"
+    },
+    {
+      "type": "ja4h",
+      "value": "ge11nn050000_4740ae6347b0_000000000000_000000000000",
+      "sources": 6,
+      "hits": 2100,
+      "tool": "python-requests"
+    },
+    {
+      "type": "hassh",
+      "value": "92674389fa1e47a27ddd8d9b63ecd42b",
+      "sources": 4,
+      "hits": 800,
+      "tool": "libssh"
+    },
+    {
+      "type": "ja4t",
+      "value": "65535_2-4-8-1-3_1460_6",
+      "sources": 3,
+      "hits": 400
+    }
+  ],
+  "user_agents": [
+    {
+      "value": "Mozilla/5.0 zgrab/0.x",
+      "sources": 12,
+      "hits": 9000
+    },
+    {
+      "value": "python-requests/2.32.3",
+      "sources": 8,
+      "hits": 4000
+    },
+    {
+      "value": "gobuster/3.8.2",
+      "sources": 3,
+      "hits": 219000
+    },
+    {
+      "value": "=cmd|' /C calc'!A0",
+      "sources": 2,
+      "hits": 3
+    },
+    {
+      "value": "bad\tagent",
+      "sources": 2,
+      "hits": 1
+    },
+    {
+      "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+      "sources": 50,
+      "hits": 90000
+    },
+    {
+      "value": "Mozilla/5.0 (X11; Linux x86_64) Chrome/120.0 Safari/537.36 Nuclei",
+      "sources": 4,
+      "hits": 300
+    }
+  ],
+  "paths": [
+    {
+      "value": "/autodiscover/autodiscover.json",
+      "sources": 41,
+      "hits": 120,
+      "cves": [
+        "CVE-2021-34473"
+      ]
+    },
+    {
+      "value": "/.env",
+      "sources": 30,
+      "hits": 900,
+      "cves": []
+    },
+    {
+      "value": "/cgi-bin/.%2e/.%2e/.%2e/bin/sh",
+      "sources": 22,
+      "hits": 80,
+      "cves": [
+        "CVE-2021-41773"
+      ]
+    },
+    {
+      "value": "/",
+      "sources": 60,
+      "hits": 5000,
+      "cves": []
+    },
+    {
+      "value": "/robots.txt",
+      "sources": 60,
+      "hits": 5000,
+      "cves": []
+    },
+    {
+      "value": "/.well-known/security.txt",
+      "sources": 60,
+      "hits": 5000,
+      "cves": []
+    },
+    {
+      "value": "/a",
+      "sources": 60,
+      "hits": 5000,
+      "cves": []
+    }
+  ],
+  "passwords": [
+    {
+      "value": "123456",
+      "count": 9100,
+      "sources": 812
+    },
+    {
+      "value": "admin",
+      "count": 9050,
+      "sources": 809
+    },
+    {
+      "value": "password",
+      "count": 9000,
+      "sources": 806
+    },
+    {
+      "value": "root",
+      "count": 8950,
+      "sources": 803
+    },
+    {
+      "value": "12345678",
+      "count": 8900,
+      "sources": 800
+    },
+    {
+      "value": "1234",
+      "count": 8850,
+      "sources": 797
+    },
+    {
+      "value": "qwerty",
+      "count": 8800,
+      "sources": 794
+    },
+    {
+      "value": "admin123",
+      "count": 8750,
+      "sources": 791
+    },
+    {
+      "value": "P@ssw0rd",
+      "count": 8700,
+      "sources": 788
+    },
+    {
+      "value": "-dash",
+      "count": 8650,
+      "sources": 785
+    },
+    {
+      "value": "=formula",
+      "count": 8600,
+      "sources": 782
+    },
+    {
+      "value": "guest",
+      "count": 8550,
+      "sources": 779
+    }
+  ]
+}

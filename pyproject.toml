@@ -1,0 +1,18 @@
+[project]
+name = "mirage-feed"
+version = "1.0.0"
+description = "Generator for the OffSeq Mirage community threat feed"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["site"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,258 @@
+name: publish
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      allow_delta:
+        description: Accept size, churn and concentration anomalies
+        type: boolean
+        default: false
+      bootstrap:
+        description: First publish (no data branch yet)
+        type: boolean
+        default: false
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      day: ${{ steps.meta.outputs.day }}
+      generated: ${{ steps.meta.outputs.generated }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Detect data branch
+        id: prev
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BOOTSTRAP: ${{ inputs.bootstrap }}
+        run: |
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          rc=0
+          git -c http.extraheader="$auth" ls-remote --exit-code --heads origin data > /dev/null || rc=$?
+          case "$rc" in
+            0) echo "exists=true" >> "$GITHUB_OUTPUT" ;;
+            2) [ "$BOOTSTRAP" = true ] || { echo "::error::no data branch; run with bootstrap=true for the first publish"; exit 1; }
+               echo "exists=false" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::git ls-remote failed ($rc)"; exit 1 ;;
+          esac
+
+      - name: Check out previous data
+        if: steps.prev.outputs.exists == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: data
+          path: prev
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-publish.txt
+
+      - name: Install tools
+        run: |
+          pip install --require-hashes -r requirements-publish.txt
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends nftables suricata
+
+      - name: Fetch snapshot
+        env:
+          MIRAGE_FEED_TOKEN: ${{ secrets.MIRAGE_FEED_TOKEN }}
+          MIRAGE_FEED_URL: ${{ vars.MIRAGE_FEED_URL || 'https://mirage.offseq.com/api/feed/community' }}
+        run: python -m generator fetch --out snapshot.json
+
+      - name: Build
+        env:
+          PREV: ${{ steps.prev.outputs.exists }}
+        run: |
+          args=()
+          if [ "$PREV" = true ]; then args+=(--previous prev); fi
+          python -m generator build --snapshot snapshot.json --out out "${args[@]}"
+
+      - name: Export day
+        id: meta
+        run: |
+          day=$(jq -r .day out/feed.json)
+          generated=$(jq -r .generated out/feed.json)
+          [[ "$day" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "::error::invalid day"; exit 1; }
+          [[ "$generated" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || { echo "::error::invalid generated"; exit 1; }
+          echo "day=$day" >> "$GITHUB_OUTPUT"
+          echo "generated=$generated" >> "$GITHUB_OUTPUT"
+
+      - name: Safety gates
+        env:
+          PREV: ${{ steps.prev.outputs.exists }}
+          ALLOW_DELTA: ${{ inputs.allow_delta }}
+          MIRAGE_LEAK_PATTERNS: ${{ secrets.MIRAGE_LEAK_PATTERNS }}
+          MIRAGE_LEAK_LITERALS: ${{ secrets.MIRAGE_LEAK_LITERALS }}
+        run: |
+          args=(--require-leak-rules)
+          if [ "$PREV" = true ]; then args+=(--previous prev); else args+=(--bootstrap); fi
+          if [ "$ALLOW_DELTA" = true ]; then args+=(--allow-delta); fi
+          python -m generator check out "${args[@]}"
+
+      - name: Validate with upstream tools
+        run: |
+          # 103 flags UUIDv5 ids and 302 hashless ATT&CK URLs; both are deliberate.
+          stix2_validator --disable 103,302 out/latest/stix/mirage.json
+          sudo nft -c -f out/latest/nft/mirage.nft
+          s="$PWD/out/latest/suricata"
+          suricata -T --init-errors-fatal -l "$RUNNER_TEMP" -S "$s/mirage.rules" \
+            --set reputation-categories-file="$s/categories.txt" \
+            --set default-reputation-path="$s" \
+            --set reputation-files.0=mirage-iprep.list
+
+      - name: Render README and spotlight
+        run: |
+          mkdir dist
+          cp README.md dist/README.md
+          python -m generator readme --snapshot snapshot.json --template docs/README.template.md --readme dist/README.md
+          python -m generator spotlight --snapshot snapshot.json > dist/notes.md
+          # The weekly archive carries no IP lists.
+          tar --zstd -cf dist/spotlight.tar.zst -C out stats.json feed.json latest/urls-7d.txt latest/domains-7d.txt \
+            latest/hashes-sha256-30d.txt latest/cves-7d.csv latest/fingerprints.csv latest/hassh.csv \
+            -C ../dist notes.md
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: feed
+          path: |
+            out
+            dist
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      DAY: ${{ needs.build.outputs.day }}
+      GENERATED: ${{ needs.build.outputs.generated }}
+      BOT_NAME: github-actions[bot]
+      BOT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+    steps:
+      - name: Validate build outputs
+        run: |
+          [[ "$DAY" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "::error::invalid day"; exit 1; }
+          [[ "$GENERATED" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || { echo "::error::invalid generated"; exit 1; }
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: feed
+          path: .
+
+      - name: Install minisign
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends minisign
+
+      - name: Sign checksums
+        env:
+          MINISIGN_KEY: ${{ secrets.MINISIGN_KEY }}
+          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
+        run: |
+          key="$RUNNER_TEMP/minisign.key"
+          (umask 077 && printf '%s\n' "$MINISIGN_KEY" > "$key")
+          sign=(minisign -S -s "$key" -m out/SHA256SUMS -x out/SHA256SUMS.minisig -t "mirage-feed $DAY")
+          if [ -n "$MINISIGN_PASSWORD" ]; then
+            printf '%s\n' "$MINISIGN_PASSWORD" | "${sign[@]}"
+          else
+            "${sign[@]}" < /dev/null
+          fi
+          rm -f "$key"
+
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: out/SHA256SUMS
+
+      - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          # R2 rejects the CRC checksums newer AWS CLIs send by default.
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+          BUCKET: mirage-feed
+        run: |
+          [[ "$R2_ACCOUNT_ID" =~ ^[0-9a-f]{32}$ ]] || { echo "::error::R2_ACCOUNT_ID missing or malformed"; exit 1; }
+          endpoint="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+          ctype() {
+            case "$1" in
+              *.csv) echo "text/csv; charset=utf-8" ;;
+              *.json) echo "application/json" ;;
+              *.gz) echo "application/gzip" ;;
+              *) echo "text/plain; charset=utf-8" ;;
+            esac
+          }
+          put() {
+            aws s3 cp "$1" "s3://$BUCKET/$2" --endpoint-url "$endpoint" --content-type "$(ctype "$2")" --only-show-errors
+          }
+          index=(feed.json stats.json SHA256SUMS SHA256SUMS.minisig)
+          mapfile -t keys < <(cd out && find . -type f | sed 's|^\./||' | LC_ALL=C sort)
+          for key in "${keys[@]}"; do
+            [[ " ${index[*]} " == *" $key "* ]] || put "out/$key" "$key"
+          done
+          for key in "${index[@]}"; do put "out/$key" "$key"; done
+          jq -n --arg generated "$GENERATED" --arg day "$DAY" --arg sums "$(sha256sum out/SHA256SUMS | cut -d' ' -f1)" \
+            '{generated: $generated, day: $day, sha256sums: $sums}' > "$RUNNER_TEMP/published.json"
+          put "$RUNNER_TEMP/published.json" _meta/published.json
+          aws s3api list-objects-v2 --bucket "$BUCKET" --endpoint-url "$endpoint" --query 'Contents[].Key' --output json \
+            | jq -r '.[]?' | LC_ALL=C sort > "$RUNNER_TEMP/remote.txt"
+          printf '%s\n' "${keys[@]}" > "$RUNNER_TEMP/local.txt"
+          LC_ALL=C comm -23 "$RUNNER_TEMP/remote.txt" "$RUNNER_TEMP/local.txt" | while read -r stale; do
+            [[ "$stale" == _meta/* ]] || aws s3 rm "s3://$BUCKET/$stale" --endpoint-url "$endpoint" --only-show-errors
+          done
+
+      - name: Publish data branch
+        run: |
+          export GIT_INDEX_FILE="$RUNNER_TEMP/data.index"
+          export GIT_AUTHOR_NAME="$BOT_NAME" GIT_AUTHOR_EMAIL="$BOT_EMAIL"
+          export GIT_COMMITTER_NAME="$BOT_NAME" GIT_COMMITTER_EMAIL="$BOT_EMAIL"
+          git -C out --git-dir="$GITHUB_WORKSPACE/.git" --work-tree=. add -A -f .
+          commit=$(git commit-tree "$(git write-tree)" -m "data: $DAY")
+          git push --force origin "${commit}:refs/heads/data"
+
+      - name: Update README stats
+        run: |
+          cp dist/README.md README.md
+          if ! git diff --quiet -- README.md; then
+            git -c user.name="$BOT_NAME" -c user.email="$BOT_EMAIL" commit -m "readme: stats for $DAY" -- README.md
+            git push origin HEAD:main
+          fi
+
+      - name: Weekly spotlight release
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ "$(date -u +%u)" = 1 ] || exit 0
+          tag="spotlight-$(date -u +%G-%V)"
+          gh release view "$tag" > /dev/null 2>&1 && exit 0
+          mv dist/spotlight.tar.zst "dist/mirage-feed-spotlight-$DAY.tar.zst"
+          gh release create "$tag" "dist/mirage-feed-spotlight-$DAY.tar.zst" --target main \
+            --title "Mirage spotlight $tag" --notes-file dist/notes.md

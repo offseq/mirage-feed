@@ -1,0 +1,32 @@
+name = "mirage-feed-site"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+# Enable once the operator moves feeds.offseq.com to this Worker.
+# routes = [{ pattern = "feeds.offseq.com", custom_domain = true }]
+
+rules = [{ type = "Data", globs = ["**/*.woff2"], fallthrough = false }]
+
+r2_buckets = [{ binding = "FEED", bucket_name = "mirage-feed" }]
+
+analytics_engine_datasets = [{ binding = "FETCHES", dataset = "mirage_feed_fetches" }]
+
+# The rate-limit binding only supports 10 s or 60 s windows; the hourly cap is enforced upstream via X-Feed-Client-IP.
+[[unsafe.bindings]]
+name = "REMOVAL_LIMIT"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 5, period = 60 }
+
+[vars]
+SHADOW = "1"
+REMOVAL_UPSTREAM = "https://mirage.offseq.com/api/feed/removal"
+GITHUB_REPO = "offseq/mirage-feed"
+GITHUB_REF = "data"
+TURNSTILE_SITEKEY = "TURNSTILE_SITEKEY_PLACEHOLDER"
+
+# Secrets (npx wrangler secret put <NAME>):
+#   TURNSTILE_SECRET   Turnstile secret key for TURNSTILE_SITEKEY
+#   FEED_PROXY_SECRET  shared secret sent upstream as X-Feed-Proxy-Secret
+#   SHADOW_AUTH        user:pass for the Basic-auth gate while SHADOW = "1"

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Remove a listed address
+    url: https://feeds.offseq.com/removal
+    about: False positive or removal request. No GitHub account needed.
+  - name: Full Mirage feed
+    url: https://mirage.offseq.com
+    about: Real-time feed, API, TAXII and private sensors.

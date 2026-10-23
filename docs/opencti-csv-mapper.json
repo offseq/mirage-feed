@@ -1,0 +1,88 @@
+{
+  "openCTI_version": "6.6.0",
+  "type": "csvMapper",
+  "configuration": {
+    "name": "Mirage feed attackers-ipv4-7d.csv",
+    "has_header": true,
+    "separator": ",",
+    "skipLineChar": "",
+    "representations": [
+      {
+        "id": "7c7ac3c0-273a-5ab3-addf-1e7b3204b574",
+        "type": "entity",
+        "target": {
+          "entity_type": "IPv4-Addr"
+        },
+        "attributes": [
+          {
+            "key": "value",
+            "column": {
+              "column_name": "A"
+            }
+          },
+          {
+            "key": "x_opencti_score",
+            "column": {
+              "column_name": "O"
+            }
+          },
+          {
+            "key": "objectLabel",
+            "column": {
+              "column_name": "H",
+              "configuration": {
+                "separator": ";"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "2d1023b5-64e0-587e-9615-c1c87de4331c",
+        "type": "entity",
+        "target": {
+          "entity_type": "Autonomous-System"
+        },
+        "attributes": [
+          {
+            "key": "number",
+            "column": {
+              "column_name": "B"
+            }
+          },
+          {
+            "key": "name",
+            "column": {
+              "column_name": "C"
+            }
+          }
+        ]
+      },
+      {
+        "id": "353f6022-4e75-58f0-90d7-27fab32c61ae",
+        "type": "relationship",
+        "target": {
+          "entity_type": "belongs-to"
+        },
+        "attributes": [
+          {
+            "key": "from",
+            "based_on": {
+              "representations": [
+                "7c7ac3c0-273a-5ab3-addf-1e7b3204b574"
+              ]
+            }
+          },
+          {
+            "key": "to",
+            "based_on": {
+              "representations": [
+                "2d1023b5-64e0-587e-9615-c1c87de4331c"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
