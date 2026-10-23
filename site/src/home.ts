@@ -29,7 +29,7 @@ export interface FeedIndex {
   files?: FeedEntry[];
 }
 
-export const MINISIGN_PUBKEY = "RWQ_PUBLIC_KEY_PLACEHOLDER";
+export const MINISIGN_PUBKEY = "RWQeu/vC+HeSo+5whq+ViPiKFUe35GOuuVll6WA6QKlFNirw7IzweToA";
 
 const SUBSCRIBE: [string, string][] = [
   ["IPv4 blocklist, last 7 days", "latest/ipv4-7d.txt"],

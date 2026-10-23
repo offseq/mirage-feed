@@ -229,7 +229,7 @@ cscli decisions import -i mirage.txt --format values --duration 48h --scope ip -
 <p>Download into the same paths as the feed, so the names match the checksum file:</p>
 <pre><code>curl -fsSLO https://feeds.offseq.com/mirage-feed/SHA256SUMS -O https://feeds.offseq.com/mirage-feed/SHA256SUMS.minisig
 curl --create-dirs -fsSLo latest/ipv4-7d.txt https://feeds.offseq.com/mirage-feed/latest/ipv4-7d.txt
-minisign -Vm SHA256SUMS -P RWQ_PUBLIC_KEY_PLACEHOLDER
+minisign -Vm SHA256SUMS -P RWQeu/vC+HeSo+5whq+ViPiKFUe35GOuuVll6WA6QKlFNirw7IzweToA
 sha256sum -c --ignore-missing SHA256SUMS</code></pre>
 <p class="dim">On macOS, use <code>shasum -a 256 -c</code> in place of <code>sha256sum -c</code>.</p>
 </section>

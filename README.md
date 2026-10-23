@@ -227,7 +227,7 @@ Paths in `SHA256SUMS` are relative to the feed root, so download files into the 
 ```sh
 base=https://feeds.offseq.com/mirage-feed
 curl -fsSLO "$base/SHA256SUMS" -O "$base/SHA256SUMS.minisig"
-minisign -Vm SHA256SUMS -P RWQ_PUBLIC_KEY_PLACEHOLDER
+minisign -Vm SHA256SUMS -P RWQeu/vC+HeSo+5whq+ViPiKFUe35GOuuVll6WA6QKlFNirw7IzweToA
 curl -fsSL --create-dirs -o latest/ipv4-7d.txt "$base/latest/ipv4-7d.txt"
 sha256sum -c --ignore-missing SHA256SUMS        # macOS: shasum -a 256 -c --ignore-missing SHA256SUMS
 ```
