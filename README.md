@@ -15,11 +15,13 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 ---
 
 <!-- stats:start -->
-### Last 24 hours
+### Today's snapshot
 
-| | Mirage observed | In this feed |
+| | Mirage, last 24 h | In the feed |
 |---|---:|---:|
-| Source IPs | 8,250 | 3,115 |
+| Source IPs active in the last 24 h | 8,250 | 1,566 |
+| Source IPs, 7-day list | — | 3,115 |
+| IPv4, 30-day list | — | 10,369 |
 | Networks (ASNs) | 747 | 393 |
 | Countries | 102 | 74 |
 | CVEs exploited (all CISA KEV) | 9 | 10 |
@@ -30,7 +32,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | Credential pairs tried | 128,261 | top 100 passwords |
 | Session transcripts | 2.07M events | — |
 
-<sub>Snapshot 2026-10-23 20:18 UTC · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-10-23 20:18 UTC · lists cover 7 days of activity (30 for ipv4-30d) · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
