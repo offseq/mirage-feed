@@ -22,17 +22,25 @@ permissions: {}
 
 jobs:
   build:
+    name: Build and gate
     runs-on: ubuntu-24.04
+    environment: publish
+    timeout-minutes: 20
     permissions:
-      contents: read
+      contents: read # read main and the previous data branch
     outputs:
       day: ${{ steps.meta.outputs.day }}
       generated: ${{ steps.meta.outputs.generated }}
+      sha: ${{ steps.src.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
           persist-credentials: false
+
+      - name: Record source commit
+        id: src
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Detect data branch
         id: prev
@@ -138,15 +146,19 @@ jobs:
           retention-days: 3
 
   publish:
+    name: Sign and publish
     needs: build
     runs-on: ubuntu-24.04
+    environment: publish
+    timeout-minutes: 15
     permissions:
-      contents: write
-      id-token: write
+      contents: write # README stats commit and release on main; data branch goes through the deploy key
+      id-token: write # build provenance attestation
       attestations: write
     env:
       DAY: ${{ needs.build.outputs.day }}
       GENERATED: ${{ needs.build.outputs.generated }}
+      SHA: ${{ needs.build.outputs.sha }}
       BOT_NAME: github-actions[bot]
       BOT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
     steps:
@@ -154,10 +166,12 @@ jobs:
         run: |
           [[ "$DAY" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "::error::invalid day"; exit 1; }
           [[ "$GENERATED" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || { echo "::error::invalid generated"; exit 1; }
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::invalid source sha"; exit 1; }
 
+      # The commit the build used, so the README push fails rather than reverting a newer main.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ needs.build.outputs.sha }}
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -228,6 +242,15 @@ jobs:
             [[ "$stale" == _meta/* ]] || aws s3 rm "s3://$BUCKET/$stale" --endpoint-url "$endpoint" --only-show-errors
           done
 
+      - name: Load deploy key
+        env:
+          DATA_DEPLOY_KEY: ${{ secrets.DATA_DEPLOY_KEY }}
+        run: |
+          key="$RUNNER_TEMP/deploy_key"
+          (umask 077 && printf '%s\n' "$DATA_DEPLOY_KEY" > "$key")
+          curl -fsS https://api.github.com/meta | jq -r '.ssh_keys[] | "github.com " + .' > "$RUNNER_TEMP/known_hosts"
+          echo "GIT_SSH_COMMAND=ssh -i $key -o IdentitiesOnly=yes -o UserKnownHostsFile=$RUNNER_TEMP/known_hosts -o StrictHostKeyChecking=yes" >> "$GITHUB_ENV"
+
       - name: Publish data branch
         run: |
           export GIT_INDEX_FILE="$RUNNER_TEMP/data.index"
@@ -235,7 +258,7 @@ jobs:
           export GIT_COMMITTER_NAME="$BOT_NAME" GIT_COMMITTER_EMAIL="$BOT_EMAIL"
           git -C out --git-dir="$GITHUB_WORKSPACE/.git" --work-tree=. add -A -f .
           commit=$(git commit-tree "$(git write-tree)" -m "data: $DAY")
-          git push --force origin "${commit}:refs/heads/data"
+          git push --force git@github.com:offseq/mirage-feed.git "${commit}:refs/heads/data"
 
       - name: Update README stats
         run: |
@@ -254,5 +277,6 @@ jobs:
           tag="spotlight-$(date -u +%G-%V)"
           gh release view "$tag" > /dev/null 2>&1 && exit 0
           mv dist/spotlight.tar.zst "dist/mirage-feed-spotlight-$DAY.tar.zst"
-          gh release create "$tag" "dist/mirage-feed-spotlight-$DAY.tar.zst" --target main \
-            --title "Mirage spotlight $tag" --notes-file dist/notes.md
+          git push git@github.com:offseq/mirage-feed.git "HEAD:refs/tags/$tag"
+          gh release create "$tag" --verify-tag --title "Mirage spotlight $tag" --notes-file dist/notes.md \
+            "dist/mirage-feed-spotlight-$DAY.tar.zst" out/SHA256SUMS out/SHA256SUMS.minisig

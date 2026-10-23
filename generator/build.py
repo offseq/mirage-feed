@@ -5,7 +5,9 @@ from . import LICENSE_CODE, LICENSE_DATA, MIRRORS, NAME, PUBLISHER, TLP, firewal
 from .common import Artifact, Snapshot, dumps
 from .netlist import DEFAULT_ALLOWLIST, Allowlist
 
-SCHEMA_FILE = Path(__file__).resolve().parent.parent / "schema" / "record.schema.json"
+ROOT = Path(__file__).resolve().parent.parent
+SCHEMA_FILE = ROOT / "schema" / "record.schema.json"
+LICENSE_FILE = ROOT / "LICENSE-DATA"
 
 
 def _sha256(data: bytes) -> str:
@@ -51,6 +53,7 @@ def artifacts(s: Snapshot, prev: Path | None = None, allow: Allowlist | None = N
     arts.append(
         Artifact("schema/record.schema.json", SCHEMA_FILE.read_bytes(), "json-schema", 1, None, ("jsonschema",))
     )
+    arts.append(Artifact("LICENSE-DATA", LICENSE_FILE.read_bytes(), "text", 1, None, ()))
     arts.append(Artifact("stats.json", dumps(s.stats, indent=2), "json", 1, None, ("feeds.offseq.com",)))
     arts.append(
         Artifact("feed.json", dumps(feed_index(s, arts), indent=2), "json", len(arts), None, ("feeds.offseq.com",))

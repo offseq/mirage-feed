@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /site
+    schedule:
+      interval: weekly
+    ignore:
+      # wrangler 4 defaults r2/kv/d1 commands to local storage; upgrade deliberately.
+      - dependency-name: wrangler
+        update-types: ["version-update:semver-major"]
