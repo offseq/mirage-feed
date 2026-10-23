@@ -24,7 +24,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | Source IPs | — | 3,115 | 7 days |
 | VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 0 | 7 days |
 | IPv4 addresses (`ipv4-30d.txt`) | — | 10,369 | 30 days |
-| Networks (ASNs) | 748 | 393 | 7 days |
+| Networks (ASNs) | 747 | 393 | 7 days |
 | Countries | 102 | 74 | 7 days |
 | CVEs exploited (11 in CISA KEV) | 9 | 17 | 7 days |
 | Payload / download URLs | 3 | 2 | 7 days |
@@ -34,7 +34,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | Credential pairs tried | 128,261 | top 100 passwords | 7 days |
 | Events | 2.07M events | — | — |
 
-<sub>Snapshot 2026-10-23 19:58 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-10-23 20:18 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
