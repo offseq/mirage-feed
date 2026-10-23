@@ -21,18 +21,19 @@ const TYPES: Record<string, string> = {
 const DIR_RE = /^(?:latest(?:\/(?:stix|zeek|suricata(?:\/datasets)?|mikrotik|nft|ipset|crowdsec|defender))?|misp|schema)$/;
 const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 // Always eligible for the GitHub fallback: they are not listed in feed.json, and feed.json itself is needed to read the list.
-const ROOT_FILES = new Set(["feed.json", "stats.json", "history.json", "SHA256SUMS", "SHA256SUMS.minisig"]);
+const ROOT_FILES = new Set(["feed.json", "stats.json", "history.json", "SHA256SUMS", "SHA256SUMS.minisig", "LICENSE-DATA"]);
 
 export const FRESH_TTL = 3600;
 export const STALE_TTL = 48 * 3600;
 export const MISSING_TTL = 300;
 const META_TTL_MS = 300_000;
+const PUBLISH_TTL_MS = 60_000;
 const MISSING = "x-mirage-missing";
 export const STALE = "x-mirage-stale";
 
 export function contentType(path: string): string | null {
   const name = path.slice(path.lastIndexOf("/") + 1);
-  if (name === "SHA256SUMS") return TEXT;
+  if (name === "SHA256SUMS" || name === "LICENSE-DATA") return TEXT;
   const dot = name.lastIndexOf(".");
   return dot > 0 ? (TYPES[name.slice(dot + 1)] ?? null) : null;
 }
@@ -84,7 +85,8 @@ async function isListed(path: string, env: Env, origin: string, ctx: ExecutionCo
 // so random names cannot multiply origin traffic.
 export async function getFeedFile(path: string, env: Env, origin: string, ctx: ExecutionContext): Promise<Response> {
   const cache = caches.default;
-  const freshKey = cacheKey(origin, "fresh", path);
+  // Keyed on the publish so SHA256SUMS and the files it covers switch over together.
+  const freshKey = cacheKey(origin, `fresh-${(await published(env)).version}`, path);
 
   const hit = await cache.match(freshKey);
   if (hit) return hit.headers.has(MISSING) ? new Response(null, { status: 404 }) : hit;
@@ -140,21 +142,28 @@ export async function getFeedJson<T>(path: string, env: Env, origin: string, ctx
   }
 }
 
-const generatedMemo = new WeakMap<R2Bucket, { at: number; generated: number | null }>();
+type Published = { generated: number | null; version: string };
+const publishedMemo = new WeakMap<R2Bucket, { at: number; value: Published }>();
 
-export async function publishedAt(env: Env): Promise<number | null> {
-  const memo = generatedMemo.get(env.FEED);
-  if (memo && Date.now() - memo.at < META_TTL_MS) return memo.generated;
-  let generated: number | null = null;
+async function published(env: Env): Promise<Published> {
+  const memo = publishedMemo.get(env.FEED);
+  if (memo && Date.now() - memo.at < PUBLISH_TTL_MS) return memo.value;
+  let value: Published = { generated: null, version: "0" };
   try {
     const obj = await env.FEED.get("_meta/published.json");
-    const t = Date.parse(((await obj?.json()) as { generated?: string } | undefined)?.generated ?? "");
-    generated = Number.isFinite(t) ? t : null;
+    const meta = ((await obj?.json()) ?? {}) as { generated?: string; sha256sums?: string };
+    const t = Date.parse(meta.generated ?? "");
+    const sums = /^[0-9a-f]{64}$/.test(meta.sha256sums ?? "") ? (meta.sha256sums as string) : "";
+    value = { generated: Number.isFinite(t) ? t : null, version: sums.slice(0, 16) || "0" };
   } catch {
-    generated = null;
+    value = memo?.value ?? value;
   }
-  generatedMemo.set(env.FEED, { at: Date.now(), generated });
-  return generated;
+  publishedMemo.set(env.FEED, { at: Date.now(), value });
+  return value;
+}
+
+export async function publishedAt(env: Env): Promise<number | null> {
+  return (await published(env)).generated;
 }
 
 function etagMatches(header: string | null, etag: string): boolean {

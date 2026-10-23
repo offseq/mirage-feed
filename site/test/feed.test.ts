@@ -23,6 +23,7 @@ describe("path allowlist", () => {
     "schema/record.schema.json",
     "SHA256SUMS",
     "SHA256SUMS.minisig",
+    "LICENSE-DATA",
     "feed.json",
   ])("allows %s", (p) => expect(isAllowedPath(p)).toBe(true));
 
@@ -90,6 +91,21 @@ describe("range parsing", () => {
 });
 
 describe("serving from R2", () => {
+  it("switches cached files over when a new publish lands", async () => {
+    const { env, r2 } = setup();
+    const publish = (sums: string, body: string) => {
+      r2.put("latest/ipv4-7d.txt", body);
+      r2.put("_meta/published.json", JSON.stringify({ generated: new Date().toISOString(), sha256sums: sums.repeat(64) }));
+    };
+    vi.stubGlobal("fetch", vi.fn());
+    publish("a", "198.51.100.1\n");
+    expect(await (await call(env, "/mirage-feed/latest/ipv4-7d.txt")).text()).toBe("198.51.100.1\n");
+    publish("b", "198.51.100.2\n");
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 61_000);
+    expect(await (await call(env, "/mirage-feed/latest/ipv4-7d.txt")).text()).toBe("198.51.100.2\n");
+  });
+
+
   it("serves R2 objects with the R2 ETag, CORS, feed age and an aggregate-only data point", async () => {
     const { env, r2, points } = setup();
     r2.put("latest/ipv4-7d.txt", fixture("ipv4-7d.txt"));
