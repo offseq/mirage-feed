@@ -400,9 +400,10 @@ def check_rollback(out: Path, prev: Path | None) -> list[str]:
     if not prev or not (prev / "feed.json").is_file():
         return []
     cur, old = _generated(out), _generated(prev)
-    if cur > old:
+    # The same snapshot again is the scheduled run after a manual publish; the build is deterministic.
+    if cur >= old:
         return []
-    return [f"snapshot generated {cur} is not newer than the previous build's {old}; use --allow-rollback if intended"]
+    return [f"snapshot generated {cur} is older than the previous build's {old}; use --allow-rollback if intended"]
 
 
 def check_expiry(out: Path) -> list[str]:

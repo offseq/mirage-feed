@@ -93,8 +93,16 @@ def test_rollback_is_gated(tmp_path):
     out1 = run_build(tmp_path, snap(), name="r1")
     out2 = run_build(tmp_path, snap(day="2026-10-22", generated="2026-10-23T03:05:00Z"), out1, "r2")
     errors = check.run(out2, out1, ALLOWLIST)
-    assert any("not newer than the previous build" in e for e in errors)
+    assert any("older than the previous build" in e for e in errors)
     assert check.run(out2, out1, ALLOWLIST, allow_rollback=True, allow_delta=True) == []
+
+
+def test_same_snapshot_rerun_is_identical_and_passes(tmp_path):
+    out1 = run_build(tmp_path, snap(), name="s1")
+    out2 = run_build(tmp_path, snap(), out1, "s2")
+    assert check.check_rollback(out2, out1) == []
+    for rel in ("SHA256SUMS", "history.json", "latest/ipv4-added-1d.txt", "latest/ipv4-removed-1d.txt"):
+        assert (out2 / rel).read_bytes() == (out1 / rel).read_bytes()
 
 
 def test_empty_previous_7d_list_is_a_real_previous(tmp_path, out):

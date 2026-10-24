@@ -252,7 +252,7 @@ Before every publish, CI refuses the build when any of these checks fail:
 - A VPN or Tor exit from `anonymizers-7d.txt` appears in any block list, firewall script, Suricata or Zeek file, the
   Defender CSV, a MISP `ip-src` with `to_ids` set or a STIX `malicious-activity` indicator.
 - `ipv4-added-1d.txt` lists an address that is not in `ipv4-7d.txt`, or `ipv4-removed-1d.txt` one that still is.
-- The snapshot is not newer than the published build (a rollback needs an explicit override).
+- The snapshot is older than the published build (a rollback needs an explicit override; re-running the same snapshot republishes identical files).
 - A Defender row or STIX indicator would already be expired on import.
 - The lookup files under `lookup/` do not hold exactly the addresses of the IP lists, each with its lists.
 - Any file matches the private leak rules (sensor addresses, decoy hostnames, internal markers).
