@@ -31,15 +31,11 @@ def entry(s: Snapshot, added: int, removed: int) -> dict:
     return {
         "day": s.day,
         "generated": s.generated,
-        "ips_7d": pub.get("ips", len(s.ips_in("7d"))),
-        "active_24h": pub.get("active_24h"),
+        "ips_7d": pub["ips"],
+        "active_24h": pub["active_24h"],
         "added": added,
         "removed": removed,
-        "cves": pub["cves"],
-        "urls": pub.get("urls", len(s.lists["urls"])),
-        "hashes": pub.get("hashes", len(s.lists["hashes"])),
-        "scanners": pub.get("scanners", len(s.lists["scanners"])),
-        "anonymizers": pub["anonymizers"],
+        **{k: pub[k] for k in ("cves", "urls", "hashes", "scanners", "anonymizers")},
     }
 
 

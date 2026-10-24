@@ -150,7 +150,8 @@ function staleNotice(feed: FeedIndex | null, now: number): string {
 }
 
 function files(feed: FeedIndex | null): string {
-  const list = feed?.files ?? [];
+  // The lookup shards appear as one directory entry; they serve the address lookup, not subscribers.
+  const list = (feed?.files ?? []).filter((f) => !f.path?.endsWith("/"));
   if (!list.length) {
     return `<div class="empty"><p>The file index is generated with each daily build and is not published yet.</p></div>`;
   }
@@ -291,11 +292,11 @@ ${integrations()}
 <ol>
 <li>It completed a TCP handshake and sent application data. UDP-only and spoofable traffic never qualifies.</li>
 <li>At least <b>${sensors} Mirage sensors in at least ${networks} networks</b> saw it within ${ttl} days. One-off hits stay out.</li>
-<li>It is not a known research scanner, CDN, public resolver, bogon or any range on the <a href="https://github.com/MISP/misp-warninglists">MISP warninglists</a>.</li>
+<li>It is not a known research scanner and not in the <a href="${REPO_URL}/blob/main/generator/allowlist.txt">allowlist</a>: private and special-purpose ranges, public DNS resolvers, root servers, and the first-party ranges of Cloudflare, Akamai, Fastly, Google, Microsoft 365, Apple and GitHub.</li>
 <li>Its first sighting is at least <b>${delay} hours</b> old.</li>
 </ol>
 <p>Entries expire <b>${ttl} days</b> after the last observed activity; new activity renews them. Research scanners are excluded from the blocklists and published separately in <code>known-scanners-ipv4.txt</code> and <code>known-scanners-ipv6.txt</code>, so you can allowlist them.</p>
-<p>Before every publish, the build is rejected if the list overlaps an allowlist, holds any entry other than one IPv4 address (/32) or one IPv6 /64, or changes size by more than 30% from the previous day.</p>
+<p>Before every publish, the build is rejected if the list overlaps an allowlist, holds any entry other than one IPv4 address (/32) or one IPv6 /64, or changes size by more than 30% from the previous day (50% for <code>ipv4-1d.txt</code>).</p>
 <p>Most listed addresses are compromised devices or rented infrastructure. A listing means &quot;this address attacked honeypots&quot;, not a judgement about whoever holds it.</p>
 </section>
 
@@ -307,9 +308,10 @@ ${integrations()}
 <tr><th scope="row">Context per IP</th><td>ASN, country, tags</td><td>Ports, protocols, full session timeline</td></tr>
 <tr><th scope="row">Payloads</th><td>URLs and hashes</td><td>Decoded payloads, shell transcripts, stage-2 captures</td></tr>
 <tr><th scope="row">Credentials</th><td>Top 100 passwords, no usernames</td><td>Attempted credentials and captured hashes</td></tr>
-<tr><th scope="row">Attribution</th><td class="dim">-</td><td>Actor clusters, campaigns, intent verdicts</td></tr>
+<tr><th scope="row">Attribution</th><td class="dim">-</td><td>Actor clusters, campaigns, AI intent verdicts</td></tr>
 <tr><th scope="row">History</th><td>7 to 30 days</td><td>365 days</td></tr>
-<tr><th scope="row">Private sensors</th><td class="dim">-</td><td>Mirage honeypots on your own IP space, with alerts</td></tr>
+<tr><th scope="row">Analysis</th><td class="dim">-</td><td>Ask Mirage natural-language queries</td></tr>
+<tr><th scope="row">Exports</th><td>Daily files</td><td>STIX, MISP, CSV on demand</td></tr>
 </tbody></table></div>
 <a class="cta" href="${esc(upsell("compare"))}">Sign up at mirage.offseq.com</a>
 </section>
@@ -321,6 +323,7 @@ ${pre(`curl -fsSLO ${BASE}/SHA256SUMS -O ${BASE}/SHA256SUMS.minisig
 curl --create-dirs -fsSLo latest/ipv4-7d.txt ${BASE}/latest/ipv4-7d.txt
 minisign -Vm SHA256SUMS -P ${MINISIGN_PUBKEY}
 sha256sum -c --ignore-missing SHA256SUMS`, "Verification commands")}
+<p>minisign prints the signed trusted comment, <code>mirage-feed &lt;day&gt; generated &lt;build time&gt;</code>. Check that the build time is recent, so an old signed build cannot pass as today's.</p>
 <p class="dim">On macOS, use <code>shasum -a 256 -c</code> in place of <code>sha256sum -c</code>. The public key is also published at <a href="/.well-known/mirage-feed-minisign.pub">/.well-known/mirage-feed-minisign.pub</a> and in the <a href="${REPO_URL}">repository</a>.</p>
 </section>
 

@@ -20,24 +20,12 @@ KEYS = {"cves": "cve", "urls": "url", "domains": "domain", "hashes": "sha256", "
         "user_agents": "value", "paths": "value", "passwords": "value"}  # fmt: skip
 POLICY_KEYS = ("min_sensors", "min_networks", "delay_hours", "ttl_days", "ipv6_prefix")
 OBSERVED_KEYS = ("ips", "asns", "countries", "events", "cves", "urls", "credential_pairs", "hashes")
-PUBLISHED_KEYS = (
-    "ips",
-    "active_24h",
-    "ips_30d",
-    "asns",
-    "countries",
-    "cves",
-    "urls",
-    "hashes",
-    "scanners",
-    "fingerprints",
-    "anonymizers",
-)
 JA4_TYPES = frozenset({"ja4", "ja4s", "ja4h", "ja4x", "ja4t", "ja4tscan"})
 ANONYMIZER_TAGS = frozenset({"vpn-exit", "tor-exit"})
 MAX_BREAKDOWN = 50
 DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 GENERATED = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
+HOUR = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:00:00Z")
 TECHNIQUE = re.compile(r"T\d{4}(\.\d{3})?")
 CVE = re.compile(r"CVE-\d{4}-\d{4,}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -68,8 +56,9 @@ def parse_ts(value: str) -> datetime:
     return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
 
 
-def expiry(last_seen: str) -> datetime:
-    return parse_ts(last_seen) + TTL
+def expiry(last_seen: str, generated: str) -> datetime:
+    # Never already expired on import: a record last seen near the window's edge still gets a day.
+    return max(parse_ts(last_seen) + TTL, parse_ts(generated) + timedelta(days=1))
 
 
 def network(value: str) -> ipaddress.IPv4Network | ipaddress.IPv6Network:
@@ -150,10 +139,10 @@ def _breakdown(rows, key: str, pattern: re.Pattern, counts: tuple[str, ...]) -> 
 def clean_stats(raw: dict) -> dict:
     if not isinstance(raw, dict):
         raise SnapshotError("stats is not an object")
-    observed, published = raw.get("observed") or {}, raw.get("published") or {}
+    observed = raw.get("observed") or {}
     return {
         "observed": {k: _int(observed[k], f"stats.observed.{k}") for k in OBSERVED_KEYS if k in observed},
-        "published": {k: _int(published[k], f"stats.published.{k}") for k in PUBLISHED_KEYS if k in published},
+        "published": {},
         "attack": _breakdown(raw.get("attack"), "technique", TECHNIQUE, ("events", "ips")),
         "services": _breakdown(raw.get("services"), "service", TOKEN, ("ips",)),
         "countries": _breakdown(raw.get("countries"), "country", COUNTRY, ("ips",)),
@@ -166,10 +155,28 @@ def clean_policy(raw: dict) -> dict:
     return {k: _int(raw[k], f"policy.{k}") for k in POLICY_KEYS if k in raw}
 
 
+def _count(value, lo: int = 0) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= lo
+
+
+def _seen(rec: dict, required: bool) -> bool:
+    stamps = [rec.get(k) for k in ("first_seen", "last_seen")]
+    if not required and stamps == [None, None]:
+        return True
+    pattern = HOUR if required else GENERATED
+    return all(isinstance(t, str) and pattern.fullmatch(t) for t in stamps)
+
+
 def _valid(kind: str, rec: dict) -> bool:
     """Shape and benign-value filters for the non-IP lists; failing records are dropped."""
     value = rec.get(KEYS[kind])
-    if not isinstance(value, str) or _bad_chars(rec):
+    if not isinstance(value, str) or not value or _bad_chars(rec):
+        return False
+    # Records carry what the schema requires of them: url, domain and sha256 lines in records-7d.ndjson.gz.
+    if kind in ("urls", "domains", "hashes"):
+        if not (_count(rec.get("sightings")) and _count(rec.get("sources"), 2) and _seen(rec, True)):
+            return False
+    elif not (_count(rec.get("sources")) and _seen(rec, False)):
         return False
     match kind:
         case "cves":
@@ -190,8 +197,9 @@ def _valid(kind: str, rec: dict) -> bool:
         case "user_agents":
             return benign.user_agent_ok(value)
         case "paths":
-            return benign.path_ok(value)
-    return bool(value)
+            cves = rec.get("cves", [])
+            return isinstance(cves, list) and all(isinstance(c, str) for c in cves) and benign.path_ok(value)
+    return True
 
 
 def anonymizer(rec: dict) -> bool:
@@ -237,6 +245,9 @@ def _check_ip(i: int, rec) -> dict:
     _int(rec.get("sensors"), f"{where}.sensors", lo=3)
     _int(rec.get("networks"), f"{where}.networks", lo=2)
     _int(rec.get("confidence"), f"{where}.confidence", hi=100)
+    for key in ("services", "tags", "attack", "cves"):
+        if not isinstance(rec.get(key, []), list) or not all(isinstance(v, str) for v in rec.get(key, [])):
+            raise SnapshotError(f"{where}.{key}: not a list of strings")
     return {**rec, "ip": ip}
 
 
@@ -275,21 +286,33 @@ class Snapshot:
                 except ValueError as exc:
                     raise SnapshotError(f"scanners: {exc}") from exc
         self.lists["scanners"] = list(scanners.values())
+        self.dropped: dict[str, int] = {}
         for kind in LISTS[2:]:
             seen: dict[str, dict] = {}
             for rec in raw[kind]:
                 if isinstance(rec, dict) and _valid(kind, rec):
                     seen.setdefault(rec[KEYS[kind]], rec)
+                else:
+                    self.dropped[kind] = self.dropped.get(kind, 0) + 1
             self.lists[kind] = list(seen.values())
         if not self.lists["ips"] or not self.lists["scanners"]:
             raise SnapshotError("ips and scanners must not be empty")
         self.lists["cves"] = [{**c, "kev": bool(c.get("kev")) or c["cve"] in kev.catalog()} for c in self.lists["cves"]]
         self.lists["cves"] += _ip_cves(self.ips_in("7d"), self.lists["cves"])
-        self.stats["published"].update(
-            cves=len(self.lists["cves"]),
-            fingerprints=len(self.lists["fingerprints"]),
-            anonymizers=len(self.anonymizers()),
-        )
+        week = self.blockable("7d")
+        self.stats["published"] = {
+            "ips": len(week),
+            "active_24h": len(self.blockable("1d")),
+            "ips_30d": len(self.blockable("30d")),
+            "asns": len({r["asn"] for r in week if r.get("asn") is not None}),
+            "countries": len({r["country"] for r in week if r.get("country")}),
+            "cves": len(self.lists["cves"]),
+            "urls": len(self.lists["urls"]),
+            "hashes": len(self.lists["hashes"]),
+            "scanners": len(self.lists["scanners"]),
+            "fingerprints": len(self.lists["fingerprints"]),
+            "anonymizers": len(self.anonymizers()),
+        }
 
     @classmethod
     def load(cls, path: str | Path) -> "Snapshot":

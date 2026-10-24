@@ -4,6 +4,7 @@ import gzip
 import hashlib
 import ipaddress
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -266,9 +267,18 @@ def test_misp_keeps_week_and_prunes_ips(tmp_path, snapshot_raw):
         prev = out
     manifest = json.loads((prev / "misp/manifest.json").read_text())
     assert sorted(m["date"] for m in manifest.values()) == [f"2026-10-{d:02d}" for d in range(4, 12)]
-    for event_uuid in manifest:
-        attrs = json.loads((prev / f"misp/{event_uuid}.json").read_text())["Event"]["Attribute"]
-        assert "203.0.113.2" not in {a["value"] for a in attrs if a["type"] == "ip-src"}
+    stamp = str(int(datetime(2026, 10, 12, 3, 5, tzinfo=UTC).timestamp()))
+    for event_uuid, meta in manifest.items():
+        ev = json.loads((prev / f"misp/{event_uuid}.json").read_text())["Event"]
+        gone = [a for a in ev["Attribute"] if a["value"] == "203.0.113.2"]
+        if meta["date"] == "2026-10-11":
+            assert gone == []
+            continue
+        assert [(a["deleted"], a["to_ids"], a["timestamp"]) for a in gone] == [(True, False, stamp)]
+        assert ev["timestamp"] == meta["timestamp"] == stamp
+        assert all(a["timestamp"] != stamp for a in ev["Attribute"] if a["value"] != "203.0.113.2")
+    assert "203.0.113.2" not in {a["value"] for attrs in check._misp_ips(prev).values() for a in attrs}
+    assert hashlib.md5(b"203.0.113.2").hexdigest() not in (prev / "misp/hashes.csv").read_text()
     assert check.check_ips(prev, Allowlist(ALLOWLIST), Allowlist(CANARY)) == []
 
 
@@ -324,13 +334,18 @@ def test_stats_are_whitelisted(snapshot_raw):
 
 def test_feed_index_and_sums(out):
     feed = json.loads((out / "feed.json").read_text())
-    assert feed["schema_version"] == "1.1"
+    assert feed["schema_version"] == "1.2"
     assert "SHA256SUMS" not in {f["path"] for f in feed["files"]}
     by_path = {f["path"]: f for f in feed["files"]}
     assert by_path["latest/ipv4-7d.txt"]["count"] == len(text_lines(out, "latest/ipv4-7d.txt"))
-    for f in feed["files"]:
+    shards = by_path.pop("latest/lookup/")
+    for f in by_path.values():
         assert hashlib.sha256((out / f["path"]).read_bytes()).hexdigest() == f["sha256"]
     sums = text_lines(out, "SHA256SUMS")
+    shard_sums = "".join(f"{line}\n" for line in sums if line.split("  ", 1)[1].startswith("latest/lookup/"))
+    assert shards["files"] == shard_sums.count("\n") == len(list((out / "latest/lookup").rglob("*.json")))
+    assert shards["sha256"] == hashlib.sha256(shard_sums.encode()).hexdigest()
+    assert not any(p.startswith("latest/lookup/") for p in by_path)
     assert [line.split("  ", 1)[1] for line in sums] == sorted(p for p in tree(out) if p != "SHA256SUMS")
     assert f"{hashlib.sha256((out / 'feed.json').read_bytes()).hexdigest()}  feed.json" in sums
     assert json.loads((out / "stats.json").read_text()) == Snapshot.load(SNAPSHOT).stats
@@ -353,7 +368,8 @@ def test_readme_labels_windows(snapshot_raw):
     block = readme.stats_block(Snapshot(snapshot_raw))
     assert "| | Observed by Mirage, last 24 h | In the feed | Feed window |" in block
     assert "| Events | 1.47M events | — | — |" in block and "Session transcripts" not in block
-    assert "| Source IPs active in the last 24 h | 8,715 | 14 | 24 h |" in block
+    assert "| Source IPs active in the last 24 h | 8,715 | 13 | 24 h |" in block
+    assert "| Source IPs | — | 62 | 7 days |" in block and "| Malware hashes | 12 | 3 | 30 days |" in block
     assert "| IPv4 addresses (`ipv4-30d.txt`) | — | 67 | 30 days |" in block
     assert "| Tooling fingerprints (JA4+, HASSH) | — | 4 | 7 days |" in block
     assert "| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 3 | 7 days |" in block
@@ -387,7 +403,8 @@ def test_daily_diff(tmp_path, snapshot_raw):
     out = tmp_path / "out"
     build.build(SNAPSHOT, out, prev, ALLOWLIST)
     assert text_lines(out, "latest/ipv4-added-1d.txt") == [current[0]]
-    assert text_lines(out, "latest/ipv4-removed-1d.txt") == ["203.0.113.8"]
+    # Every address that left the 7-day list, including one now allowlisted or now an anonymizer.
+    assert text_lines(out, "latest/ipv4-removed-1d.txt") == ["10.0.0.1", "198.51.100.24", "203.0.113.8"]
     assert check.check_ips(out, Allowlist(ALLOWLIST), Allowlist(CANARY)) == []
     assert json.loads((out / "history.json").read_text())[-1]["added"] == 1
 
@@ -411,8 +428,8 @@ def test_history_rolls_and_carries_over(tmp_path, snapshot_raw):
     assert today == {
         "day": "2026-10-23",
         "generated": "2026-10-24T03:05:00Z",
-        "ips_7d": 73,
-        "active_24h": 14,
+        "ips_7d": 62,
+        "active_24h": 13,
         "added": 0,
         "removed": 0,
         "cves": 7,
@@ -445,5 +462,5 @@ def test_og_images(out, snapshot_raw):
             assert img.size == size and img.mode == "RGB"
     s = Snapshot(snapshot_raw)
     assert og.card(s, (1200, 630)) == (out / "og.png").read_bytes()
-    snapshot_raw["stats"]["published"]["active_24h"] = 15
+    next(r for r in snapshot_raw["ips"] if r["window"] == "7d")["window"] = "1d"
     assert og.card(Snapshot(snapshot_raw), (1200, 630)) != (out / "og.png").read_bytes()

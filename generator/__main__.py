@@ -28,6 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--allowlist", type=Path, default=netlist.DEFAULT_ALLOWLIST)
     p.add_argument("--allow-delta", action="store_true", help="accept size, churn and concentration anomalies")
     p.add_argument("--bootstrap", action="store_true", help="first publish: no previous data to compare")
+    p.add_argument("--allow-rollback", action="store_true", help="accept a snapshot no newer than the previous build")
     p.add_argument(
         "--require-leak-rules", action="store_true", help=f"fail when {' and '.join(check.LEAK_ENV)} are empty"
     )
@@ -46,7 +47,10 @@ def main(argv: list[str] | None = None) -> int:
             snap = fetch.fetch(args.url, args.out, args.day)
             print(f"fetched {snap.day}: {len(snap.lists['ips'])} ips -> {args.out}")
         elif args.cmd == "build":
-            arts = build.build(args.snapshot, args.out, args.previous, args.allowlist)
+            snap, arts = build.build(args.snapshot, args.out, args.previous, args.allowlist)
+            if snap.dropped:
+                dropped = ", ".join(f"{k}={n}" for k, n in sorted(snap.dropped.items()))
+                print(f"dropped malformed or filtered records: {dropped}", file=sys.stderr)
             print(f"wrote {len(arts)} files to {args.out}")
         elif args.cmd == "check":
             patterns, literals = ([v for v in os.environ.get(k, "").splitlines() if v.strip()] for k in check.LEAK_ENV)
@@ -56,6 +60,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.allowlist,
                 allow_delta=args.allow_delta,
                 bootstrap=args.bootstrap,
+                allow_rollback=args.allow_rollback,
                 leak_patterns=patterns,
                 leak_literals=literals,
                 require_leak_rules=args.require_leak_rules,

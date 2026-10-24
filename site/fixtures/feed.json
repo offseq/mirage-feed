@@ -357,6 +357,18 @@
       "consumers": [
         "MISP"
       ]
+    },
+    {
+      "path": "latest/lookup/",
+      "format": "json",
+      "window": null,
+      "count": 3,
+      "files": 2,
+      "bytes": 512,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "consumers": [
+        "feeds.offseq.com"
+      ]
     }
   ]
 }

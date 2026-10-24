@@ -18,6 +18,10 @@ def run(out, prev=None, **kw):
     return check.run(out, prev, ALLOWLIST, leak_patterns=LEAK, leak_literals=["192.0.2.250"], **kw)
 
 
+def text_lines(out, rel):
+    return (out / rel).read_text().splitlines()
+
+
 def append(path, line):
     with path.open("a") as fh:
         fh.write(line + "\n")
@@ -87,6 +91,12 @@ def test_scanner_also_attacker_trips(out):
     assert any("also listed as an attacker" in e for e in run(out))
 
 
+def test_attacker_turned_scanner_may_be_in_the_removal_list(out):
+    append(out / "latest/known-scanners-ipv4.txt", "198.51.100.251")
+    append(out / "latest/ipv4-removed-1d.txt", "198.51.100.251")
+    assert check.check_scanners(out, Allowlist(check.CANARY)) == []
+
+
 @pytest.mark.parametrize(
     "payload",
     ["http://198.51.100.9/sensor-042.internal/x", "SENSOR-042.INTERNAL", "sensor%2d042.internal",
@@ -133,33 +143,37 @@ def set_lists(out, prev, old: list[str], new: list[str], rel="latest/ipv4-7d.txt
     (out / rel).write_text("\n".join(new) + "\n")
 
 
+def delta(out, prev, allow_delta=False):
+    return check.check_delta(out, prev, allow_delta, False)
+
+
 @pytest.mark.parametrize("new", [131, 69])
 def test_delta_over_30_percent_trips(out, tmp_path, new):
     set_lists(out, tmp_path / "prev", DOC_IPS[:100], DOC_IPS[:new])
-    assert any("size 100 -> " in e for e in run(out, tmp_path / "prev"))
-    assert run(out, tmp_path / "prev", allow_delta=True) == []
+    assert any("size 100 -> " in e for e in delta(out, tmp_path / "prev"))
+    assert delta(out, tmp_path / "prev", allow_delta=True) == []
 
 
 @pytest.mark.parametrize("new", [130, 70])
 def test_delta_within_30_percent_passes(out, tmp_path, new):
     set_lists(out, tmp_path / "prev", DOC_IPS[:100], DOC_IPS[:new])
-    assert run(out, tmp_path / "prev") == []
+    assert delta(out, tmp_path / "prev") == []
 
 
 def test_delta_applies_to_urls(out, tmp_path):
     urls = [f"http://payload.example/{i}" for i in range(100)]
     set_lists(out, tmp_path / "prev", urls, urls[:60], rel="latest/urls-7d.txt")
-    assert any("urls-7d.txt: size 100 -> 60" in e for e in run(out, tmp_path / "prev"))
+    assert any("urls-7d.txt: size 100 -> 60" in e for e in delta(out, tmp_path / "prev"))
 
 
 def test_churn_trips(out, tmp_path):
     set_lists(out, tmp_path / "prev", DOC_IPS[:100], DOC_IPS[50:150])
-    assert any("50% new and 50% gone" in e for e in run(out, tmp_path / "prev"))
+    assert any("50% new and 50% gone" in e for e in delta(out, tmp_path / "prev"))
 
 
 def test_normal_churn_passes(out, tmp_path):
     set_lists(out, tmp_path / "prev", DOC_IPS[:100], DOC_IPS[20:120])
-    assert run(out, tmp_path / "prev") == []
+    assert delta(out, tmp_path / "prev") == []
 
 
 def test_concentration():
@@ -195,11 +209,15 @@ def test_anonymizer_in_blocklist_trips(out, rel, line):
     assert any(e.startswith(f"{rel}: anonymizer ") for e in run(out))
 
 
-def test_removed_must_have_aged_out(out):
-    append(out / "latest/ipv4-removed-1d.txt", "203.0.113.8")
+def test_change_lists_match_the_7d_list(out):
+    append(out / "latest/ipv4-removed-1d.txt", "10.0.0.1")
     assert run(out) == []
-    append(out / "latest/ipv4-removed-1d.txt", "198.51.100.250")
-    assert "latest/ipv4-removed-1d.txt: 198.51.100.250 is not in ipv4-30d.txt" in run(out)
+    week = text_lines(out, "latest/ipv4-7d.txt")
+    append(out / "latest/ipv4-removed-1d.txt", week[0])
+    append(out / "latest/ipv4-added-1d.txt", "198.51.100.250")
+    errors = run(out)
+    assert f"latest/ipv4-removed-1d.txt: {week[0]} is still in ipv4-7d.txt" in errors
+    assert "latest/ipv4-added-1d.txt: 198.51.100.250 is not in ipv4-7d.txt" in errors
 
 
 def test_anonymizer_with_ids_in_misp_trips(out):

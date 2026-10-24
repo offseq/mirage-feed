@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MINISIGN_PUB, renderAtom } from "../src/meta";
-import { parseAddr } from "../src/lookup";
+import { limitKey, parseAddr } from "../src/addr";
 import { CSS } from "../src/style";
-import { call, fixture, gzip, setup } from "./harness";
+import { call, fixture, setup } from "./harness";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -16,9 +16,7 @@ function published(r2: ReturnType<typeof setup>["r2"], generated = "2026-10-24T0
   r2.put("stats.json", fixture("stats.json"));
 }
 
-const record = (value: string, extra: Record<string, unknown> = {}) => ({
-  type: value.includes(":") ? "ipv6" : "ipv4",
-  value,
+const record = (extra: Record<string, unknown> = {}) => ({
   first_seen: "2026-10-20T04:00:00Z",
   last_seen: "2026-10-23T22:00:00Z",
   asn: 64500,
@@ -33,21 +31,20 @@ const record = (value: string, extra: Record<string, unknown> = {}) => ({
   networks: 3,
   hits: 812,
   confidence: 88,
-  window: "7d",
   ...extra,
 });
 
-async function lookupData(r2: ReturnType<typeof setup>["r2"]) {
+const SHARDS: Record<string, Record<string, { lists: string[]; record?: Record<string, unknown> }>> = {
+  "v4/9": { "9.9.9.9": { lists: ["ipv4-1d.txt", "ipv4-7d.txt", "ipv4-30d.txt", "ipv4-top1k.txt", "ipv4-top10k.txt"], record: record() } },
+  "v4/8": { "8.8.4.4": { lists: ["ipv4-30d.txt"] } },
+  "v4/45": { "45.9.0.1": { lists: ["anonymizers-7d.txt"], record: record() } },
+  "v4/71": { "71.6.135.131": { lists: ["known-scanners-ipv4.txt"] } },
+  "v6/2a01": { "2a01:4f8:1:2::/64": { lists: ["ipv6-7d.txt"], record: record() } },
+};
+
+function lookupData(r2: ReturnType<typeof setup>["r2"]) {
   published(r2);
-  const recs = [record("9.9.9.9"), record("2a01:4f8:1:2::/64"), record("45.9.0.1"), { type: "url", value: "http://x.example/a", sightings: 3, sources: 2 }];
-  r2.put("latest/records-7d.ndjson.gz", await gzip(recs.map((r) => JSON.stringify(r)).join("\n") + "\n"));
-  r2.put("latest/ipv4-1d.txt", "9.9.9.9\n");
-  r2.put("latest/ipv4-7d.txt", "9.9.9.9\n");
-  r2.put("latest/ipv4-30d.txt", "9.9.9.9\n8.8.4.4\n");
-  r2.put("latest/ipv6-7d.txt", "2a01:4f8:1:2::/64\n");
-  r2.put("latest/anonymizers-7d.txt", "45.9.0.1\n");
-  r2.put("latest/known-scanners-ipv4.txt", "71.6.135.131\n");
-  r2.put("latest/known-scanners-ipv6.txt", "");
+  for (const [name, body] of Object.entries(SHARDS)) r2.put(`latest/lookup/${name}.json`, JSON.stringify(body));
 }
 
 describe("removal POST headers", () => {
@@ -257,7 +254,7 @@ describe("address parsing", () => {
 describe("/ip lookup", () => {
   it("shows a listed address with its lists, record and removal link", async () => {
     const { env, r2 } = setup();
-    await lookupData(r2);
+    lookupData(r2);
     const res = await call(env, "/ip/9.9.9.9");
     expect(res.status).toBe(200);
     expect(res.headers.get("x-robots-tag")).toBe("noindex");
@@ -280,7 +277,7 @@ describe("/ip lookup", () => {
 
   it("explains scanners, anonymizers and unlisted addresses", async () => {
     const { env, r2 } = setup();
-    await lookupData(r2);
+    lookupData(r2);
     expect(await (await call(env, "/ip/71.6.135.131")).text()).toContain("Known research scanner.");
     expect(await (await call(env, "/ip/45.9.0.1")).text()).toContain("VPN or Tor exit seen attacking.");
     const none = await (await call(env, "/ip/1.1.1.1")).text();
@@ -290,7 +287,7 @@ describe("/ip lookup", () => {
 
   it("normalises IPv6 to its /64 and redirects to the canonical path", async () => {
     const { env, r2 } = setup();
-    await lookupData(r2);
+    lookupData(r2);
     const moved = await call(env, "/ip/2a01:4f8:1:2:dead:beef::1");
     expect(moved.status).toBe(301);
     expect(moved.headers.get("location")).toBe("/ip/2a01:4f8:1:2::");
@@ -300,7 +297,7 @@ describe("/ip lookup", () => {
 
   it("redirects /ip/ to the form and sandboxes lookup JSON like a data file", async () => {
     const { env, r2 } = setup();
-    await lookupData(r2);
+    lookupData(r2);
     const slash = await call(env, "/ip/");
     expect(slash.status).toBe(302);
     expect(slash.headers.get("location")).toBe("/ip");
@@ -323,7 +320,7 @@ describe("/ip lookup", () => {
 
   it("labels a 30-day-only hit and sends no CSP report endpoint on lookup pages", async () => {
     const { env, r2 } = setup();
-    await lookupData(r2);
+    lookupData(r2);
     const res = await call(env, "/ip/8.8.4.4");
     expect(await res.text()).toContain("Listed in ipv4-30d.txt only.");
     const csp = res.headers.get("content-security-policy")!;
@@ -335,39 +332,56 @@ describe("/ip lookup", () => {
     expect((await call(env, "/")).headers.get("content-security-policy")).toContain("report-uri");
   });
 
-  it("answers 503 for a corrupt records file and shares one parse between concurrent lookups", async () => {
+  it("answers 503 for a corrupt or unreadable shard, never Not listed", async () => {
     const bad = setup();
-    await lookupData(bad.r2);
-    bad.r2.put("latest/records-7d.ndjson.gz", "not gzip at all");
+    lookupData(bad.r2);
+    bad.r2.put("latest/lookup/v4/9.json", "{not json");
     expect((await call(bad.env, "/ip/9.9.9.9")).status).toBe(503);
-    const { env, r2 } = setup();
-    await lookupData(r2);
-    r2.put("latest/records-7d.ndjson.gz", await gzip(JSON.stringify(record("9.9.9.9", { hits: 7 })) + "\n"));
-    const pipe = vi.spyOn(ReadableStream.prototype, "pipeThrough");
-    const all = await Promise.all([1, 2, 3].map(() => call(env, "/ip/9.9.9.9.json")));
-    expect(all.map((r) => r.status)).toEqual([200, 200, 200]);
-    expect(pipe).toHaveBeenCalledTimes(1);
+    const down = setup();
+    lookupData(down.r2);
+    down.r2.failing = true;
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("upstream down", { status: 500 })));
+    expect((await call(down.env, "/ip/9.9.9.9")).status).toBe(503);
   });
 
-  it("rate limits per client and answers 503 when the records are missing", async () => {
+  it("answers 503 while the published build has no shard index", async () => {
+    const { env, r2 } = setup();
+    lookupData(r2);
+    const feed = JSON.parse(fixture("feed.json"));
+    feed.files = feed.files.filter((f: { path: string }) => f.path !== "latest/lookup/");
+    r2.put("feed.json", JSON.stringify(feed));
+    expect((await call(env, "/ip/1.7.51.205")).status).toBe(503);
+  });
+
+  it("rate limits per client, an IPv6 client per /64, and answers 503 before the first build", async () => {
     const keys: string[] = [];
     const limited = setup({ LOOKUP_LIMIT: { limit: async ({ key }: { key: string }) => (keys.push(key), { success: false }) } });
     const res = await call(limited.env, "/ip/9.9.9.9.json", { headers: { "cf-connecting-ip": "198.51.100.9" } });
     expect(res.status).toBe(429);
     expect(res.headers.get("retry-after")).toBe("60");
-    expect(keys).toEqual(["198.51.100.9"]);
+    await call(limited.env, "/ip/9.9.9.9.json", { headers: { "cf-connecting-ip": "2a01:4f8:1:2:dead:beef::1" } });
+    expect(keys).toEqual(["198.51.100.9", "2a01:4f8:1:2::/64"]);
     expect((await call(setup().env, "/ip/9.9.9.9")).status).toBe(503);
   });
 
-  it("parses the records once per object version and counts only the outcome", async () => {
+  it("reads one shard per lookup and counts only the outcome", async () => {
     const { env, r2, points } = setup();
-    await lookupData(r2);
+    lookupData(r2);
     await call(env, "/ip/9.9.9.9");
     await call(env, "/ip/1.1.1.1");
-    expect(r2.gets.filter((k) => k === "latest/records-7d.ndjson.gz")).toHaveLength(1);
+    expect(r2.gets.filter((k) => k.startsWith("latest/"))).toEqual(["latest/lookup/v4/9.json", "latest/lookup/v4/1.json"]);
     expect(points.map((p) => p.blobs![3])).toEqual(["listed", "not-listed"]);
     expect(JSON.stringify(points)).not.toContain("9.9.9.9");
   });
+});
+
+describe("rate limit keys", () => {
+  it.each([
+    ["198.51.100.9", "198.51.100.9"],
+    ["2a01:4f8:1:2:dead:beef::1", "2a01:4f8:1:2::/64"],
+    ["2A01:04F8:0001:0002::", "2a01:4f8:1:2::/64"],
+    ["", ""],
+  ])("%s -> %s", (ip, key) => expect(limitKey(ip)).toBe(key));
 });
 
 describe("page metadata", () => {
@@ -427,7 +441,7 @@ describe("page metadata", () => {
 
   it("sends every call to action through the premium sign-up deep link", async () => {
     const { env, r2 } = setup();
-    await lookupData(r2);
+    lookupData(r2);
     const pages = await Promise.all(["/", "/ip/9.9.9.9", "/privacy", "/nope"].map(async (p) => (await call(env, p)).text()));
     const links = pages.flatMap((html) => [...html.matchAll(/href="(https:\/\/mirage\.offseq\.com[^"]*)"/g)].map((m) => m[1].replaceAll("&amp;", "&")));
     expect(pages.every((html) => /<a (?:rel="noreferrer" )?href="https:\/\/mirage\.offseq\.com">mirage\.offseq\.com<\/a>/.test(html))).toBe(true);

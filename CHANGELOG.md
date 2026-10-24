@@ -3,6 +3,33 @@
 Format changes to the published feed. `feed.json` carries the current `schema_version`. Paths and columns that
 exist stay stable within a major version; additions bump the minor version.
 
+## 1.2
+
+Added:
+
+- `latest/lookup/v4/<first octet>.json` and `latest/lookup/v6/<first hextet>.json`: every address in the IP lists
+  (`ipv4-*`, `ipv6-7d`, `anonymizers-7d`, `known-scanners-*`), keyed by the value as listed, with `lists` (the files
+  that hold it) and, for 7-day records, `record` (the `records-7d.ndjson.gz` fields without `window`). Each shard is
+  in `SHA256SUMS`; `feed.json` has one `latest/lookup/` entry (`format: ip-lookup-shards`) whose `count` is the
+  number of addresses, `files` the number of shards and `sha256` the hash of the shards' `SHA256SUMS` lines.
+- The minisign trusted comment is `mirage-feed <day> generated <generated>`.
+
+Changed:
+
+- `ipv4-removed-1d.txt` holds every address that left `ipv4-7d.txt` since the previous day's build: aged out,
+  removed on request, newly allowlisted or reclassified as a VPN/Tor exit. Yesterday's list plus `added` minus
+  `removed` is today's list. A rebuild of the same day keeps the diff against the day before rather than emptying it.
+- `stats.published` is counted from the published files: `ips`, `active_24h` and `ips_30d` are the block-listable
+  addresses (VPN/Tor exits excluded) in the 7-, 1- and 30-day windows, `asns` and `countries` are distinct over the
+  7-day ones, `urls`, `hashes` and `scanners` are the rows of their files. `stats.observed` is unchanged.
+- MISP: an IP pruned from an earlier event stays in it with `deleted: true`, `to_ids: false` and a new
+  `timestamp`, and the event's `timestamp` and `publish_timestamp` move, so subscribed instances drop it.
+- STIX indicators: `created` is the first sighting and stays the same for an id from one build to the next;
+  `modified` is the build time. `valid_until` and the Defender `ExpirationTime` are at least one day after the build.
+- `ipset/mirage.ipset` creates both sets with `maxelem 1048576`, so a restore into yesterday's sets never fails on
+  size.
+- Upstream records with missing or malformed counts or timestamps are dropped instead of failing the build.
+
 ## 1.1
 
 Added:

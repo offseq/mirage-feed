@@ -10,7 +10,7 @@ MIRRORS = (
     "https://raw.githubusercontent.com/offseq/mirage-feed/data/",
 )
 SCHEMA = "mirage-community/1"
-SCHEMA_VERSION = "1.1"
+SCHEMA_VERSION = "1.2"
 PUBLISHER = "OffSeq"
 LICENSE_DATA = "CC-BY-4.0"
 LICENSE_CODE = "MIT"

@@ -1,44 +1,11 @@
+import { parseAddr } from "./addr";
 import type { Env } from "./env";
 
-const OCTET = "(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
-export const V4 = new RegExp(`^${OCTET}(?:\\.${OCTET}){3}$`);
 const EMAIL = /^[^\s@<>"]{1,64}@[^\s@<>"]+\.[^\s@<>".]{2,}$/;
 export const MAX_BODY = 8192;
 const TURNSTILE_HOST = "feeds.offseq.com";
 export const REASON_MIN = 20;
 export const REASON_MAX = 2000;
-
-const V4_BOGONS: [number, number][] = [
-  [0x00000000, 8], [0x0a000000, 8], [0x64400000, 10], [0x7f000000, 8], [0xa9fe0000, 16], [0xac100000, 12],
-  [0xc0000000, 24], [0xc0000200, 24], [0xc0a80000, 16], [0xc6120000, 15], [0xc6336400, 24], [0xcb007100, 24],
-  [0xe0000000, 3],
-];
-
-export function publicV4(addr: string): boolean {
-  const n = addr.split(".").reduce((acc, o) => acc * 256 + Number(o), 0);
-  return !V4_BOGONS.some(([net, bits]) => Math.floor(n / 2 ** (32 - bits)) === Math.floor(net / 2 ** (32 - bits)));
-}
-
-// Global unicast 2000::/3 only, minus documentation space; this also rules out ::, ::1, v4-mapped, ULA, link-local and multicast.
-export function publicV6(addr: string): boolean {
-  if (addr.startsWith(":")) return false;
-  const first = parseInt(addr.split(":")[0], 16);
-  return first >= 0x2000 && first <= 0x3fff && !/^2001:0*db8(?::|$)/i.test(addr);
-}
-
-export function isValidIp(input: string): boolean {
-  const [addr, prefix, ...rest] = input.split("/");
-  if (rest.length) return false;
-  if (V4.test(addr)) return prefix === undefined && publicV4(addr);
-  if (prefix !== undefined && prefix !== "64") return false;
-  if (!/^[0-9a-fA-F:]{2,39}$/.test(addr) || !addr.includes(":")) return false;
-  try {
-    new URL(`http://[${addr}]/`);
-  } catch {
-    return false;
-  }
-  return publicV6(addr);
-}
 
 export interface RemovalInput {
   ip: string;
@@ -48,17 +15,19 @@ export interface RemovalInput {
   token: string;
 }
 
-export type Check = { ok: true } | { ok: false; field: "ip" | "email" | "reason"; error: string };
+// On success, ip is the address as the feed lists it: IPv6 as its /64.
+export type Check = { ok: true; ip: string } | { ok: false; field: "ip" | "email" | "reason"; error: string };
 
 export function validate(r: RemovalInput): Check {
-  if (!isValidIp(r.ip)) {
+  const addr = parseAddr(r.ip);
+  if (!addr) {
     return { ok: false, field: "ip", error: "Enter one public IPv4 address, or an IPv6 address or /64 as listed." };
   }
   if (r.email.length > 254 || !EMAIL.test(r.email)) return { ok: false, field: "email", error: "Enter an email address we can reply to." };
   if (r.reason.length < REASON_MIN || r.reason.length > REASON_MAX) {
     return { ok: false, field: "reason", error: `Give a reason between ${REASON_MIN} and ${REASON_MAX.toLocaleString("en-US")} characters.` };
   }
-  return { ok: true };
+  return { ok: true, ip: addr.value };
 }
 
 export class TooLarge extends Error {}

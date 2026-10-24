@@ -8,8 +8,11 @@ import re
 import unicodedata
 import urllib.parse
 from collections import Counter
+from datetime import UTC, datetime
 from pathlib import Path
 
+from . import lookup
+from .common import parse_ts
 from .netlist import CANARY, DEFAULT_ALLOWLIST, Allowlist
 
 RECORD_SCHEMA = Path(__file__).resolve().parent.parent / "schema" / "record.schema.json"
@@ -26,6 +29,7 @@ IP_LISTS = {
     "latest/ipv4-removed-1d.txt": (4, "bare"),
 }
 ANONYMIZERS = "latest/anonymizers-7d.txt"
+ADDED, REMOVED = "latest/ipv4-added-1d.txt", "latest/ipv4-removed-1d.txt"
 SCANNER_LISTS = {"latest/known-scanners-ipv4.txt": 4, "latest/known-scanners-ipv6.txt": 6}
 IP_CSVS = ("latest/attackers-7d.csv", "latest/attackers-ipv4-7d.csv", "latest/defender/defender-top500.csv")
 REQUIRED = (
@@ -115,6 +119,16 @@ def _csv_column(out: Path, rel: str, column: str) -> list[str]:
         return [row[column] for row in csv.DictReader(fh)]
 
 
+def _misp_ips(out: Path) -> dict[str, list[dict]]:
+    """Live ip-src attributes per event file; attributes sent as deleted only tell MISP to drop them."""
+    found = {}
+    for path in sorted((out / "misp").glob("*.json")):
+        if path.name != "manifest.json":
+            attrs = json.loads(path.read_text(encoding="utf-8"))["Event"].get("Attribute", [])
+            found[f"misp/{path.name}"] = [a for a in attrs if a["type"] == "ip-src" and not a.get("deleted")]
+    return found
+
+
 def _ip_entries(out: Path) -> list[tuple[str, str, int, str]]:
     """(file, value, expected family, form) for every published attacker IP."""
     entries = []
@@ -129,23 +143,16 @@ def _ip_entries(out: Path) -> list[tuple[str, str, int, str]]:
         entries += [_guess(rel, v) for v in _csv_column(out, rel, column)]
     rel = "latest/suricata/mirage-iprep.list"
     entries += [_guess(rel, line.split(",", 1)[0]) for line in _lines(out, rel)]
-    for path in sorted((out / "misp").glob("*.json")):
-        if path.name == "manifest.json":
-            continue
-        attrs = json.loads(path.read_text(encoding="utf-8"))["Event"].get("Attribute", [])
-        entries += [_guess(f"misp/{path.name}", a["value"]) for a in attrs if a["type"] == "ip-src"]
+    for rel, attrs in _misp_ips(out).items():
+        entries += [_guess(rel, a["value"]) for a in attrs]
     return entries
 
 
 def check_ips(out: Path, allowlist: Allowlist, canary: Allowlist) -> list[str]:
-    errors = []
     entries = _ip_entries(out)
-    aged = set(_lines(out, "latest/ipv4-30d.txt"))
-    errors += [
-        f"latest/ipv4-removed-1d.txt: {v} is not in ipv4-30d.txt"
-        for v in _lines(out, "latest/ipv4-removed-1d.txt")
-        if v not in aged
-    ]
+    week, added, removed = (set(_lines(out, rel)) for rel in ("latest/ipv4-7d.txt", ADDED, REMOVED))
+    errors = [f"{ADDED}: {v} is not in ipv4-7d.txt" for v in sorted(added - week)]
+    errors += [f"{REMOVED}: {v} is still in ipv4-7d.txt" for v in sorted(removed & week)]
     for (rel, value), n in sorted(Counter((e[0], e[1]) for e in entries).items()):
         if n > 1:
             errors.append(f"{rel}: duplicate entry {value}")
@@ -164,14 +171,15 @@ def check_ips(out: Path, allowlist: Allowlist, canary: Allowlist) -> list[str]:
             errors.append(f"{rel}: non-canonical entry {value}, want {canonical}")
         elif hit := canary.hit(net):
             errors.append(f"{rel}: canary address {hit} published")
-        elif hit := allowlist.hit(net):
+        # Removals tell consumers to unblock, so a newly allowlisted address belongs there.
+        elif rel != REMOVED and (hit := allowlist.hit(net)):
             errors.append(f"{rel}: {value} overlaps allowlisted {hit}")
     return errors
 
 
 def _blocklists(out: Path) -> dict[str, set[str]]:
     """Entries, by path, of every file a firewall, IDS or EDR blocks or alerts on."""
-    found = {rel: set(_lines(out, rel)) for rel in IP_LISTS}
+    found = {rel: set(_lines(out, rel)) for rel in IP_LISTS if rel != REMOVED}
     found["latest/ipv4-7d-cidr32.txt"] = {v.removesuffix("/32") for v in found["latest/ipv4-7d-cidr32.txt"]}
     found["latest/defender/defender-top500.csv"] = set(_csv_column(out, IP_CSVS[2], "IndicatorValue"))
     found["latest/crowdsec/mirage-7d.csv"] = set(_csv_column(out, "latest/crowdsec/mirage-7d.csv", "value"))
@@ -190,10 +198,8 @@ def _blocklists(out: Path) -> dict[str, set[str]]:
     found["latest/ipset/mirage.ipset"] = {
         line.split()[2] for line in _lines(out, "latest/ipset/mirage.ipset") if line.startswith("add ")
     }
-    for path in sorted((out / "misp").glob("*.json")):
-        if path.name != "manifest.json":
-            attrs = json.loads(path.read_text(encoding="utf-8"))["Event"].get("Attribute", [])
-            found[f"misp/{path.name}"] = {a["value"] for a in attrs if a["type"] == "ip-src" and a.get("to_ids")}
+    for rel, attrs in _misp_ips(out).items():
+        found[rel] = {a["value"] for a in attrs if a.get("to_ids")}
     bundle = json.loads((out / "latest/stix/mirage.json").read_text(encoding="utf-8"))
     found["latest/stix/mirage.json"] = {
         m.group(1)
@@ -216,7 +222,8 @@ def check_anonymizers(out: Path) -> list[str]:
 
 
 def check_scanners(out: Path, canary: Allowlist) -> list[str]:
-    attackers = {e[1] for e in _ip_entries(out)}
+    # An attacker reclassified as a scanner leaves through the removal list, so that list does not count.
+    attackers = {e[1] for e in _ip_entries(out) if e[0] != REMOVED}
     errors = []
     for rel, family in SCANNER_LISTS.items():
         values = _lines(out, rel)
@@ -262,7 +269,8 @@ def check_leaks(out: Path, patterns: list[str], literals: list[str], required: b
     compiled = []
     for i, pattern in enumerate(patterns, 1):
         try:
-            compiled.append(re.compile(normalise(pattern), re.IGNORECASE))
+            # Raw source: normalising it would turn \D into \d and %2e into a wildcard.
+            compiled.append(re.compile(pattern, re.IGNORECASE))
         except re.error:
             return [f"leak pattern #{i} is not a valid regex"]
     needles = [normalise(v) for v in literals]
@@ -282,7 +290,7 @@ def _sizes(out: Path, prev: Path, rel: str) -> tuple[set[str], set[str]] | None:
 def check_delta(out: Path, prev: Path | None, allow_delta: bool, bootstrap: bool) -> list[str]:
     if bootstrap:
         return []
-    if not prev or not (prev / "latest/ipv4-7d.txt").is_file() or not _lines(prev, "latest/ipv4-7d.txt"):
+    if not prev or not (prev / "feed.json").is_file():
         return ["no previous data to compare against; pass --bootstrap only for the first publish"]
     if allow_delta:
         return []
@@ -384,6 +392,59 @@ def check_stix(out: Path) -> list[str]:
     return errors
 
 
+def _generated(root: Path) -> str:
+    return json.loads((root / "feed.json").read_text(encoding="utf-8"))["generated"]
+
+
+def check_rollback(out: Path, prev: Path | None) -> list[str]:
+    if not prev or not (prev / "feed.json").is_file():
+        return []
+    cur, old = _generated(out), _generated(prev)
+    if cur > old:
+        return []
+    return [f"snapshot generated {cur} is not newer than the previous build's {old}; use --allow-rollback if intended"]
+
+
+def check_expiry(out: Path) -> list[str]:
+    """Indicators must still be valid when they are imported."""
+    now = parse_ts(_generated(out))
+    errors = []
+    with (out / IP_CSVS[2]).open(newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            if datetime.strptime(row["ExpirationTime"], "%Y-%m-%dT%H:%M:%S.0Z").replace(tzinfo=UTC) <= now:
+                errors.append(f"{IP_CSVS[2]}: {row['IndicatorValue']} expires {row['ExpirationTime']}")
+    stamp = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    for o in json.loads((out / "latest/stix/mirage.json").read_text(encoding="utf-8")).get("objects", []):
+        if o.get("type") == "indicator" and o.get("valid_until", "9") <= stamp:
+            errors.append(f"stix: {o['id']} expires {o['valid_until']}")
+        if o.get("modified", "9") < o.get("created", ""):
+            errors.append(f"stix: {o['id']} modified before created")
+    return errors
+
+
+def check_lookup(out: Path) -> list[str]:
+    """The /ip shards hold exactly the addresses of the IP lists, each with its list memberships."""
+    want: dict[str, list[str]] = {}
+    for name in lookup.LISTS:
+        for value in _lines(out, f"latest/{name}"):
+            want.setdefault(value, []).append(name)
+    errors, have = [], {}
+    for path in sorted((out / lookup.DIR).rglob("*.json")):
+        rel = str(path.relative_to(out))
+        for value, entry in json.loads(path.read_text(encoding="utf-8")).items():
+            have[value] = entry.get("lists")
+            if lookup.shard(value) != rel:
+                errors.append(f"{rel}: {value} belongs in {lookup.shard(value)}")
+    errors += [f"{lookup.DIR}: {v} missing" for v in sorted(want.keys() - have.keys())]
+    errors += [f"{lookup.DIR}: {v} is in no list" for v in sorted(have.keys() - want.keys())]
+    errors += [
+        f"{lookup.DIR}: {v} lists {have[v]}, want {want[v]}"
+        for v in sorted(want.keys() & have.keys())
+        if have[v] != want[v]
+    ]
+    return errors
+
+
 def _ip_asn_rows(root: Path) -> list[tuple[str, str]]:
     return list(zip(_csv_column(root, IP_CSVS[0], "ip"), _csv_column(root, IP_CSVS[0], "asn"), strict=True))
 
@@ -395,6 +456,7 @@ def run(
     *,
     allow_delta: bool = False,
     bootstrap: bool = False,
+    allow_rollback: bool = False,
     leak_patterns: list[str] = (),
     leak_literals: list[str] = (),
     require_leak_rules: bool = False,
@@ -412,7 +474,10 @@ def run(
         *check_scanners(out, canaries),
         *check_anonymizers(out),
         *check_delta(out, prev, allow_delta, bootstrap),
+        *([] if allow_rollback else check_rollback(out, prev)),
         *([] if allow_delta else check_concentration(rows, prev_rows)),
         *check_schema(out),
         *check_stix(out),
+        *check_expiry(out),
+        *check_lookup(out),
     ]

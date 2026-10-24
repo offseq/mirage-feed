@@ -14,16 +14,19 @@ const TYPES: Record<string, string> = {
   csv: "text/csv; charset=utf-8",
   json: "application/json",
   gz: "application/gzip",
-  ndjson: "application/x-ndjson",
   png: "image/png",
 };
 
-const DIR_RE = /^(?:latest(?:\/(?:stix|zeek|suricata(?:\/datasets)?|mikrotik|nft|ipset|crowdsec|defender))?|misp|schema)$/;
+const DIR_RE = /^(?:latest(?:\/(?:stix|zeek|suricata(?:\/datasets)?|mikrotik|nft|ipset|crowdsec|defender|lookup\/v[46]))?|misp|schema)$/;
+const LOOKUP_DIR = "latest/lookup/";
 const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 // Always eligible for the GitHub fallback: they are not listed in feed.json, and feed.json itself is needed to read the list.
 const ROOT_FILES = new Set(["feed.json", "stats.json", "history.json", "SHA256SUMS", "SHA256SUMS.minisig", "LICENSE-DATA"]);
+// Clients see stable paths, not build prefixes, so the files that name a build must not outlive it by an hour.
+const INDEX_FILES = new Set(["feed.json", "stats.json", "history.json", "SHA256SUMS", "SHA256SUMS.minisig"]);
 
 export const FRESH_TTL = 3600;
+export const INDEX_TTL = 300;
 export const STALE_TTL = 48 * 3600;
 export const MISSING_TTL = 300;
 const META_TTL_MS = 300_000;
@@ -78,15 +81,17 @@ async function isListed(path: string, env: Env, origin: string, ctx: ExecutionCo
     listed = { at: Date.now(), paths: new Set((feed.files ?? []).map((f) => f.path ?? "")) };
     listedMemo.set(env.FEED, listed);
   }
-  return listed.paths.has(path);
+  // Lookup shards are one feed.json entry for the whole directory.
+  return listed.paths.has(path) || (path.startsWith(LOOKUP_DIR) && listed.paths.has(LOOKUP_DIR));
 }
 
 // R2 is the source of truth. GitHub is consulted only when R2 errors, and only for files the current index lists,
 // so random names cannot multiply origin traffic.
 export async function getFeedFile(path: string, env: Env, origin: string, ctx: ExecutionContext): Promise<Response> {
   const cache = caches.default;
+  const pub = await published(env);
   // Keyed on the publish so SHA256SUMS and the files it covers switch over together.
-  const freshKey = cacheKey(origin, `fresh-${(await published(env)).version}`, path);
+  const freshKey = cacheKey(origin, `fresh-${pub.version}`, path);
 
   const hit = await cache.match(freshKey);
   if (hit) return hit.headers.has(MISSING) ? new Response(null, { status: 404 }) : hit;
@@ -100,7 +105,7 @@ export async function getFeedFile(path: string, env: Env, origin: string, ctx: E
   let obj: R2ObjectBody | null = null;
   let failed = false;
   try {
-    obj = await env.FEED.get(path);
+    obj = await env.FEED.get(pub.prefix + path);
   } catch {
     failed = true;
   }
@@ -142,19 +147,21 @@ export async function getFeedJson<T>(path: string, env: Env, origin: string, ctx
   }
 }
 
-type Published = { generated: number | null; version: string };
+type Published = { generated: number | null; version: string; prefix: string };
 const publishedMemo = new WeakMap<R2Bucket, { at: number; value: Published }>();
 
 async function published(env: Env): Promise<Published> {
   const memo = publishedMemo.get(env.FEED);
   if (memo && Date.now() - memo.at < PUBLISH_TTL_MS) return memo.value;
-  let value: Published = { generated: null, version: "0" };
+  let value: Published = { generated: null, version: "0", prefix: "" };
   try {
     const obj = await env.FEED.get("_meta/published.json");
-    const meta = ((await obj?.json()) ?? {}) as { generated?: string; sha256sums?: string };
+    const meta = ((await obj?.json()) ?? {}) as { generated?: string; sha256sums?: string; version?: string };
     const t = Date.parse(meta.generated ?? "");
     const sums = /^[0-9a-f]{64}$/.test(meta.sha256sums ?? "") ? (meta.sha256sums as string) : "";
-    value = { generated: Number.isFinite(t) ? t : null, version: sums.slice(0, 16) || "0" };
+    const build = /^[0-9a-f]{16}$/.test(meta.version ?? "") ? (meta.version as string) : "";
+    // A pointer without a version is a publish from before immutable builds, whose files sit at the bucket root.
+    value = { generated: Number.isFinite(t) ? t : null, version: build || sums.slice(0, 16) || "0", prefix: build && `builds/${build}/` };
   } catch {
     value = memo?.value ?? value;
   }
@@ -226,7 +233,7 @@ export async function serveFeedFile(req: Request, path: string, env: Env, ctx: E
     ...CORS,
     "content-type": file.headers.get("content-type") ?? TEXT,
     etag,
-    "cache-control": isShadow(env) ? "private, no-store" : `public, max-age=${FRESH_TTL}`,
+    "cache-control": isShadow(env) ? "private, no-store" : `public, max-age=${INDEX_FILES.has(path) ? INDEX_TTL : FRESH_TTL}`,
     "accept-ranges": "bytes",
     "x-robots-tag": "noindex",
   });

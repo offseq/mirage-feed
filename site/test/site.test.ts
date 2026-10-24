@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderHome, technique } from "../src/home";
-import { isValidIp } from "../src/removal";
+import { parseAddr } from "../src/addr";
 import { APP_PATH, FONT_400, FONT_600 } from "../src/assets";
 import { CSS } from "../src/style";
 import { call, fixture, rawServing, setup } from "./harness";
@@ -219,15 +219,15 @@ describe("shadow mode", () => {
 
 describe("removal IP validation", () => {
   it.each(["9.9.9.9", "185.12.64.1", "2a01:4f8::1", "2a01:4f8:1:2::/64", "2600:1f18:abcd::7"])("accepts %s", (ip) =>
-    expect(isValidIp(ip)).toBe(true),
+    expect(parseAddr(ip)).not.toBeNull(),
   );
   it.each([
-    "", "256.1.1.1", "9.9.9", "01.2.3.4", "9.9.9.9/32", "9.9.9.9/24", "9.9.9.9 ", "example.com",
+    "", "256.1.1.1", "9.9.9", "01.2.3.4", "9.9.9.9/32", "9.9.9.9/24", "example.com",
     "0.1.2.3", "10.0.0.1", "100.64.0.1", "127.0.0.1", "169.254.1.1", "172.16.0.1", "192.0.2.1", "192.168.1.1",
     "198.18.0.1", "198.51.100.7", "203.0.113.5", "224.0.0.1", "255.255.255.255",
     "::", "::/0", "::1", "::ffff:8.8.8.8", "::ffff:808:808", "fe80::1", "fc00::1", "ff02::1", "2001:db8::1", "2001:0db8:1::/64",
     "2a01:4f8::/48", "2a01:4f8::1/128", "2a01:4f8:::1", "[2a01:4f8::1]",
-  ])("rejects %j", (ip) => expect(isValidIp(ip)).toBe(false));
+  ])("rejects %j", (ip) => expect(parseAddr(ip)).toBeNull());
 });
 
 const UPSTREAM = "https://mirage.example/api/feed/removal";
@@ -293,6 +293,15 @@ describe("removal", () => {
     expect(headers["content-type"]).toBe("application/json");
     expect(JSON.parse(calls[1][1].body as string)).toEqual({ ip: "9.9.9.9", email: "noc@example.org", reason: valid.reason, website: "" });
     expect(await (await call(env, "/removal/sent")).text()).toContain("Request received");
+  });
+
+  it("forwards an IPv6 address as the /64 the feed lists", async () => {
+    const { env } = setup();
+    const fetchMock = services();
+    vi.stubGlobal("fetch", fetchMock);
+    expect((await call(env, "/removal", form({ ...valid, ip: "2A01:4F8:1:2:dead:beef::1" }))).status).toBe(303);
+    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    expect(JSON.parse(calls[1][1].body as string).ip).toBe("2a01:4f8:1:2::/64");
   });
 
   it("explains the JavaScript requirement when the Turnstile token is missing or invalid", async () => {

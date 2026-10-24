@@ -1,6 +1,8 @@
-from .common import ANONYMIZER_TAGS, Artifact, Snapshot, csv_bytes, expiry, lines
+from .common import ANONYMIZER_TAGS, Artifact, Snapshot, csv_bytes, expiry, lines, network
 
 CHAINS = ("input", "forward")
+# Fixed so `ipset restore` into an existing set never fails because yesterday's set was created smaller.
+IPSET_MAXELEM = 1 << 20
 DEFENDER_TOP = 500
 # Defender raises tenant-wide alerts: shared egress stays out, and so does recon with nothing worse behind it.
 DEFENDER_SKIP_TAGS = ANONYMIZER_TAGS
@@ -65,8 +67,7 @@ def nft(v4: list[str], v6: list[str]) -> bytes:
 def ipset(v4: list[str], v6: list[str]) -> bytes:
     out = []
     for name, family, ips in (("mirage4", "inet", v4), ("mirage6", "inet6", v6)):
-        maxelem = max(65536, 1 << (len(ips) - 1).bit_length())
-        spec = f"hash:net family {family} hashsize 1024 maxelem {maxelem}"
+        spec = f"hash:net family {family} hashsize 1024 maxelem {IPSET_MAXELEM}"
         out += [f"create {name} {spec} -exist", f"create {name}-tmp {spec} -exist", f"flush {name}-tmp"]
         out += [f"add {name}-tmp {ip}" for ip in ips]
         out += [f"swap {name}-tmp {name}", f"destroy {name}-tmp"]
@@ -81,7 +82,7 @@ def _severity(confidence: int) -> str:
     return "High" if confidence >= 90 else "Medium" if confidence >= 70 else "Low"
 
 
-def defender(recs: list[dict]) -> list[list]:
+def defender(recs: list[dict], generated: str) -> list[list]:
     rows = []
     for r in recs:
         severity = _severity(int(r["confidence"]))
@@ -94,7 +95,7 @@ def defender(recs: list[dict]) -> list[list]:
             [
                 "IpAddress",
                 r["ip"],
-                expiry(r["last_seen"]).strftime("%Y-%m-%dT%H:%M:%S.0Z"),
+                expiry(r["last_seen"], generated).strftime("%Y-%m-%dT%H:%M:%S.0Z"),
                 "Block",
                 severity,
                 "Mirage feed: known attacker",
@@ -111,11 +112,11 @@ def defender(recs: list[dict]) -> list[list]:
 
 def render(s: Snapshot) -> list[Artifact]:
     recs = s.blockable("7d")
-    v4 = [r["ip"] for r in recs if "/" not in r["ip"]]
-    v6 = [r["ip"] for r in recs if "/" in r["ip"]]
+    v4 = [r["ip"] for r in recs if network(r["ip"]).version == 4]
+    v6 = [r["ip"] for r in recs if network(r["ip"]).version == 6]
     n = len(recs)
     cs = crowdsec(recs)
-    top = defender(s.ranked_v4(DEFENDER_TOP, DEFENDER_SKIP_TAGS, RECON_ONLY_TAGS))
+    top = defender(s.ranked_v4(DEFENDER_TOP, DEFENDER_SKIP_TAGS, RECON_ONLY_TAGS), s.generated)
     return [
         Artifact("latest/mikrotik/mirage-7d.rsc", mikrotik(v4, v6), "routeros-script", n, "7d", ("mikrotik",)),
         Artifact("latest/nft/mirage.nft", nft(v4, v6), "nftables", n, "7d", ("nftables",)),

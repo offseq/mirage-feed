@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from .common import Artifact, Snapshot, anonymizer, dumps, expiry, network, parse_ts, uid
 
 TLP_CLEAR_ID = "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487"
@@ -48,20 +51,40 @@ def _sdo(kind: str, key: str, created: str, modified: str, **props) -> dict:
     }
 
 
-def _indicator(name: str, pattern: str, rec: dict, kind: str = "malicious-activity", **props) -> dict:
-    return _sdo(
+def _indicator(
+    s: Snapshot, created: dict[str, str], name: str, pattern: str, rec: dict, kind: str = "malicious-activity", **props
+) -> dict:
+    ind = _sdo(
         "indicator",
         pattern,
         ts(rec["first_seen"]),
-        ts(rec["last_seen"]),
+        ts(s.generated),
         name=name,
         pattern=pattern,
         pattern_type="stix",
         valid_from=ts(rec["first_seen"]),
-        valid_until=expiry(rec["last_seen"]).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+        valid_until=expiry(rec["last_seen"], s.generated).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         indicator_types=[kind],
         **props,
     )
+    # One id keeps one created time, even when the snapshot's first sighting moves.
+    ind["created"] = created.get(ind["id"], ind["created"])
+    return ind
+
+
+def _created(prev: Path | None) -> dict[str, str]:
+    path = prev / "latest/stix/mirage.json" if prev else None
+    if not path or not path.is_file():
+        return {}
+    try:
+        objects = json.loads(path.read_text(encoding="utf-8")).get("objects", [])
+    except (ValueError, AttributeError):
+        return {}
+    return {
+        o["id"]: o["created"]
+        for o in objects
+        if isinstance(o, dict) and o.get("type") == "indicator" and isinstance(o.get("created"), str)
+    }
 
 
 def _relationship(rel: str, src: str, dst: str) -> dict:
@@ -95,7 +118,8 @@ def _vulnerability(cve: str, kev: bool) -> dict:
     )
 
 
-def bundle(s: Snapshot) -> dict:
+def bundle(s: Snapshot, prev: Path | None = None) -> dict:
+    created = _created(prev)
     names = {a["technique"]: a["name"] for a in s.stats.get("attack", []) if a.get("name")}
     kev = {c["cve"]: bool(c.get("kev")) for c in s.lists["cves"]}
     objects = {o["id"]: o for o in (TLP_CLEAR, IDENTITY)}
@@ -113,6 +137,8 @@ def bundle(s: Snapshot) -> dict:
         )
         ind = add(
             _indicator(
+                s,
+                created,
                 f"Mirage attacker {rec['ip']}",
                 f"[{family}:value = '{escape(rec['ip'])}']",
                 rec,
@@ -130,6 +156,8 @@ def bundle(s: Snapshot) -> dict:
     for rec in s.lists["urls"]:
         add(
             _indicator(
+                s,
+                created,
                 f"Mirage {rec['kind']} URL",
                 f"[url:value = '{escape(rec['url'])}']",
                 rec,
@@ -140,6 +168,8 @@ def bundle(s: Snapshot) -> dict:
     for rec in s.lists["domains"]:
         add(
             _indicator(
+                s,
+                created,
                 "Mirage payload domain",
                 f"[domain-name:value = '{escape(rec['domain'])}']",
                 rec,
@@ -149,6 +179,8 @@ def bundle(s: Snapshot) -> dict:
     for rec in s.lists["hashes"]:
         add(
             _indicator(
+                s,
+                created,
                 "Mirage payload file",
                 f"[file:hashes.'SHA-256' = '{escape(rec['sha256'])}']",
                 rec,
@@ -161,8 +193,8 @@ def bundle(s: Snapshot) -> dict:
     return {"type": "bundle", "id": f"bundle--{uid('bundle', s.day)}", "objects": ordered}
 
 
-def render(s: Snapshot) -> list[Artifact]:
-    b = bundle(s)
+def render(s: Snapshot, prev: Path | None = None) -> list[Artifact]:
+    b = bundle(s, prev)
     return [
         Artifact(
             "latest/stix/mirage.json",

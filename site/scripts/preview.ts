@@ -1,10 +1,13 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { APP_JS } from "../src/app";
 import { APP_PATH, FONT_400, FONT_600 } from "../src/assets";
 import { datasetLd, renderHome } from "../src/home";
 import { layout } from "../src/html";
 
-const read = (name: string) => JSON.parse(readFileSync(new URL(`../fixtures/${name}`, import.meta.url), "utf8"));
+// An optional argument renders a local build (the generator's out/) instead of the fixtures.
+const source = process.argv[2] ? new URL(`file://${resolve(process.argv[2])}/`) : new URL("../fixtures/", import.meta.url);
+const read = (name: string) => JSON.parse(readFileSync(new URL(name, source), "utf8"));
 const feed = read("feed.json");
 const html = layout({
   title: "Mirage Feed: daily honeypot threat intelligence",

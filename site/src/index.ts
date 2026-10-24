@@ -1,10 +1,11 @@
+import { limitKey, parseAddr } from "./addr";
 import { ASSETS, OG_FALLBACK } from "./assets";
 import { isShadow, type Env } from "./env";
 import { getFeedFile, getFeedJson, isAllowedPath, serveFeedFile } from "./feed";
 import { STALE_AFTER_H, datasetLd, renderHome, type FeedIndex, type Stats } from "./home";
 import { ISO, SITE, layout, num } from "./html";
 import { MINISIGN_PUB, renderAtom, securityTxt, type HistoryRow } from "./meta";
-import { lookup, lookupForm, parseAddr, renderLookup, type Lookup } from "./lookup";
+import { lookup, lookupForm, renderLookup, type Lookup } from "./lookup";
 import { PRIVACY_UPDATED, REMOVAL_SENT, type RemovalForm, renderNotFound, renderPrivacy, renderRemoval, renderRemovalSent } from "./pages";
 import { TooLarge, forwardRemoval, readRemoval, validate, verifyTurnstile, type RemovalInput } from "./removal";
 import { authorized, challenge, secure, type Kind } from "./security";
@@ -197,7 +198,7 @@ async function ipLookup(req: Request, env: Env, ctx: ExecutionContext, path: str
   if (!addr) return fail(400, "Not a public IPv4 address, IPv6 address or IPv6 /64.");
   if (addr.slug !== input) return redirect(`/ip/${addr.slug}${wantsJson ? ".json" : ""}`, 301);
 
-  if (env.LOOKUP_LIMIT && !(await env.LOOKUP_LIMIT.limit({ key: req.headers.get("cf-connecting-ip") ?? "" })).success) {
+  if (env.LOOKUP_LIMIT && !(await env.LOOKUP_LIMIT.limit({ key: limitKey(req.headers.get("cf-connecting-ip") ?? "") })).success) {
     return fail(429, "Too many lookups from your network. Try again in a minute.", { "retry-after": "60" });
   }
   const result = await lookup(addr, env, url.origin, ctx);
@@ -224,7 +225,7 @@ async function removal(req: Request, env: Env): Promise<Response> {
   const fail = (status: number, error: string, field?: string) =>
     wantsJson ? Response.json({ ok: false, error, field }, { status }) : removalPage(env, { ...input, error, field }, status);
 
-  if (env.REMOVAL_LIMIT && !(await env.REMOVAL_LIMIT.limit({ key: clientIp })).success) {
+  if (env.REMOVAL_LIMIT && !(await env.REMOVAL_LIMIT.limit({ key: limitKey(clientIp) })).success) {
     return withHeaders(fail(429, "Too many requests from your network. Try again later, or write to abuse@offseq.com."), { "retry-after": "60" });
   }
   try {
@@ -236,6 +237,7 @@ async function removal(req: Request, env: Env): Promise<Response> {
 
   const check = validate(input);
   if (!check.ok) return fail(400, check.error, check.field);
+  input.ip = check.ip;
   // Bots that fill the hidden field get the normal success response and nothing is forwarded.
   if (!input.website) {
     if (!(await verifyTurnstile(input.token, clientIp, env))) {

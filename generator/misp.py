@@ -67,36 +67,45 @@ def event(s: Snapshot) -> tuple[str, dict]:
     return event_uuid, body
 
 
-def _carried(prev: Path | None, today: str, live: set[str], allow: Allowlist) -> dict[str, dict]:
-    """Earlier events, with IPs no longer listed, now allowlisted or now anonymizers removed."""
+def _carried(prev: Path | None, s: Snapshot, allow: Allowlist) -> dict[str, dict]:
+    """Earlier events; IPs no longer listed, now allowlisted or now anonymizers are marked deleted."""
     manifest = prev / "misp" / "manifest.json" if prev else None
     if not manifest or not manifest.is_file():
         return {}
+    stamp = str(int(parse_ts(s.generated).timestamp()))
+    # An IDS attribute needs a block-listed address; an anonymizer context attribute only a listed one.
+    live = {True: {r["ip"] for r in s.blockable("30d")}, False: {r["ip"] for r in s.ips_in("30d")}}
     kept = {}
     entries = json.loads(manifest.read_text(encoding="utf-8"))
     for event_uuid, meta in sorted(entries.items(), key=lambda kv: kv[1]["date"], reverse=True):
         path = manifest.parent / f"{event_uuid}.json"
-        if meta["date"] == today or not path.is_file() or len(kept) == KEEP_EVENTS - 1:
+        if meta["date"] == s.day or not path.is_file() or len(kept) == KEEP_EVENTS - 1:
             continue
         body = json.loads(path.read_text(encoding="utf-8"))
-        body["Event"]["Attribute"] = [
-            a for a in body["Event"].get("Attribute", [])
-            if a["type"] != "ip-src" or (a["value"] in live and not allow.hit(network(a["value"])))
-        ]  # fmt: skip
+        ev = body["Event"]
+        pruned = False
+        for a in ev.get("Attribute", []):
+            if a.get("deleted") or a["type"] != "ip-src":
+                continue
+            if a["value"] not in live[bool(a.get("to_ids"))] or allow.hit(network(a["value"])):
+                # MISP only re-pulls an event whose timestamp moved, and only drops attributes sent as deleted.
+                a.update(deleted=True, to_ids=False, timestamp=stamp)
+                pruned = True
+        if pruned:
+            ev["timestamp"] = ev["publish_timestamp"] = stamp
         kept[event_uuid] = body
     return kept
 
 
 def render(s: Snapshot, prev: Path | None = None, allow: Allowlist | None = None) -> list[Artifact]:
     today_uuid, today = event(s)
-    live = {r["ip"] for r in s.blockable("30d")}
-    events = _carried(prev, s.day, live, allow or Allowlist(DEFAULT_ALLOWLIST))
+    events = _carried(prev, s, allow or Allowlist(DEFAULT_ALLOWLIST))
     events[today_uuid] = today
     manifest, hashes, out = {}, [], []
     for event_uuid, body in sorted(events.items()):
         ev = body["Event"]
         manifest[event_uuid] = {k: ev[k] for k in MANIFEST_KEYS}
-        attrs = ev.get("Attribute", [])
+        attrs = [a for a in ev.get("Attribute", []) if not a.get("deleted")]
         hashes += [(hashlib.md5(a["value"].encode(), usedforsecurity=False).hexdigest(), event_uuid) for a in attrs]
         out.append(Artifact(f"misp/{event_uuid}.json", dumps(body), "misp-event", len(attrs), "7d", CONSUMERS))
     hashes_csv = "".join(f"{h},{e}\n" for h, e in sorted(hashes)).encode()

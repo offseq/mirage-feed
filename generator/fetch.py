@@ -1,4 +1,5 @@
 import gzip
+import http.client
 import io
 import json
 import os
@@ -77,7 +78,7 @@ def fetch(url: str, dest: Path, day: str | None = None, sleep=time.sleep, now: d
             if exc.code < 500 and exc.code != 429:
                 raise FetchError(f"GET {url}: HTTP {exc.code} {exc.reason}") from exc
             last = exc
-        except (urllib.error.URLError, TimeoutError, OSError, EOFError) as exc:
+        except (urllib.error.URLError, TimeoutError, OSError, EOFError, http.client.IncompleteRead) as exc:
             last = exc
         if attempt < ATTEMPTS - 1:
             sleep(5 * 2**attempt)

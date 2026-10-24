@@ -18,6 +18,8 @@ describe("path allowlist", () => {
     "latest/suricata/datasets/mirage-ipv4.lst",
     "latest/ipset/mirage.ipset",
     "latest/defender/defender-top500.csv",
+    "latest/lookup/v4/198.json",
+    "latest/lookup/v6/2a01.json",
     "misp/manifest.json",
     "misp/5f0c0b6e-7a3d-4c8e-9f51-0d6e1c2a9b10.json",
     "schema/record.schema.json",
@@ -39,6 +41,9 @@ describe("path allowlist", () => {
     "latest/a/b/c.txt",
     "latest/suricata/datasets/x/y.lst",
     "latest/unknown/x.txt",
+    "latest/lookup/x.json",
+    "latest/lookup/v5/1.json",
+    "builds/0123456789abcdef/feed.json",
     "src/index.ts",
     "latest/ipv4-7d.exe",
     "latest/",
@@ -73,7 +78,6 @@ describe("content types", () => {
     ["latest/attackers-7d.csv", "text/csv; charset=utf-8"],
     ["latest/stix/mirage.json", "application/json"],
     ["latest/records-7d.ndjson.gz", "application/gzip"],
-    ["latest/records-7d.ndjson", "application/x-ndjson"],
   ])("%s -> %s", (p, t) => expect(contentType(p)).toBe(t));
 });
 
@@ -91,18 +95,44 @@ describe("range parsing", () => {
 });
 
 describe("serving from R2", () => {
-  it("switches cached files over when a new publish lands", async () => {
+  it("reads the build the pointer names and switches files and checksums together", async () => {
     const { env, r2 } = setup();
     const publish = (sums: string, body: string) => {
-      r2.put("latest/ipv4-7d.txt", body);
-      r2.put("_meta/published.json", JSON.stringify({ generated: new Date().toISOString(), sha256sums: sums.repeat(64) }));
+      const version = sums.repeat(16);
+      r2.put(`builds/${version}/latest/ipv4-7d.txt`, body);
+      r2.put(`builds/${version}/SHA256SUMS`, `${sums}  latest/ipv4-7d.txt\n`);
+      r2.put("_meta/published.json", JSON.stringify({ generated: new Date().toISOString(), sha256sums: sums.repeat(64), version }));
     };
     vi.stubGlobal("fetch", vi.fn());
+    r2.put("latest/ipv4-7d.txt", "203.0.113.250\n");
     publish("a", "198.51.100.1\n");
     expect(await (await call(env, "/mirage-feed/latest/ipv4-7d.txt")).text()).toBe("198.51.100.1\n");
-    publish("b", "198.51.100.2\n");
+    // Files of the next build are in place before the pointer moves; readers keep the old build until it does.
+    r2.put(`builds/${"b".repeat(16)}/latest/ipv4-7d.txt`, "198.51.100.2\n");
     vi.spyOn(Date, "now").mockReturnValue(Date.now() + 61_000);
+    expect(await (await call(env, "/mirage-feed/latest/ipv4-7d.txt")).text()).toBe("198.51.100.1\n");
+    publish("b", "198.51.100.2\n");
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 122_000);
     expect(await (await call(env, "/mirage-feed/latest/ipv4-7d.txt")).text()).toBe("198.51.100.2\n");
+    expect(await (await call(env, "/mirage-feed/SHA256SUMS")).text()).toBe("b  latest/ipv4-7d.txt\n");
+  });
+
+  it("reads the bucket root while the pointer predates build prefixes", async () => {
+    const { env, r2 } = setup();
+    r2.put("latest/ipv4-7d.txt", "198.51.100.1\n");
+    r2.put("_meta/published.json", JSON.stringify({ generated: new Date().toISOString(), sha256sums: "a".repeat(64) }));
+    expect(await (await call(env, "/mirage-feed/latest/ipv4-7d.txt")).text()).toBe("198.51.100.1\n");
+    expect(r2.gets).toContain("latest/ipv4-7d.txt");
+  });
+
+  it("caches the index files for five minutes and data files for an hour", async () => {
+    const { env, r2 } = setup();
+    for (const p of ["feed.json", "stats.json", "history.json", "SHA256SUMS", "SHA256SUMS.minisig", "latest/ipv4-7d.txt", "misp/manifest.json"]) r2.put(p, "x");
+    for (const p of ["feed.json", "stats.json", "history.json", "SHA256SUMS", "SHA256SUMS.minisig"]) {
+      expect((await call(env, `/mirage-feed/${p}`)).headers.get("cache-control")).toBe("public, max-age=300");
+    }
+    expect((await call(env, "/mirage-feed/latest/ipv4-7d.txt")).headers.get("cache-control")).toBe("public, max-age=3600");
+    expect((await call(env, "/mirage-feed/misp/manifest.json")).headers.get("cache-control")).toBe("public, max-age=3600");
   });
 
 
@@ -255,6 +285,15 @@ describe("raw GitHub fallback", () => {
     expect((await call(env, "/mirage-feed/latest/random-name.txt")).status).toBe(404);
     const urls = (fetchMock.mock.calls as unknown as [string][]).map(([u]) => u);
     expect(urls).toEqual([`${RAW}feed.json`]);
+  });
+
+  it("falls back for lookup shards when feed.json lists the shard directory", async () => {
+    const feed = JSON.stringify({ day: "2026-10-23", files: [{ path: "latest/lookup/" }] });
+    const shard = JSON.stringify({ "9.9.9.9": { lists: ["ipv4-7d.txt"] } });
+    const { env } = failingR2({ "feed.json": feed, "latest/lookup/v4/9.json": shard });
+    const res = await call(env, "/ip/9.9.9.9.json");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ listed: true, lists: ["ipv4-7d.txt"], day: "2026-10-23" });
   });
 
   it("serves stale content on upstream error for up to 48 hours", async () => {

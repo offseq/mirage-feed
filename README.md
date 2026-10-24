@@ -28,7 +28,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | Countries | 143 | 72 | 7 days |
 | CVEs exploited (20 in CISA KEV) | 8 | 24 | 7 days |
 | Payload / download URLs | 31 | 6 | 7 days |
-| Malware hashes | 12 | 2 | 7 days |
+| Malware hashes | 12 | 2 | 30 days |
 | Tooling fingerprints (JA4+, HASSH) | — | 146 | 7 days |
 | Research scanners (excluded) | — | 5,388 | 7 days |
 | Credential pairs tried | 139,235 | top 100 passwords | 7 days |
@@ -196,7 +196,7 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
 | `ipv4-{1d,7d,30d}.txt` | Attacker IPv4 addresses by activity window |
 | `ipv4-top{1k,10k}.txt` | The 1,000 or 10,000 highest-confidence addresses (file sorted by address), sized for capped firewall tables |
 | `ipv4-7d-cidr32.txt` · `ipv6-7d.txt` | IPv4 with `/32` suffix (AWS WAF IP sets) and IPv6 `/64` networks |
-| `ipv4-added-1d.txt` · `ipv4-removed-1d.txt` | Addresses that entered `ipv4-7d.txt` since the previous build, and those that aged out of it (still in `ipv4-30d.txt`). Removals on request are not listed |
+| `ipv4-added-1d.txt` · `ipv4-removed-1d.txt` | Addresses that entered `ipv4-7d.txt` since the previous day's build, and every address that left it: aged out, removed on request, newly allowlisted or now a VPN/Tor exit. Unblock what is in the removed list |
 | `anonymizers-7d.txt` | VPN and Tor exits that attacked the fleet (IPv4 and IPv6 `/64`). Kept out of every block list and rule file |
 | `known-scanners-ipv4.txt` · `known-scanners-ipv6.txt` | Research scanners we saw and **excluded** (Shodan, Censys, Shadowserver …). Allowlist these if you like. |
 | `urls-7d.txt` · `domains-7d.txt` | Payload, dropper and C2 locations from captured exploit attempts |
@@ -209,6 +209,7 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
 | `stix/` · `misp/` · `zeek/` · `suricata/` · `mikrotik/` · `nft/` · `crowdsec/` · `defender/` | The same data, pre-rendered |
 | `history.json` | Daily totals for the last 90 days, no addresses |
 | `og.png` · `og-github.png` | Social preview images of the day's numbers |
+| `lookup/v4/<first octet>.json` · `lookup/v6/<first hextet>.json` | Every listed address grouped for the [address lookup](https://feeds.offseq.com/ip), with its lists and record. Listed in `SHA256SUMS`, and as one `latest/lookup/` entry in `feed.json` |
 | `feed.json` · `SHA256SUMS` · `SHA256SUMS.minisig` | Index with `schema_version`, checksums of every file (including `feed.json`) and signature |
 
 Every record follows [`schema/record.schema.json`](schema/record.schema.json), also served at `https://feeds.offseq.com/mirage-feed/schema/record.schema.json`.
@@ -219,10 +220,12 @@ An address appears in the feed only when **all** of these hold:
 
 1. It completed a TCP handshake and sent application data. UDP-only and spoofable traffic never qualifies.
 2. At least **3 Mirage sensors in at least 2 networks** saw it within 7 days. One-off hits stay out.
-3. It is not in an excluded range. From the vendored [MISP warninglists](https://github.com/MISP/misp-warninglists):
-   private and special-purpose ranges (RFC 1918, RFC 3849, RFC 5735, RFC 6598, multicast), Cloudflare, Akamai and
-   Fastly edge ranges, Googlebot, public DNS resolvers and known sinkholes. Also never listed: AS13335 (Cloudflare),
-   AS15169 (Google), AS16625 and AS20940 (Akamai) and AS54113 (Fastly).
+3. It is not in the [allowlist](generator/allowlist.txt): private and special-purpose ranges (RFC 1918, RFC 3849,
+   RFC 5735, RFC 6598, RFC 6890, multicast, IPv6 link-local), public DNS resolvers and root servers, and the
+   first-party ranges of Cloudflare, Akamai (without Linode), Fastly, Apple and Microsoft 365 from the vendored
+   [MISP warninglists](https://github.com/MISP/misp-warninglists), Google's own ranges (not Google Cloud), GitHub and
+   Microsoft's AS8068 edge. Customer clouds (AWS, Azure, Google Cloud, Linode) are not excluded: that is where
+   attackers rent machines.
 4. It is not a known research scanner: Alpha Strike, BinaryEdge, Bitsight, Censys, Criminal IP, Cyber Resilience,
    Driftnet, FOFA, Hadrian, Internet Census, Internet Measurement, Intrinsec, IPIP, LeakIX, Modat, Netlas, NETSCOUT,
    ONYPHE, Palo Alto Xpanse, Quake, Rapid7, ReCyber, Shadowserver, Shodan, Stretchoid, Tenable, ZoomEye, university
@@ -248,7 +251,10 @@ Before every publish, CI refuses the build when any of these checks fail:
   IPv4 /16 holds more than 5 % and more than 5 points over its previous share (lists of 200 or more entries).
 - A VPN or Tor exit from `anonymizers-7d.txt` appears in any block list, firewall script, Suricata or Zeek file, the
   Defender CSV, a MISP `ip-src` with `to_ids` set or a STIX `malicious-activity` indicator.
-- `ipv4-removed-1d.txt` lists an address that is not in `ipv4-30d.txt`.
+- `ipv4-added-1d.txt` lists an address that is not in `ipv4-7d.txt`, or `ipv4-removed-1d.txt` one that still is.
+- The snapshot is not newer than the published build (a rollback needs an explicit override).
+- A Defender row or STIX indicator would already be expired on import.
+- The lookup files under `lookup/` do not hold exactly the addresses of the IP lists, each with its lists.
 - Any file matches the private leak rules (sensor addresses, decoy hostnames, internal markers).
 - A record fails the schema, or the STIX bundle has duplicate ids, missing properties or no TLP:CLEAR marking.
 
@@ -283,10 +289,10 @@ This repository is the community edition. It is free, and it stays free.
 | Context per IP | ASN, country, tags | Ports, protocols, full session timeline |
 | Payloads and commands | URLs and hashes | Decoded payloads, shell transcripts, stage-2 captures |
 | Credentials | Top 100 passwords, no usernames | Full corpus of attempted credentials and captured hashes |
-| Attribution | — | Actor clusters, campaigns, AI-assisted intent verdicts |
+| Attribution | — | Actor clusters, campaigns, AI intent verdicts |
 | History | 7–30 days | 365 days |
-| Delivery | Files | API, TAXII 2.1, MISP sync, OpenCTI connector |
-| Private sensors | — | Mirage honeypots on your own IP space, with alerts |
+| Analysis | — | Ask Mirage natural-language queries |
+| Exports | Daily files | STIX, MISP, CSV on demand |
 
 The full feed is available to OffSeq customers. **[Request a trial →](https://mirage.offseq.com/?auth=signup&intent=premium&utm_source=github&utm_medium=readme&utm_campaign=mirage-feed)**
 
@@ -297,13 +303,14 @@ Paths in `SHA256SUMS` are relative to the feed root, so download files into the 
 ```sh
 base=https://feeds.offseq.com/mirage-feed
 curl -fsSLO "$base/SHA256SUMS" -O "$base/SHA256SUMS.minisig"
-minisign -Vm SHA256SUMS -P RWQeu/vC+HeSo+5whq+ViPiKFUe35GOuuVll6WA6QKlFNirw7IzweToA
+minisign -Vm SHA256SUMS -P RWQeu/vC+HeSo+5whq+ViPiKFUe35GOuuVll6WA6QKlFNirw7IzweToA   # check the trusted comment
 curl -fsSL --create-dirs -o latest/ipv4-7d.txt "$base/latest/ipv4-7d.txt"
 sha256sum -c --ignore-missing SHA256SUMS        # macOS: shasum -a 256 -c --ignore-missing SHA256SUMS
 ```
 
-The minisign public key is also published at
-`https://feeds.offseq.com/.well-known/mirage-feed-minisign.pub`. `SHA256SUMS` carries a GitHub build-provenance
+The trusted comment reads `mirage-feed <day> generated <build time>` and is covered by the signature: check that the
+build time is recent, so a mirror cannot pass off an old signed build as today's. The minisign public key is also
+published at `https://feeds.offseq.com/.well-known/mirage-feed-minisign.pub`. `SHA256SUMS` carries a GitHub build-provenance
 attestation; check that it came from this repository's publish workflow on `main`:
 
 ```sh

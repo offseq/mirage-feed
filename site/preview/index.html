@@ -225,7 +225,7 @@ ip6tables -C INPUT -m set --match-set mirage6 src -j DROP 2&gt;/dev/null \
   || ip6tables -I INPUT -m set --match-set mirage6 src -j DROP</code></pre></details>
 <details><summary>CrowdSec</summary><pre tabindex="0" aria-label="CrowdSec commands"><code>curl -fsSL https://feeds.offseq.com/mirage-feed/latest/ipv4-7d.txt -o mirage.txt
 cscli decisions import -i mirage.txt --format values --duration 48h --scope ip --reason mirage-feed</code></pre></details>
-<details><summary>Suricata and Zeek</summary><p>Suricata IP reputation: <code>latest/suricata/categories.txt</code> and <code>latest/suricata/mirage-iprep.list</code>.</p><pre tabindex="0" aria-label="Suricata rule"><code>alert ip any any -&gt; $HOME_NET any (msg:&quot;Mirage feed: known attacker&quot;; iprep:src,MirageAttacker,&gt;,50; threshold:type limit,track by_src,count 1,seconds 3600; sid:1900001; rev:1;)</code></pre><p>Zeek Intel framework, with <code>latest/zeek/mirage.intel</code> saved locally:</p><pre tabindex="0" aria-label="Zeek configuration"><code>redef Intel::read_files += { &quot;/opt/mirage/mirage.intel&quot; };</code></pre></details>
+<details><summary>Suricata and Zeek</summary><p>Suricata IP reputation: <code>latest/suricata/categories.txt</code> and <code>latest/suricata/mirage-iprep.list</code>.</p><pre tabindex="0" aria-label="Suricata rule"><code>alert ip any any -&gt; $HOME_NET any (msg:&quot;Mirage feed: known attacker&quot;; iprep:src,MirageAttacker,&gt;,0; threshold:type limit,track by_src,count 1,seconds 3600; classtype:misc-attack; sid:1900001; rev:2;)</code></pre><p>Scores are confidence × 1.27, so <code>&gt;,80</code> keeps only confidence 64 and up.</p><p>Zeek Intel framework, with <code>latest/zeek/mirage.intel</code> saved locally:</p><pre tabindex="0" aria-label="Zeek configuration"><code>redef Intel::read_files += { &quot;/opt/mirage/mirage.intel&quot; };</code></pre></details>
 <details><summary>MISP, OpenCTI, Sentinel, Defender, Splunk</summary><ul>
 <li><b>MISP</b>: Sync Actions &gt; Feeds &gt; Add. Source format <b>MISP Feed</b>, URL <code class="sel" data-copy="MISP feed URL">https://feeds.offseq.com/mirage-feed/misp/</code>.</li>
 <li><b>OpenCTI</b>: Data &gt; Ingestion &gt; CSV feeds on <code>latest/attackers-ipv4-7d.csv</code>, with the mapper in the <a href="https://github.com/offseq/mirage-feed">repository</a> under <code>docs/opencti-csv-mapper.json</code>. Or import <code>latest/stix/mirage.json</code> as a STIX bundle.</li>
@@ -240,11 +240,11 @@ cscli decisions import -i mirage.txt --format values --duration 48h --scope ip -
 <ol>
 <li>It completed a TCP handshake and sent application data. UDP-only and spoofable traffic never qualifies.</li>
 <li>At least <b>3 Mirage sensors in at least 2 networks</b> saw it within 7 days. One-off hits stay out.</li>
-<li>It is not a known research scanner, CDN, public resolver, bogon or any range on the <a href="https://github.com/MISP/misp-warninglists">MISP warninglists</a>.</li>
+<li>It is not a known research scanner and not in the <a href="https://github.com/offseq/mirage-feed/blob/main/generator/allowlist.txt">allowlist</a>: private and special-purpose ranges, public DNS resolvers, root servers, and the first-party ranges of Cloudflare, Akamai, Fastly, Google, Microsoft 365, Apple and GitHub.</li>
 <li>Its first sighting is at least <b>24 hours</b> old.</li>
 </ol>
 <p>Entries expire <b>7 days</b> after the last observed activity; new activity renews them. Research scanners are excluded from the blocklists and published separately in <code>known-scanners-ipv4.txt</code> and <code>known-scanners-ipv6.txt</code>, so you can allowlist them.</p>
-<p>Before every publish, the build is rejected if the list overlaps an allowlist, holds any entry other than one IPv4 address (/32) or one IPv6 /64, or changes size by more than 30% from the previous day.</p>
+<p>Before every publish, the build is rejected if the list overlaps an allowlist, holds any entry other than one IPv4 address (/32) or one IPv6 /64, or changes size by more than 30% from the previous day (50% for <code>ipv4-1d.txt</code>).</p>
 <p>Most listed addresses are compromised devices or rented infrastructure. A listing means &quot;this address attacked honeypots&quot;, not a judgement about whoever holds it.</p>
 </section>
 
@@ -270,6 +270,7 @@ cscli decisions import -i mirage.txt --format values --duration 48h --scope ip -
 curl --create-dirs -fsSLo latest/ipv4-7d.txt https://feeds.offseq.com/mirage-feed/latest/ipv4-7d.txt
 minisign -Vm SHA256SUMS -P RWQeu/vC+HeSo+5whq+ViPiKFUe35GOuuVll6WA6QKlFNirw7IzweToA
 sha256sum -c --ignore-missing SHA256SUMS</code></pre>
+<p>minisign prints the signed trusted comment, <code>mirage-feed &lt;day&gt; generated &lt;build time&gt;</code>. Check that the build time is recent, so an old signed build cannot pass as today's.</p>
 <p class="dim">On macOS, use <code>shasum -a 256 -c</code> in place of <code>sha256sum -c</code>. The public key is also published at <a href="/.well-known/mirage-feed-minisign.pub">/.well-known/mirage-feed-minisign.pub</a> and in the <a href="https://github.com/offseq/mirage-feed">repository</a>.</p>
 </section>
 
