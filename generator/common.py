@@ -20,7 +20,8 @@ KEYS = {"cves": "cve", "urls": "url", "domains": "domain", "hashes": "sha256", "
         "user_agents": "value", "paths": "value", "passwords": "value"}  # fmt: skip
 POLICY_KEYS = ("min_sensors", "min_networks", "delay_hours", "ttl_days", "ipv6_prefix")
 OBSERVED_KEYS = ("ips", "asns", "countries", "events", "cves", "urls", "credential_pairs", "hashes")
-JA4_TYPES = frozenset({"ja4", "ja4s", "ja4h", "ja4x", "ja4t", "ja4tscan"})
+# JA4 (TLS client) only: the rest of JA4+ is under the FoxIO licence.
+JA4_TYPES = frozenset({"ja4"})
 ANONYMIZER_TAGS = frozenset({"vpn-exit", "tor-exit"})
 MAX_BREAKDOWN = 50
 DAY = re.compile(r"\d{4}-\d{2}-\d{2}")

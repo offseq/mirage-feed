@@ -38,7 +38,7 @@ def stats_block(s: Snapshot) -> str:
         (cve_label, _n(obs.get("cves")), _n(pub.get("cves")), "7 days"),
         ("Payload / download URLs", _n(obs.get("urls")), _n(pub.get("urls")), "7 days"),
         ("Malware hashes", _n(obs.get("hashes")), _n(pub.get("hashes")), "30 days"),
-        ("Tooling fingerprints (JA4+, HASSH)", NONE, _n(pub.get("fingerprints")), "7 days"),
+        ("Tooling fingerprints (JA4, HASSH)", NONE, _n(pub.get("fingerprints")), "7 days"),
         ("Research scanners (excluded)", NONE, _n(pub.get("scanners")), "7 days"),
         (
             "Credential pairs tried",

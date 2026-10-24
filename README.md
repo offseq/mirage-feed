@@ -29,7 +29,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | CVEs exploited (20 in CISA KEV) | 8 | 24 | 7 days |
 | Payload / download URLs | 34 | 6 | 7 days |
 | Malware hashes | 13 | 2 | 30 days |
-| Tooling fingerprints (JA4+, HASSH) | — | 147 | 7 days |
+| Tooling fingerprints (JA4, HASSH) | — | 147 | 7 days |
 | Research scanners (excluded) | — | 5,407 | 7 days |
 | Credential pairs tried | 154,163 | top 100 passwords | 7 days |
 | Events | 1.34M events | — | — |
@@ -202,7 +202,7 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
 | `urls-7d.txt` · `domains-7d.txt` | Payload, dropper and C2 locations from captured exploit attempts |
 | `hashes-sha256-30d.txt` | Files those payloads delivered |
 | `cves-7d.csv` | CVEs exploited against the fleet, with CISA KEV flag and attempt counts. Lists every CVE that appears in an IP record; the KEV flag comes from the [CISA catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog), vendored in [`generator/kev.txt`](generator/kev.txt) |
-| `fingerprints.csv` · `hassh.csv` | JA4+ fingerprints of attacker tooling (FoxIO column layout) and SSH HASSH |
+| `fingerprints.csv` · `hassh.csv` | JA4 TLS client fingerprints and SSH HASSH of attacker tooling |
 | `user-agents-7d.txt` · `paths-7d.txt` | Distinctive HTTP user agents and request paths seen in attacks. For hunting, not blocking |
 | `passwords-top100.txt` | The 100 passwords attackers tried most, without usernames |
 | `attackers-7d.csv` · `attackers-ipv4-7d.csv` · `records-7d.ndjson.gz` | One record per indicator: ASN, country, first/last seen, services, tags, ATT&CK, confidence |

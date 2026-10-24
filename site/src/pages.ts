@@ -46,7 +46,7 @@ export function renderRemovalSent(): string {
 </section>`;
 }
 
-export const PRIVACY_UPDATED = "2026-10-24";
+export const PRIVACY_UPDATED = "2026-10-25";
 
 export function renderPrivacy(): string {
   return `<section aria-labelledby="h-privacy"><h1 id="h-privacy">Privacy notice</h1>
@@ -61,7 +61,7 @@ export function renderPrivacy(): string {
 <ul>
 <li>Attacker IP addresses (IPv6 as /64 prefixes) with their network (ASN and its registered name), country, first and last sighting truncated to the hour, and tags.</li>
 <li>Payload and command-and-control URLs, domains, and SHA-256 hashes of delivered files.</li>
-<li>Tool fingerprints (HASSH and JA4H).</li>
+<li>Tool fingerprints (JA4 TLS client and HASSH).</li>
 <li>The most common attacker user agents and request paths.</li>
 <li>The 100 most attempted passwords, without usernames.</li>
 <li>Aggregate statistics: counts by network, country, service and ATT&amp;CK technique.</li>

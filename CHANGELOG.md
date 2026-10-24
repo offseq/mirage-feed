@@ -3,6 +3,18 @@
 Format changes to the published feed. `feed.json` carries the current `schema_version`. Paths and columns that
 exist stay stable within a major version; additions bump the minor version.
 
+## 2.0
+
+Changed:
+
+- Fingerprints now cover JA4 (TLS client) and HASSH only. Other JA4+ types (JA4S, JA4H, JA4X, JA4T, JA4TScan) are
+  no longer published in any file or in the weekly spotlight notes, and `stats.published.fingerprints` no longer
+  counts them.
+- `fingerprints.csv` columns are `ja4`, `tool`, `sources`, `hits`, `first_seen`, `last_seen`, in the same shape as
+  `hassh.csv`. The FoxIO mapping layout (`Application`, `Library`, `Device`, `OS`, one column per JA4+ type, `Notes`,
+  `count`, `cluster`) is gone: `tool` replaces `Application`, `hits` replaces `count`, and `sources` moves out of
+  `Notes` into its own column. `hassh.csv` is unchanged.
+
 ## 1.2
 
 Added:

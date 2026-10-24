@@ -30,7 +30,7 @@
       "urls": 4,
       "hashes": 3,
       "scanners": 3,
-      "fingerprints": 4
+      "fingerprints": 3
     },
     "attack": [
       {
@@ -2170,6 +2170,15 @@
       "value": "65535_2-4-8-1-3_1460_6",
       "sources": 3,
       "hits": 400
+    },
+    {
+      "type": "ja4",
+      "value": "t13d1516h2_8daaf6152771_02713d6af862",
+      "sources": 7,
+      "hits": 1200,
+      "tool": "go-http-client",
+      "first_seen": "2026-10-18T00:00:00Z",
+      "last_seen": "2026-10-23T00:00:00Z"
     },
     {
       "type": "ja3",

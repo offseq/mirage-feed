@@ -13,7 +13,7 @@ from PIL import Image
 from generator import build, check, firewall, kev, og, readme, spotlight
 from generator.common import CVE, Snapshot, SnapshotError
 from generator.netlist import CANARY, Allowlist
-from generator.tables import ATTACKER_COLS
+from generator.tables import ATTACKER_COLS, JA4_COLS
 
 from .conftest import ALLOWLIST, SNAPSHOT
 
@@ -212,7 +212,20 @@ def test_cves_cover_every_ip_record(out):
 
 def test_fingerprint_stats_match_rows(out):
     rows = len(text_lines(out, "latest/fingerprints.csv")) + len(text_lines(out, "latest/hassh.csv")) - 2
-    assert json.loads((out / "stats.json").read_text())["published"]["fingerprints"] == rows == 4
+    assert json.loads((out / "stats.json").read_text())["published"]["fingerprints"] == rows == 3
+
+
+def test_fingerprints_are_ja4_and_hassh_only(out, snapshot_raw):
+    with (out / "latest/fingerprints.csv").open(newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    assert tuple(rows[0]) == JA4_COLS
+    assert [r["ja4"] for r in rows] == ["t13d1516h2_8daaf6152771_02713d6af862"]
+    dropped = [f["value"] for f in snapshot_raw["fingerprints"] if f["type"] not in ("ja4", "hassh")]
+    assert dropped
+    for data in tree(out).values():
+        assert not any(v.encode() in data for v in dropped)
+    notes = spotlight.notes(Snapshot(snapshot_raw))
+    assert "| ja4 |" in notes and "| ja4h |" not in notes and "| ja4t |" not in notes
 
 
 def test_spotlight_escapes_markdown(snapshot_raw):
@@ -334,7 +347,7 @@ def test_stats_are_whitelisted(snapshot_raw):
 
 def test_feed_index_and_sums(out):
     feed = json.loads((out / "feed.json").read_text())
-    assert feed["schema_version"] == "1.2"
+    assert feed["schema_version"] == "2.0"
     assert "SHA256SUMS" not in {f["path"] for f in feed["files"]}
     by_path = {f["path"]: f for f in feed["files"]}
     assert by_path["latest/ipv4-7d.txt"]["count"] == len(text_lines(out, "latest/ipv4-7d.txt"))
@@ -371,7 +384,7 @@ def test_readme_labels_windows(snapshot_raw):
     assert "| Source IPs active in the last 24 h | 8,715 | 13 | 24 h |" in block
     assert "| Source IPs | — | 62 | 7 days |" in block and "| Malware hashes | 12 | 3 | 30 days |" in block
     assert "| IPv4 addresses (`ipv4-30d.txt`) | — | 67 | 30 days |" in block
-    assert "| Tooling fingerprints (JA4+, HASSH) | — | 4 | 7 days |" in block
+    assert "| Tooling fingerprints (JA4, HASSH) | — | 3 | 7 days |" in block
     assert "| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 3 | 7 days |" in block
 
 
