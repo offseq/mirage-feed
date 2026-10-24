@@ -29,7 +29,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | CVEs exploited (20 in CISA KEV) | 8 | 24 | 7 days |
 | Payload / download URLs | 34 | 6 | 7 days |
 | Malware hashes | 13 | 2 | 30 days |
-| Tooling fingerprints (JA4, HASSH) | — | 147 | 7 days |
+| Tooling fingerprints (JA4, HASSH) | — | 40 | 7 days |
 | Research scanners (excluded) | — | 5,407 | 7 days |
 | Credential pairs tried | 154,163 | top 100 passwords | 7 days |
 | Events | 1.34M events | — | — |
