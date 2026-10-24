@@ -20,21 +20,21 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 
 | | Observed by Mirage, last 24 h | In the feed | Feed window |
 |---|---:|---:|---|
-| Source IPs active in the last 24 h | 10,179 | 923 | 24 h |
-| Source IPs | — | 1,717 | 7 days |
+| Source IPs active in the last 24 h | 10,608 | 931 | 24 h |
+| Source IPs | — | 1,706 | 7 days |
 | VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 42 | 7 days |
-| IPv4 addresses (`ipv4-30d.txt`) | — | 5,124 | 30 days |
-| Networks (ASNs) | 1,572 | 374 | 7 days |
+| IPv4 addresses (`ipv4-30d.txt`) | — | 5,206 | 30 days |
+| Networks (ASNs) | 1,590 | 367 | 7 days |
 | Countries | 143 | 72 | 7 days |
 | CVEs exploited (20 in CISA KEV) | 8 | 24 | 7 days |
-| Payload / download URLs | 31 | 6 | 7 days |
-| Malware hashes | 12 | 2 | 30 days |
-| Tooling fingerprints (JA4+, HASSH) | — | 146 | 7 days |
-| Research scanners (excluded) | — | 5,388 | 7 days |
-| Credential pairs tried | 139,235 | top 100 passwords | 7 days |
-| Events | 1.25M events | — | — |
+| Payload / download URLs | 34 | 6 | 7 days |
+| Malware hashes | 13 | 2 | 30 days |
+| Tooling fingerprints (JA4+, HASSH) | — | 147 | 7 days |
+| Research scanners (excluded) | — | 5,407 | 7 days |
+| Credential pairs tried | 154,163 | top 100 passwords | 7 days |
+| Events | 1.34M events | — | — |
 
-<sub>Snapshot 2026-10-23 22:19 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-10-24 02:37 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
