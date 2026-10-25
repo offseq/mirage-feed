@@ -3,6 +3,8 @@ name: publish
 on:
   schedule:
     - cron: "17 3 * * *"
+    # GitHub drops scheduled runs under load; a same-day rerun republishes identical files.
+    - cron: "47 9 * * *"
   workflow_dispatch:
     inputs:
       allow_delta:
