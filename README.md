@@ -34,7 +34,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | Credential pairs tried | 183,133 | top 100 passwords | 7 days |
 | Events | 864.74k events | — | — |
 
-<sub>Snapshot 2026-10-25 18:35 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-10-25 20:43 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
