@@ -26,7 +26,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | IPv4 addresses (`ipv4-30d.txt`) | — | 5,232 | 30 days |
 | Networks (ASNs) | 718 | 362 | 7 days |
 | Countries | 109 | 76 | 7 days |
-| CVEs exploited (18 in CISA KEV) | 5 | 23 | 7 days |
+| CVEs exploited (9 in CISA KEV) | 4 | 10 | 7 days |
 | Payload / download URLs | 16 | 9 | 7 days |
 | Malware hashes | 15 | 3 | 30 days |
 | Tooling fingerprints (JA4, HASSH) | — | 72 | 7 days |
@@ -34,7 +34,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | Credential pairs tried | 183,133 | top 100 passwords | 7 days |
 | Events | 864.74k events | — | — |
 
-<sub>Snapshot 2026-10-25 02:38 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-10-25 18:35 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
