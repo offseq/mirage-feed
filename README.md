@@ -201,7 +201,7 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
 | `known-scanners-ipv4.txt` · `known-scanners-ipv6.txt` | Research scanners we saw and **excluded** (Shodan, Censys, Shadowserver …). Allowlist these if you like. |
 | `urls-7d.txt` · `domains-7d.txt` | Payload, dropper and C2 locations from captured exploit attempts |
 | `hashes-sha256-30d.txt` | Files those payloads delivered |
-| `cves-7d.csv` | CVEs exploited against the fleet in the last 7 days, with CISA KEV flag and attempt counts. Lists every CVE on a 7-day IP record; the KEV flag comes from the [CISA catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog), vendored in [`generator/kev.txt`](generator/kev.txt) |
+| `cves-7d.csv` | CVEs exploited against the fleet in the last 7 days, with CISA KEV flag and attempt counts. Lists every CVE tried by at least 2 distinct source IPs, plus every CVE on a 7-day IP record; the KEV flag comes from the [CISA catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog), vendored in [`generator/kev.txt`](generator/kev.txt) |
 | `fingerprints.csv` · `hassh.csv` | JA4 TLS client fingerprints and SSH HASSH of attacker tooling |
 | `user-agents-7d.txt` · `paths-7d.txt` | Distinctive HTTP user agents and request paths seen in attacks. For hunting, not blocking |
 | `passwords-top100.txt` | The 100 passwords attackers tried most, without usernames |

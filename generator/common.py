@@ -18,7 +18,7 @@ BAD_CATEGORIES = frozenset({"Cc", "Cf", "Zl", "Zp"})
 LISTS = ("ips", "scanners", "cves", "urls", "domains", "hashes", "fingerprints", "user_agents", "paths", "passwords")
 KEYS = {"cves": "cve", "urls": "url", "domains": "domain", "hashes": "sha256", "fingerprints": "value",
         "user_agents": "value", "paths": "value", "passwords": "value"}  # fmt: skip
-POLICY_KEYS = ("min_sensors", "min_networks", "delay_hours", "ttl_days", "ipv6_prefix")
+POLICY_KEYS = ("min_sensors", "min_networks", "min_sources", "delay_hours", "ttl_days", "ipv6_prefix")
 OBSERVED_KEYS = ("ips", "asns", "countries", "events", "cves", "urls", "credential_pairs", "hashes")
 # JA4 (TLS client) only: the rest of JA4+ is under the FoxIO licence.
 JA4_TYPES = frozenset({"ja4"})
