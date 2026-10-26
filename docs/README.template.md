@@ -52,7 +52,10 @@ Point your tool at a stable URL. Files are rebuilt every day; the paths never ch
 | MISP feed (add as a MISP Feed) | `{{BASE}}/misp/` |
 
 Plain lists hold one value per line with no comments, so they load as-is into
-pfBlockerNG, OPNsense aliases, FortiGate threat feeds and Palo Alto EDLs.
+pfBlockerNG, OPNsense aliases, FortiGate threat feeds and Palo Alto EDLs. A list
+with nothing over the listing threshold in its window is published as an empty
+(0-byte) file rather than dropped, so its URL never 404s and every consumer reads
+it as "no entries".
 
 ### Which list do I want?
 
@@ -195,7 +198,7 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
 |---|---|
 | `ipv4-{1d,7d,30d}.txt` | Attacker IPv4 addresses by activity window |
 | `ipv4-top{1k,10k}.txt` | The 1,000 or 10,000 highest-confidence addresses (file sorted by address), sized for capped firewall tables |
-| `ipv4-7d-cidr32.txt` · `ipv6-7d.txt` | IPv4 with `/32` suffix (AWS WAF IP sets) and IPv6 `/64` networks |
+| `ipv4-7d-cidr32.txt` · `ipv6-7d.txt` | IPv4 with `/32` suffix (AWS WAF IP sets) and IPv6 `/64` networks. Few attackers reach the fleet over IPv6, so `ipv6-7d.txt` is often empty |
 | `ipv4-added-1d.txt` · `ipv4-removed-1d.txt` | Addresses that entered `ipv4-7d.txt` since the previous day's build, and every address that left it: aged out, removed on request, newly allowlisted or now a VPN/Tor exit. Unblock what is in the removed list |
 | `anonymizers-7d.txt` | VPN and Tor exits that attacked the fleet (IPv4 and IPv6 `/64`). Kept out of every block list and rule file |
 | `known-scanners-ipv4.txt` · `known-scanners-ipv6.txt` | Research scanners we saw and **excluded** (Shodan, Censys, Shadowserver …). Allowlist these if you like. |
