@@ -154,15 +154,26 @@ def test_user_agent_dropped(ua):
         ("http://198.51.100.7:8080/%U%?s=0123456789abcdef", False),
         ("http://198.51.100.7/x.sh?s=0123456789abcdef", False),
         ("http://198.51.100.7/x.sh?id=1", True),
+        ("http://[198.51.100.7/x", False),
+        ("http://[2001:db8::7]:8080/x", True),
+        ("http://xn--80ak6aa92e.com/", True),
     ],
 )
 def test_url_ok(url, ok):
     assert url_ok(url) is ok
 
 
-@pytest.mark.parametrize("path", ["/dashboard/api-keys", "/forgot-password", "/account", "/projects/new"])
+@pytest.mark.parametrize(
+    "path",
+    ["/dashboard/api-keys", "/forgot-password", "/account", "/account?search=x", "/projects/new", "/API/Members"],
+)
 def test_decoy_navigation_paths_are_dropped(path):
     assert not path_ok(path)
+
+
+@pytest.mark.parametrize("path", ["/projectsend/upload.php", "/accounts.php", "/account/..;/admin", "/members.cgi"])
+def test_paths_sharing_a_decoy_prefix_are_kept(path):
+    assert path_ok(path)
 
 
 @pytest.mark.parametrize("ua", ["MyCustomUserAgent/1.0", "zenox-opendir-discovery/1.0"])

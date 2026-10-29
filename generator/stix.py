@@ -67,8 +67,8 @@ def _indicator(
         indicator_types=[kind],
         **props,
     )
-    # One id keeps one created time, even when the snapshot's first sighting moves.
-    ind["created"] = created.get(ind["id"], ind["created"])
+    # One id keeps one created time, even when the snapshot's first sighting moves; never after modified.
+    ind["created"] = min(created.get(ind["id"], ind["created"]), ind["modified"])
     return ind
 
 

@@ -24,12 +24,15 @@ OBSERVED_KEYS = ("ips", "asns", "countries", "events", "cves", "urls", "credenti
 JA4_TYPES = frozenset({"ja4"})
 ANONYMIZER_TAGS = frozenset({"vpn-exit", "tor-exit"})
 MAX_BREAKDOWN = 50
-IP_COUNTS = (("sensors", 3), ("networks", 2), ("confidence", 0), ("hits", 0))
-DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
-GENERATED = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
-HOUR = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:00:00Z")
-TECHNIQUE = re.compile(r"T\d{4}(\.\d{3})?")
-CVE = re.compile(r"CVE-\d{4}-\d{4,}")
+IP_COUNTS = {"sensors": 3, "networks": 2, "confidence": 0, "hits": 0}
+HOST_NETS = ((4, 32), (6, 64))
+# [0-9], not \d: Python's \d also matches non-ASCII digits.
+DAY = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+GENERATED = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
+HOUR = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:00:00Z")
+TECHNIQUE = re.compile(r"T[0-9]{4}(\.[0-9]{3})?")
+CVE = re.compile(r"CVE-[0-9]{4}-[0-9]{4,}")
+DIGITS = re.compile(r"[0-9]{1,18}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 TOKEN = re.compile(r"[a-z0-9_-]{1,32}")
 # XX is Cloudflare's "unknown"; T1 (Tor) already fails the pattern.
@@ -116,35 +119,35 @@ def _bad_chars(value) -> bool:
     return False
 
 
-def _int(value, where: str, lo: int = 0, hi: int | None = None) -> int:
-    if isinstance(value, bool) or not isinstance(value, int | str):
-        raise SnapshotError(f"{where}: not an integer")
-    try:
-        number = int(value)
-    except ValueError as exc:
-        raise SnapshotError(f"{where}: not an integer") from exc
-    if number < lo or (hi is not None and number > hi):
-        raise SnapshotError(f"{where}: {number} out of range")
-    return number
+def _int(value, lo: int = 0) -> int | None:
+    if isinstance(value, str) and DIGITS.fullmatch(value):
+        value = int(value)
+    return None if isinstance(value, bool) or not isinstance(value, int) or value < lo else value
+
+
+def _ints(raw, keys) -> dict[str, int]:
+    raw = raw if isinstance(raw, dict) else {}
+    return {k: n for k in keys if (n := _int(raw.get(k))) is not None}
 
 
 def _breakdown(rows, key: str, pattern: re.Pattern, counts: tuple[str, ...]) -> list[dict]:
     out = []
-    for i, row in enumerate(rows if isinstance(rows, list) else []):
+    for row in rows if isinstance(rows, list) else []:
         if isinstance(row, dict) and isinstance(row.get(key), str) and pattern.fullmatch(row[key]):
-            entry = {key: row[key], **{c: _int(row.get(c, 0), f"stats {key}[{i}].{c}") for c in counts}}
+            entry = {key: row[key], **{c: _int(row.get(c, 0)) for c in counts}}
+            if None in entry.values():
+                continue
             if isinstance(row.get("name"), str) and NAME.fullmatch(row["name"]):
                 entry["name"] = row["name"]
             out.append(entry)
     return out[:MAX_BREAKDOWN]
 
 
-def clean_stats(raw: dict) -> dict:
-    if not isinstance(raw, dict):
-        raise SnapshotError("stats is not an object")
-    observed = raw.get("observed") or {}
+# Stats and policy are informational: a bad value is left out rather than failing the build.
+def clean_stats(raw) -> dict:
+    raw = raw if isinstance(raw, dict) else {}
     return {
-        "observed": {k: _int(observed[k], f"stats.observed.{k}") for k in OBSERVED_KEYS if k in observed},
+        "observed": _ints(raw.get("observed"), OBSERVED_KEYS),
         "published": {},
         "attack": _breakdown(raw.get("attack"), "technique", TECHNIQUE, ("events", "ips")),
         "services": _breakdown(raw.get("services"), "service", TOKEN, ("ips",)),
@@ -152,22 +155,33 @@ def clean_stats(raw: dict) -> dict:
     }
 
 
-def clean_policy(raw: dict) -> dict:
-    if not isinstance(raw, dict):
-        raise SnapshotError("policy is not an object")
-    return {k: _int(raw[k], f"policy.{k}") for k in POLICY_KEYS if k in raw}
+def clean_policy(raw) -> dict:
+    return _ints(raw, POLICY_KEYS)
 
 
 def _count(value, lo: int = 0) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value >= lo
 
 
+def _stamp(value, pattern: re.Pattern) -> bool:
+    try:
+        return isinstance(value, str) and bool(pattern.fullmatch(value)) and bool(parse_ts(value))
+    except ValueError:
+        return False
+
+
 def _seen(rec: dict, required: bool) -> bool:
-    stamps = [rec.get(k) for k in ("first_seen", "last_seen")]
-    if not required and stamps == [None, None]:
+    first, last = rec.get("first_seen"), rec.get("last_seen")
+    if not required and first is None and last is None:
         return True
     pattern = HOUR if required else GENERATED
-    return all(isinstance(t, str) and pattern.fullmatch(t) for t in stamps)
+    return _stamp(first, pattern) and _stamp(last, pattern) and first <= last
+
+
+def _clamp(rec: dict, generated: str) -> dict:
+    """Producer clock skew: a sighting after the snapshot would make a STIX indicator's created later than modified."""
+    late = [k for k in ("first_seen", "last_seen") if isinstance(rec.get(k), str) and rec[k] > generated]
+    return {**rec, **dict.fromkeys(late, generated[:14] + "00:00Z")}
 
 
 def _valid(kind: str, rec: dict) -> bool:
@@ -240,30 +254,33 @@ def _tokens(rec: dict, key: str, pattern: re.Pattern) -> list[str]:
     )
 
 
-def _check_ip(rec) -> dict | None:
+def _host(value) -> str | None:
+    """The canonical /32 or /64 form of value, or None."""
+    try:
+        ip = canonical(value)
+    except ValueError:
+        return None
+    net = network(ip)
+    return ip if (net.version, net.prefixlen) in HOST_NETS else None
+
+
+def _check_ip(rec, generated: str) -> dict | None:
     """A schema-shaped copy of one attacker record, or None when it can't be published."""
     if not isinstance(rec, dict) or not isinstance(rec.get("ip"), str):
         return None
     if _bad_chars({k: v for k, v in rec.items() if k != "as_org"}):
         return None
-    try:
-        ip = canonical(rec["ip"])
-        net = network(ip)
-        first, last = rec["first_seen"], rec["last_seen"]
-        if (net.version, net.prefixlen) not in ((4, 32), (6, 64)) or rec["window"] not in WINDOWS:
-            return None
-        if not (HOUR.fullmatch(first) and HOUR.fullmatch(last) and first <= last):
-            return None
-        counts = {
-            k: _int(rec.get(k), k, lo) for k, lo in (("sensors", 3), ("networks", 2), ("confidence", 0), ("hits", 0))
-        }
-    except (KeyError, TypeError, ValueError):
+    window = rec.get("window")
+    # A string tag could be "vpn-exit": dropping the record beats routing an anonymizer to the block lists.
+    if not (isinstance(window, str) and window in WINDOWS and isinstance(rec.get("tags", []), list)):
         return None
-    if counts["confidence"] > 100 or not isinstance(rec.get("tags", []), list):
+    counts = {k: _int(rec.get(k), lo) for k, lo in IP_COUNTS.items()}
+    ip = _host(rec["ip"])
+    if not ip or None in counts.values() or counts["confidence"] > 100 or not _seen(rec, True):
         return None
     asn, org, country = rec.get("asn"), rec.get("as_org"), rec.get("country")
     return {
-        **rec,
+        **_clamp(rec, generated),
         **counts,
         "ip": ip,
         "kev": rec.get("kev") is True,
@@ -280,12 +297,8 @@ def _check_ip(rec) -> dict | None:
 def _scanner(rec) -> dict | None:
     if not isinstance(rec, dict) or not isinstance(rec.get("ip"), str) or _bad_chars(rec):
         return None
-    try:
-        ip = canonical(rec["ip"])
-    except ValueError:
-        return None
-    net = network(ip)
-    return {**rec, "ip": ip} if (net.version, net.prefixlen) in ((4, 32), (6, 64)) else None
+    ip = _host(rec["ip"])
+    return {**rec, "ip": ip} if ip else None
 
 
 class Snapshot:
@@ -310,23 +323,24 @@ class Snapshot:
         self.generated: str = generated
         self.policy = clean_policy(raw.get("policy"))
         self.stats = clean_stats(raw.get("stats"))
-        ips = [r for r in map(_check_ip, raw["ips"]) if r]
+        ips = [r for r in (_check_ip(r, generated) for r in raw["ips"]) if r]
         best: dict[str, dict] = {}
         for rec in sorted(ips, key=lambda r: -r["confidence"]):
             best.setdefault(rec["ip"], rec)
         # The allowlist gate stays as a backstop; a range newly allowlisted here must not stall the build.
-        allowed = [ip for ip in best if allowlist and allowlist.hit(network(ip))]
-        if len(allowed) > 20:
-            raise SnapshotError(f"{len(allowed)} attacker IPs are allowlisted")
+        allowed = {ip for ip in best if allowlist and allowlist.hit(network(ip))}
+        if len(allowed) > max(20, len(best) // 20):
+            raise SnapshotError(f"{len(allowed)} of {len(best)} attacker IPs are allowlisted")
         self.lists = {"ips": [r for ip, r in best.items() if ip not in allowed]}
-        scanners: dict[str, dict] = {}
-        for rec in filter(None, map(_scanner, raw["scanners"])):
+        scanners = [_scanner(r) for r in raw["scanners"]]
+        unique: dict[str, dict] = {}
+        for rec in filter(None, scanners):
             if rec["ip"] not in best:
-                scanners.setdefault(rec["ip"], rec)
-        self.lists["scanners"] = list(scanners.values())
+                unique.setdefault(rec["ip"], rec)
+        self.lists["scanners"] = list(unique.values())
         self.dropped: dict[str, int] = {}
         # A few bad records are dropped; more than that means the producer is broken.
-        for kind, kept in (("ips", len(ips)), ("scanners", sum(1 for r in raw["scanners"] if _scanner(r)))):
+        for kind, kept in (("ips", len(ips)), ("scanners", len(scanners) - scanners.count(None))):
             if n := len(raw[kind]) - kept:
                 if n > max(5, len(raw[kind]) // 20):
                     raise SnapshotError(f"{n} of {len(raw[kind])} {kind} records are malformed")
@@ -337,13 +351,15 @@ class Snapshot:
             seen: dict[str, dict] = {}
             for rec in raw[kind]:
                 if isinstance(rec, dict) and _valid(kind, rec):
-                    seen.setdefault(rec[KEYS[kind]], rec)
+                    seen.setdefault(rec[KEYS[kind]], _clamp(rec, generated))
                 else:
                     self.dropped[kind] = self.dropped.get(kind, 0) + 1
             self.lists[kind] = list(seen.values())
         if not self.lists["ips"] or not self.lists["scanners"]:
             raise SnapshotError("ips and scanners must not be empty")
-        self.lists["cves"] = [{**c, "kev": bool(c.get("kev")) or c["cve"] in kev.catalog()} for c in self.lists["cves"]]
+        self.lists["cves"] = [
+            {**c, "kev": c.get("kev") is True or c["cve"] in kev.catalog()} for c in self.lists["cves"]
+        ]
         self.lists["cves"] += _ip_cves(self.ips_in("7d"), self.lists["cves"])
         week = self.blockable("7d")
         self.stats["published"] = {

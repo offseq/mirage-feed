@@ -353,6 +353,60 @@ def test_ip_fields_are_normalised(snapshot_raw):
     assert (out["asn"], out["as_org"], out["kev"], out["tags"], out["cves"]) == (None, None, False, ["a", "b"], [])
 
 
+@pytest.mark.parametrize(
+    "field, value",
+    [("first_seen", "2026-02-30T00:00:00Z"), ("first_seen", "\uff12026-10-14T23:00:00Z"), ("sensors", "\uff15"),
+     ("window", ["7d"]), ("last_seen", "2026-10-13T00:00:00Z")],
+)  # fmt: skip
+def test_bad_ip_values_are_dropped_not_fatal(snapshot_raw, field, value):
+    snapshot_raw["ips"][0][field] = value
+    assert Snapshot(snapshot_raw).dropped["ips"] == 1
+
+
+def test_bad_scanners_are_counted(snapshot_raw):
+    snapshot_raw["scanners"][0]["ip"] = "2001:db8::5"
+    snapshot_raw["scanners"].append(None)
+    assert Snapshot(snapshot_raw).dropped["scanners"] == 2
+
+
+def test_allowlisted_share_fails_only_above_five_percent(snapshot_raw):
+    allow = Allowlist(ALLOWLIST)
+    for i, rec in enumerate(snapshot_raw["ips"][:21]):
+        rec["ip"] = f"10.0.0.{i + 1}"
+    with pytest.raises(SnapshotError, match="allowlisted"):
+        Snapshot(snapshot_raw, allow)
+    snapshot_raw["ips"] += [{**snapshot_raw["ips"][-1], "ip": f"198.18.{i // 250}.{i % 250 + 1}"} for i in range(400)]
+    assert Snapshot(snapshot_raw, allow).dropped["allowlisted"] == 21
+
+
+def test_future_sightings_are_clamped_to_the_snapshot(tmp_path, snapshot_raw):
+    snapshot_raw["ips"][0].update(first_seen="2027-01-01T00:00:00Z", last_seen="2027-01-02T00:00:00Z")
+    snapshot_raw["urls"][0].update(last_seen="2027-01-02T00:00:00Z")
+    s = Snapshot(snapshot_raw)
+    rec = next(r for r in s.lists["ips"] if r["ip"] == snapshot_raw["ips"][0]["ip"])
+    assert rec["first_seen"] == rec["last_seen"] == s.lists["urls"][0]["last_seen"] == "2026-10-24T03:00:00Z"
+    path = tmp_path / "s.json"
+    path.write_text(json.dumps(snapshot_raw))
+    build.build(path, tmp_path / "out", allowlist=ALLOWLIST)
+    assert check.check_expiry(tmp_path / "out") == []
+
+
+def test_cve_kev_must_be_true(snapshot_raw):
+    snapshot_raw["cves"].append({"cve": "CVE-2099-0001", "kev": "false", "sources": 2})
+    assert not next(c for c in Snapshot(snapshot_raw).lists["cves"] if c["cve"] == "CVE-2099-0001")["kev"]
+
+
+def test_bad_stats_and_policy_values_are_left_out(snapshot_raw):
+    snapshot_raw["policy"].update(ttl_days=7.5, delay_hours="24")
+    snapshot_raw["stats"]["observed"].update(ips=-1, asns="\uff15")
+    snapshot_raw["stats"]["attack"] += ["x", {"technique": "T1078", "ips": "x"}]
+    s = Snapshot(snapshot_raw)
+    assert "ttl_days" not in s.policy and s.policy["delay_hours"] == 24
+    assert {"ips", "asns"}.isdisjoint(s.stats["observed"]) and s.stats["observed"]["events"] == 1470000
+    assert [a["technique"] for a in s.stats["attack"]] == ["T1110", "T1190"]
+    assert Snapshot({**snapshot_raw, "stats": None, "policy": None}).policy == {}
+
+
 def test_snapshot_drops_format_characters(snapshot_raw):
     snapshot_raw["urls"][0]["url"] += "\u200b"
     snapshot_raw["paths"][0]["value"] += "\u2028"

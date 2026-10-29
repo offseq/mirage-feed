@@ -154,7 +154,6 @@ DENY_PATHS = frozenset(
         "/privacy",
         "/register",
         "/signup",
-        "/dashboard",
         "/docs",
         "/feed",
         "/services",
@@ -177,9 +176,7 @@ DENY_PATHS = frozenset(
     }
 )
 # Pages of the AI decoy sites themselves, reached by crawlers following the decoy's own links.
-DENY_PATH_PREFIXES = (
-    "/dashboard/", "/account", "/forgot-password", "/reset-password", "/onboarding", "/members", "/projects",
-)  # fmt: skip
+DECOY_PATH = re.compile(r"/(dashboard|account|forgot-password|reset-password|onboarding|members|projects)([/?#]|$)")
 # LeakIX encodes the scanned target in /s/<token>/; long hex or base64 runs are per-target tokens too.
 TOKEN_PATH = re.compile(
     r"/s/[^/]+/|[0-9a-fA-F]{16,}|(?=[A-Za-z0-9+=]*[0-9])(?=[A-Za-z0-9+=]*[A-Za-z])[A-Za-z0-9+=]{16,}"
@@ -241,7 +238,10 @@ def domain_ok(domain: str) -> bool:
 def url_ok(url: str) -> bool:
     if not URL.fullmatch(url) or "%U%" in url:
         return False
-    parts = urlsplit(url)
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return False
     host = (parts.hostname or "").rstrip(".")
     # A listed site's front page is a scanner fetching it, not a payload.
     if parts.path in ("", "/") and not parts.query and TLD.fullmatch(host.rsplit(".", 1)[-1]) and not domain_ok(host):
@@ -257,7 +257,9 @@ def _path_key(path: str) -> str:
 
 def path_ok(path: str) -> bool:
     key = _path_key(path)
-    if len(path) < 3 or path.startswith("/.well-known/") or key in DENY_PATHS or key.startswith(DENY_PATH_PREFIXES):
+    if len(path) < 3 or path.startswith("/.well-known/") or key in DENY_PATHS:
+        return False
+    if DECOY_PATH.match(key) and not EXPLOIT_PATH.search(path):
         return False
     if "@" in path.removeprefix("/@vite/"):
         return False

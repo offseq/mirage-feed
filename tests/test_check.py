@@ -176,6 +176,26 @@ def test_normal_churn_passes(out, tmp_path):
     assert delta(out, tmp_path / "prev") == []
 
 
+def set_gap(out, prev, days):
+    feed = json.loads((prev / "feed.json").read_text())
+    feed["day"] = f"2026-10-{23 - days:02d}"
+    (prev / "feed.json").write_text(json.dumps(feed))
+
+
+@pytest.mark.parametrize(("days", "new", "ok"), [(1, 69, False), (2, 50, True), (3, 31, True), (9, 5, False)])
+def test_size_limit_scales_with_the_gap(out, tmp_path, days, new, ok):
+    set_lists(out, tmp_path / "prev", DOC_IPS[:100], DOC_IPS[:new])
+    set_gap(out, tmp_path / "prev", days)
+    assert (delta(out, tmp_path / "prev") == []) is ok
+
+
+@pytest.mark.parametrize(("days", "shift", "ok"), [(1, 50, False), (3, 60, True), (7, 85, True), (30, 100, False)])
+def test_churn_limit_scales_with_the_gap(out, tmp_path, days, shift, ok):
+    set_lists(out, tmp_path / "prev", DOC_IPS[:100], DOC_IPS[shift : shift + 100])
+    set_gap(out, tmp_path / "prev", days)
+    assert (delta(out, tmp_path / "prev") == []) is ok
+
+
 def test_concentration():
     spread = [(f"{11 + i // 250}.{i % 250}.0.1", str(64500 + i % 20)) for i in range(300)]
     assert check.check_concentration(spread) == []

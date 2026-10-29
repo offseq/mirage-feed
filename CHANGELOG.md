@@ -5,6 +5,26 @@ exist stay stable within a major version; additions bump the minor version.
 
 ## 2.0
 
+Changed on 2026-10-29 (no paths or columns added, so `schema_version` stays `2.0`):
+
+- `suricata/mirage.rules` sid 1900003 rev 2 matches `datasets/paths.lst` against `http.uri.raw`, so paths listed
+  with their original encoding match; rev 1 used the normalised `http.uri`.
+- VPN client user agents (AnyConnect, GlobalProtect, Pulse Secure, FortiClient, F5 Access, Citrix Receiver, OpenVPN)
+  stay in `user-agents-7d.txt` and MISP but are no longer in `zeek/mirage.intel` or `suricata/datasets/uas.lst`.
+- The allowlist covers the published crawler ranges of Google, Bing and OpenAI. An attacker IP inside the allowlist
+  is dropped when the snapshot is loaded, and leaves through `ipv4-removed-1d.txt`.
+- `urls-7d.txt` needs a lowercase scheme and a parseable host, and drops the front page of a site in
+  `benign-domains.txt` and URLs whose query carries a per-target token.
+- `paths-7d.txt` drops the decoy sites' own pages (`/account`, `/dashboard/…`, `/forgot-password`,
+  `/reset-password`, `/onboarding`, `/members`, `/projects`, as whole path segments) unless the path carries an
+  exploit pattern. `user-agents-7d.txt` drops self-described discovery tools and placeholder user agents.
+- Malformed upstream IP and scanner records are dropped instead of failing the build, as are timestamps that are
+  not real dates or use non-ASCII digits. `schema/record.schema.json` patterns use `[0-9]` instead of `\d`.
+- `first_seen` and `last_seen` later than the snapshot's `generated` are clamped to it, so a STIX indicator's
+  `created` is never after its `modified`.
+- `stats` and `policy` values that are not non-negative integers are left out of `feed.json` and `stats.json`.
+  A CVE is `kev` from the snapshot only when the snapshot says `true`.
+
 Changed:
 
 - Fingerprints now cover JA4 (TLS client) and HASSH only. Other JA4+ types (JA4S, JA4H, JA4X, JA4T, JA4TScan) are

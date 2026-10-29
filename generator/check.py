@@ -8,7 +8,7 @@ import re
 import unicodedata
 import urllib.parse
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from . import lookup
@@ -79,8 +79,12 @@ DELTA_LIMITS = {
     "latest/domains-7d.txt": 0.30,
 }
 MIN_CHANGE = 20
+# After an outage the previous build is days old: size limits scale with the gap up to this many days.
+MAX_GAP_SCALE = 3
 # A 7-day window turns over roughly 1/7 per day; >40% new and >40% gone at once means a different list.
 CHURN_LIMIT = 0.40
+# Each missed day adds a day's turnover of a 7-day window, capped so a swapped list still trips.
+DAILY_CHURN, MAX_CHURN = 1 / 7, 0.90
 CHURN_LISTS = (
     "latest/ipv4-7d.txt",
     "latest/ipv4-30d.txt",
@@ -287,6 +291,15 @@ def _sizes(out: Path, prev: Path, rel: str) -> tuple[set[str], set[str]] | None:
     return set(_lines(out, rel)), set(_lines(prev, rel))
 
 
+def _gap(out: Path, prev: Path) -> int:
+    """Days between the previous build's day and this one's, at least 1."""
+    try:
+        days = (date.fromisoformat(_index(out)["day"]) - date.fromisoformat(_index(prev)["day"])).days
+    except (KeyError, TypeError, ValueError):
+        return 1
+    return max(days, 1)
+
+
 def check_delta(out: Path, prev: Path | None, allow_delta: bool, bootstrap: bool) -> list[str]:
     if bootstrap:
         return []
@@ -294,22 +307,28 @@ def check_delta(out: Path, prev: Path | None, allow_delta: bool, bootstrap: bool
         return ["no previous data to compare against; pass --bootstrap only for the first publish"]
     if allow_delta:
         return []
+    days = _gap(out, prev)
+    span = f" over {days} days" if days > 1 else ""
     errors = []
     for rel, limit in DELTA_LIMITS.items():
         if not (pair := _sizes(out, prev, rel)):
             continue
         new, old = len(pair[0]), len(pair[1])
+        limit *= min(days, MAX_GAP_SCALE)
         if abs(new - old) >= MIN_CHANGE and (not old or abs(new - old) / old > limit):
             change = f"{(new - old) / old:+.1%}" if old else "from empty"
-            errors.append(f"{rel}: size {old} -> {new} ({change}), limit ±{limit:.0%}; use --allow-delta if expected")
+            errors.append(
+                f"{rel}: size {old} -> {new} ({change}), limit ±{limit:.0%}{span}; use --allow-delta if expected"
+            )
+    churn = min(CHURN_LIMIT + (days - 1) * DAILY_CHURN, MAX_CHURN)
     for rel in CHURN_LISTS:
         if not (pair := _sizes(out, prev, rel)) or min(len(pair[0]), len(pair[1])) < MIN_CHANGE:
             continue
         cur, old = pair
         added, gone = len(cur - old) / len(cur), len(old - cur) / len(old)
-        if added > CHURN_LIMIT and gone > CHURN_LIMIT:
+        if added > churn and gone > churn:
             errors.append(
-                f"{rel}: {added:.0%} new and {gone:.0%} gone since the previous build, limit {CHURN_LIMIT:.0%}"
+                f"{rel}: {added:.0%} new and {gone:.0%} gone since the previous build, limit {churn:.0%}{span}"
             )
     return errors
 
@@ -392,8 +411,12 @@ def check_stix(out: Path) -> list[str]:
     return errors
 
 
+def _index(root: Path) -> dict:
+    return json.loads((root / "feed.json").read_text(encoding="utf-8"))
+
+
 def _generated(root: Path) -> str:
-    return json.loads((root / "feed.json").read_text(encoding="utf-8"))["generated"]
+    return _index(root)["generated"]
 
 
 def check_rollback(out: Path, prev: Path | None) -> list[str]:
