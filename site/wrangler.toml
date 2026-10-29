@@ -12,6 +12,9 @@ r2_buckets = [{ binding = "FEED", bucket_name = "mirage-feed" }]
 
 analytics_engine_datasets = [{ binding = "FETCHES", dataset = "mirage_feed_fetches" }]
 
+# Staleness alerts; the destination must be a verified Email Routing address.
+send_email = [{ name = "ALERT", destination_address = "npu+platforms@offseq.com" }]
+
 # Request URLs carry looked-up addresses (/ip/<addr>), so Workers Logs stay off.
 [observability]
 enabled = false
@@ -28,9 +31,6 @@ name = "LOOKUP_LIMIT"
 type = "ratelimit"
 namespace_id = "1002"
 simple = { limit = 30, period = 60 }
-
-# Staleness alerts; the destination must be a verified Email Routing address.
-send_email = [{ name = "ALERT", destination_address = "npu+platforms@offseq.com" }]
 
 [triggers]
 crons = ["0 7,19 * * *"]
