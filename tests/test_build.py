@@ -322,12 +322,35 @@ def test_snapshot_rejects(snapshot_raw, change):
 
 @pytest.mark.parametrize(
     "field, value",
-    [("ip", 3405803781), ("sensors", 2), ("networks", 1), ("confidence", 101), ("window", "90d")],
+    [
+        ("ip", 3405803781),
+        ("ip", "198.51.100.0/24"),
+        ("sensors", 2),
+        ("networks", 1),
+        ("confidence", 101),
+        ("window", "90d"),
+        ("first_seen", "2026-10-14T23:05:00Z"),
+    ],
 )
-def test_snapshot_rejects_bad_ip_record(snapshot_raw, field, value):
+def test_bad_ip_record_is_dropped(snapshot_raw, field, value):
+    bad = snapshot_raw["ips"][0]["ip"]
     snapshot_raw["ips"][0][field] = value
-    with pytest.raises(SnapshotError):
+    s = Snapshot(snapshot_raw)
+    assert s.dropped["ips"] == 1 and bad not in {r["ip"] for r in s.lists["ips"]}
+
+
+def test_many_bad_ip_records_fail_the_build(snapshot_raw):
+    for rec in snapshot_raw["ips"][:10]:
+        rec["sensors"] = 1
+    with pytest.raises(SnapshotError, match="malformed"):
         Snapshot(snapshot_raw)
+
+
+def test_ip_fields_are_normalised(snapshot_raw):
+    rec = snapshot_raw["ips"][0]
+    rec.update(asn="13335", as_org="Evil\u00adCorp", kev=1, tags=["b", "a", "a", "<x>"], cves=["cve-2024-1"])
+    out = next(r for r in Snapshot(snapshot_raw).lists["ips"] if r["ip"] == rec["ip"])
+    assert (out["asn"], out["as_org"], out["kev"], out["tags"], out["cves"]) == (None, None, False, ["a", "b"], [])
 
 
 def test_snapshot_drops_format_characters(snapshot_raw):

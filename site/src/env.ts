@@ -11,6 +11,8 @@ export interface Env {
   FEED_PROXY_SECRET?: string;
   TURNSTILE_SITEKEY: string;
   TURNSTILE_SECRET?: string;
+  ALERT?: SendEmail;
+  ALERT_TO: string;
 }
 
 export const isShadow = (env: Env): boolean => env.SHADOW === "1";

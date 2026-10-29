@@ -73,7 +73,7 @@ it as "no entries".
 
 ### Schedule and polling
 
-The feed is built once a day at **03:17 UTC** and entries appear **24 hours** after their first sighting.
+The feed is built once a day, starting at **03:17 UTC** (GitHub sometimes runs it hours late), and entries appear **24 hours** after their first sighting.
 Poll at most once an hour; once a day after 03:30 UTC is enough. `feeds.offseq.com` answers `If-None-Match`
 (ETag) and `If-Modified-Since` with `304 Not Modified`, so unchanged files cost nothing to re-check.
 `history.json` holds 90 days of daily totals, and format changes are listed in [CHANGELOG.md](CHANGELOG.md).
@@ -227,8 +227,8 @@ An address appears in the feed only when **all** of these hold:
    RFC 5735, RFC 6598, RFC 6890, multicast, IPv6 link-local), public DNS resolvers and root servers, and the
    first-party ranges of Cloudflare, Akamai (without Linode), Fastly, Apple and Microsoft 365 from the vendored
    [MISP warninglists](https://github.com/MISP/misp-warninglists), Google's own ranges (not Google Cloud), GitHub and
-   Microsoft's AS8068 edge. Customer clouds (AWS, Azure, Google Cloud, Linode) are not excluded: that is where
-   attackers rent machines.
+   Microsoft's AS8068 edge, and the published crawler ranges of Google, Bing and OpenAI. Customer clouds (AWS, Azure,
+   Google Cloud, Linode) are not excluded: that is where attackers rent machines.
 4. It is not a known research scanner: Alpha Strike, BinaryEdge, Bitsight, Censys, Criminal IP, Cyber Resilience,
    Driftnet, FOFA, Hadrian, Internet Census, Internet Measurement, Intrinsec, IPIP, LeakIX, Modat, Netlas, NETSCOUT,
    ONYPHE, Palo Alto Xpanse, Quake, Rapid7, ReCyber, Shadowserver, Shodan, Stretchoid, Tenable, ZoomEye, university

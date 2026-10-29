@@ -1,3 +1,4 @@
+import base64
 import copy
 import csv
 import http.client
@@ -6,8 +7,8 @@ import shutil
 
 import pytest
 
-from generator import build, check, fetch, firewall
-from generator.common import Snapshot, SnapshotError
+from generator import build, check, fetch, firewall, nsm
+from generator.common import Snapshot
 
 from .conftest import ALLOWLIST, SNAPSHOT
 
@@ -158,7 +159,7 @@ def test_stix_created_is_stable_and_modified_is_the_build(tmp_path):
     out1 = run_build(tmp_path, snap(), name="s1")
     raw = snap(**NEXT)
     rec = next(r for r in raw["ips"] if r["window"] == "7d")
-    rec["first_seen"] = "2026-10-20T00:00:00Z"
+    rec["first_seen"], rec["last_seen"] = "2026-10-20T00:00:00Z", "2026-10-21T00:00:00Z"
     out2 = run_build(tmp_path, raw, out1, "s2")
 
     def indicator(out):
@@ -191,19 +192,10 @@ def test_bad_count_is_dropped(value):
     assert raw["urls"][0]["url"] not in {u["url"] for u in Snapshot(raw).lists["urls"]}
 
 
-def test_string_tags_are_rejected():
+def test_string_tags_drop_the_record():
     raw = snap()
     raw["ips"][0]["tags"] = "vpn-exit"
-    with pytest.raises(SnapshotError):
-        Snapshot(raw)
-
-
-def test_v4_network_stays_in_the_v4_firewall_set():
-    raw = snap()
-    raw["ips"][0]["ip"] = "198.51.100.0/24"
-    nft = next(a for a in firewall.render(Snapshot(raw)) if a.path.endswith(".nft")).data.decode()
-    sets = {line.split()[4]: line for line in nft.splitlines() if line.startswith("add element")}
-    assert "198.51.100.0/24" in sets["bad4"] and "198.51.100.0/24" not in sets["bad6"]
+    assert raw["ips"][0]["ip"] not in {r["ip"] for r in Snapshot(raw).lists["ips"]}
 
 
 def test_ipset_maxelem_is_fixed(out):
@@ -253,3 +245,12 @@ def test_fetch_retries_incomplete_read(monkeypatch, tmp_path):
 
     monkeypatch.setattr(fetch, "_get", get)
     assert fetch.fetch("https://x/api", tmp_path / "s.json", "2026-10-23", sleep=lambda _: None).day == "2026-10-23"
+
+
+def test_vpn_client_uas_stay_out_of_ids_rules():
+    raw = snap()
+    raw["user_agents"].append({"value": "AnyConnect Windows 5.1.7.80", "sources": 3})
+    s = Snapshot(raw)
+    assert "AnyConnect Windows 5.1.7.80" in {r["value"] for r in s.lists["user_agents"]}
+    rendered = b"".join(a.data for a in nsm.render(s))
+    assert b"AnyConnect" not in rendered and base64.b64encode(b"AnyConnect Windows 5.1.7.80") not in rendered

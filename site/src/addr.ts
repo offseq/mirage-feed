@@ -12,11 +12,14 @@ export function publicV4(addr: string): boolean {
   return !V4_BOGONS.some(([net, bits]) => Math.floor(n / 2 ** (32 - bits)) === Math.floor(net / 2 ** (32 - bits)));
 }
 
-// Global unicast 2000::/3 only, minus documentation space; this also rules out ::, ::1, v4-mapped, ULA, link-local and multicast.
+// Global unicast 2000::/3 only, minus the special-purpose blocks the feed allowlists (2001::/23, 2001:db8::/32,
+// 2002::/16, 3fff::/20); this also rules out ::, ::1, v4-mapped, ULA, link-local and multicast.
 export function publicV6(addr: string): boolean {
   if (addr.startsWith(":")) return false;
-  const first = parseInt(addr.split(":")[0], 16);
-  return first >= 0x2000 && first <= 0x3fff && !/^2001:0*db8(?::|$)/i.test(addr);
+  const [first, second] = expandV6(addr).map((h) => parseInt(h, 16));
+  if (first < 0x2000 || first > 0x3fff || first === 0x2002) return false;
+  if (first === 0x2001 && (second < 0x200 || second === 0xdb8)) return false;
+  return !(first === 0x3fff && second < 0x1000);
 }
 
 export interface Addr {

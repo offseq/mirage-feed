@@ -24,6 +24,7 @@ OBSERVED_KEYS = ("ips", "asns", "countries", "events", "cves", "urls", "credenti
 JA4_TYPES = frozenset({"ja4"})
 ANONYMIZER_TAGS = frozenset({"vpn-exit", "tor-exit"})
 MAX_BREAKDOWN = 50
+IP_COUNTS = (("sensors", 3), ("networks", 2), ("confidence", 0), ("hits", 0))
 DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 GENERATED = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
 HOUR = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:00:00Z")
@@ -184,7 +185,7 @@ def _valid(kind: str, rec: dict) -> bool:
         case "cves":
             return bool(CVE.fullmatch(value))
         case "urls":
-            return "://" in value and rec.get("kind") in ("download", "c2")
+            return rec.get("kind") in ("download", "c2") and benign.url_ok(value)
         case "domains":
             return benign.domain_ok(value)
         case "hashes":
@@ -232,30 +233,63 @@ def _ip_cves(ips: list[dict], known: list[dict]) -> list[dict]:
     return rows
 
 
-def _check_ip(i: int, rec) -> dict:
-    where = f"ips[{i}]"
+def _tokens(rec: dict, key: str, pattern: re.Pattern) -> list[str]:
+    values = rec.get(key)
+    return (
+        sorted({v for v in values if isinstance(v, str) and pattern.fullmatch(v)}) if isinstance(values, list) else []
+    )
+
+
+def _check_ip(rec) -> dict | None:
+    """A schema-shaped copy of one attacker record, or None when it can't be published."""
     if not isinstance(rec, dict) or not isinstance(rec.get("ip"), str):
-        raise SnapshotError(f"{where}: ip must be a string")
-    if rec.get("window") not in WINDOWS:
-        raise SnapshotError(f"{where}: bad window")
+        return None
+    if _bad_chars({k: v for k, v in rec.items() if k != "as_org"}):
+        return None
     try:
         ip = canonical(rec["ip"])
-        parse_ts(rec["first_seen"])
-        parse_ts(rec["last_seen"])
-    except (KeyError, TypeError, ValueError) as exc:
-        raise SnapshotError(f"{where}: {exc}") from exc
-    _int(rec.get("sensors"), f"{where}.sensors", lo=3)
-    _int(rec.get("networks"), f"{where}.networks", lo=2)
-    _int(rec.get("confidence"), f"{where}.confidence", hi=100)
-    for key in ("services", "tags", "attack", "cves"):
-        if not isinstance(rec.get(key, []), list) or not all(isinstance(v, str) for v in rec.get(key, [])):
-            raise SnapshotError(f"{where}.{key}: not a list of strings")
-    country = rec.get("country")
-    return {**rec, "ip": ip, "country": country if isinstance(country, str) and COUNTRY.fullmatch(country) else None}
+        net = network(ip)
+        first, last = rec["first_seen"], rec["last_seen"]
+        if (net.version, net.prefixlen) not in ((4, 32), (6, 64)) or rec["window"] not in WINDOWS:
+            return None
+        if not (HOUR.fullmatch(first) and HOUR.fullmatch(last) and first <= last):
+            return None
+        counts = {
+            k: _int(rec.get(k), k, lo) for k, lo in (("sensors", 3), ("networks", 2), ("confidence", 0), ("hits", 0))
+        }
+    except (KeyError, TypeError, ValueError):
+        return None
+    if counts["confidence"] > 100 or not isinstance(rec.get("tags", []), list):
+        return None
+    asn, org, country = rec.get("asn"), rec.get("as_org"), rec.get("country")
+    return {
+        **rec,
+        **counts,
+        "ip": ip,
+        "kev": rec.get("kev") is True,
+        "asn": asn if _count(asn) else None,
+        "as_org": org if isinstance(org, str) and org and not _bad_chars(org) else None,
+        "country": country if isinstance(country, str) and COUNTRY.fullmatch(country) else None,
+        "services": _tokens(rec, "services", TOKEN),
+        "tags": _tokens(rec, "tags", TOKEN),
+        "attack": _tokens(rec, "attack", TECHNIQUE),
+        "cves": _tokens(rec, "cves", CVE),
+    }
+
+
+def _scanner(rec) -> dict | None:
+    if not isinstance(rec, dict) or not isinstance(rec.get("ip"), str) or _bad_chars(rec):
+        return None
+    try:
+        ip = canonical(rec["ip"])
+    except ValueError:
+        return None
+    net = network(ip)
+    return {**rec, "ip": ip} if (net.version, net.prefixlen) in ((4, 32), (6, 64)) else None
 
 
 class Snapshot:
-    def __init__(self, raw: dict):
+    def __init__(self, raw: dict, allowlist=None):
         if not isinstance(raw, dict) or raw.get("schema") != SCHEMA:
             raise SnapshotError(f"unexpected schema, want {SCHEMA!r}")
         generated, day = raw.get("generated"), raw.get("day")
@@ -276,20 +310,29 @@ class Snapshot:
         self.generated: str = generated
         self.policy = clean_policy(raw.get("policy"))
         self.stats = clean_stats(raw.get("stats"))
-        ips = [_check_ip(i, r) for i, r in enumerate(raw["ips"]) if not _bad_chars(r)]
+        ips = [r for r in map(_check_ip, raw["ips"]) if r]
         best: dict[str, dict] = {}
-        for rec in sorted(ips, key=lambda r: -int(r["confidence"])):
+        for rec in sorted(ips, key=lambda r: -r["confidence"]):
             best.setdefault(rec["ip"], rec)
-        self.lists = {"ips": list(best.values())}
-        scanners = {}
-        for rec in raw["scanners"]:
-            if isinstance(rec, dict) and isinstance(rec.get("ip"), str) and not _bad_chars(rec):
-                try:
-                    scanners.setdefault(canonical(rec["ip"]), {**rec, "ip": canonical(rec["ip"])})
-                except ValueError as exc:
-                    raise SnapshotError(f"scanners: {exc}") from exc
+        # The allowlist gate stays as a backstop; a range newly allowlisted here must not stall the build.
+        allowed = [ip for ip in best if allowlist and allowlist.hit(network(ip))]
+        if len(allowed) > 20:
+            raise SnapshotError(f"{len(allowed)} attacker IPs are allowlisted")
+        self.lists = {"ips": [r for ip, r in best.items() if ip not in allowed]}
+        scanners: dict[str, dict] = {}
+        for rec in filter(None, map(_scanner, raw["scanners"])):
+            if rec["ip"] not in best:
+                scanners.setdefault(rec["ip"], rec)
         self.lists["scanners"] = list(scanners.values())
         self.dropped: dict[str, int] = {}
+        # A few bad records are dropped; more than that means the producer is broken.
+        for kind, kept in (("ips", len(ips)), ("scanners", sum(1 for r in raw["scanners"] if _scanner(r)))):
+            if n := len(raw[kind]) - kept:
+                if n > max(5, len(raw[kind]) // 20):
+                    raise SnapshotError(f"{n} of {len(raw[kind])} {kind} records are malformed")
+                self.dropped[kind] = n
+        if allowed:
+            self.dropped["allowlisted"] = len(allowed)
         for kind in LISTS[2:]:
             seen: dict[str, dict] = {}
             for rec in raw[kind]:
@@ -318,9 +361,9 @@ class Snapshot:
         }
 
     @classmethod
-    def load(cls, path: str | Path) -> "Snapshot":
+    def load(cls, path: str | Path, allowlist=None) -> "Snapshot":
         try:
-            return cls(json.loads(Path(path).read_text(encoding="utf-8")))
+            return cls(json.loads(Path(path).read_text(encoding="utf-8")), allowlist)
         except json.JSONDecodeError as exc:
             raise SnapshotError(f"{path}: {exc}") from exc
 

@@ -112,8 +112,9 @@ def build(
 ) -> tuple[Snapshot, list[Artifact]]:
     if out.exists() and any(out.iterdir()):
         raise FileExistsError(f"{out} is not empty")
-    s = Snapshot.load(snapshot)
-    arts = artifacts(s, prev, Allowlist(allowlist))
+    allow = Allowlist(allowlist)
+    s = Snapshot.load(snapshot, allow)
+    arts = artifacts(s, prev, allow)
     for a in arts:
         target = out / a.path
         target.parent.mkdir(parents=True, exist_ok=True)

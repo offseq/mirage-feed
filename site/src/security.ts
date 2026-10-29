@@ -15,7 +15,8 @@ function cssHash(): Promise<string> {
 
 // page: HTML; removal: HTML with Turnstile; lookup: HTML without CSP reports, whose document URL would carry
 // the looked-up address; feed: public cross-origin data; asset: same-origin static files.
-export type Kind = "page" | "removal" | "lookup" | "feed" | "asset";
+// "private" pages carry an address in their URL: a lookup, or the removal form prefilled from one.
+export type Kind = "page" | "removal" | "removal-private" | "lookup" | "feed" | "asset";
 
 const TURNSTILE = "https://challenges.cloudflare.com";
 // The report collector accepts the legacy report-uri format only; it answers 422 to Reporting API batches.
@@ -27,21 +28,21 @@ const TRUSTED_TYPES = "require-trusted-types-for 'script'; trusted-types 'none'"
 const CF_BEACON = "https://static.cloudflareinsights.com/beacon.min.js/";
 export const PLAUSIBLE = "https://in.ainalytic.net";
 
-// Lookup pages get neither analytics origin nor a report endpoint, since their URL carries the looked-up address.
-export async function pageCsp(turnstile = false, lookup = false): Promise<string> {
+// Private pages get neither analytics origin nor a report endpoint, since their URL carries an address.
+export async function pageCsp(turnstile = false, private_ = false): Promise<string> {
   return [
     "default-src 'none'",
-    `script-src ${SITE}${APP_PATH}${lookup ? "" : ` ${CF_BEACON}`}${turnstile ? ` ${TURNSTILE}` : ""}`,
+    `script-src ${SITE}${APP_PATH}${private_ ? "" : ` ${CF_BEACON}`}${turnstile ? ` ${TURNSTILE}` : ""}`,
     ...(turnstile ? [`frame-src ${TURNSTILE}`] : []),
     `style-src ${await cssHash()}`,
     "font-src 'self'",
     "img-src 'self'",
-    `connect-src 'self'${lookup ? "" : ` ${PLAUSIBLE}`}`,
+    `connect-src 'self'${private_ ? "" : ` ${PLAUSIBLE}`}`,
     "form-action 'self'",
     "base-uri 'none'",
     "frame-ancestors 'none'",
     ...(turnstile ? [] : [TRUSTED_TYPES]),
-    ...(lookup ? [] : [`report-uri ${CSP_REPORT}`]),
+    ...(private_ ? [] : [`report-uri ${CSP_REPORT}`]),
   ].join("; ");
 }
 
@@ -57,12 +58,12 @@ export const PERMISSIONS_POLICY = [
 export async function secure(res: Response, env: Env, kind: Kind): Promise<Response> {
   const out = new Response(res.body, res);
   const h = out.headers;
-  const html = kind === "page" || kind === "removal" || kind === "lookup";
-  h.set("content-security-policy", html ? await pageCsp(kind === "removal", kind === "lookup") : FILE_CSP);
+  const html = kind !== "feed" && kind !== "asset";
+  const private_ = kind === "lookup" || kind === "removal-private";
+  h.set("content-security-policy", html ? await pageCsp(kind.startsWith("removal"), private_) : FILE_CSP);
   h.set("strict-transport-security", "max-age=63072000; includeSubDomains; preload");
   h.set("x-content-type-options", "nosniff");
-  // A lookup URL carries the looked-up address, so it must never become the next page's referrer.
-  h.set("referrer-policy", kind === "lookup" ? "no-referrer" : "strict-origin-when-cross-origin");
+  h.set("referrer-policy", private_ ? "no-referrer" : "strict-origin-when-cross-origin");
   h.set("permissions-policy", PERMISSIONS_POLICY);
   h.set("x-frame-options", "DENY");
   h.set("cross-origin-opener-policy", "same-origin");

@@ -29,7 +29,14 @@ type = "ratelimit"
 namespace_id = "1002"
 simple = { limit = 30, period = 60 }
 
+# Staleness alerts; the destination must be a verified Email Routing address.
+send_email = [{ name = "ALERT", destination_address = "npu+platforms@offseq.com" }]
+
+[triggers]
+crons = ["0 7,19 * * *"]
+
 [vars]
+ALERT_TO = "npu+platforms@offseq.com"
 SHADOW = "0"
 REMOVAL_UPSTREAM = "https://mirage.offseq.com/api/feed/removal"
 GITHUB_REPO = "offseq/mirage-feed"

@@ -8,6 +8,7 @@ import { MINISIGN_PUB, renderAtom, securityTxt, type HistoryRow } from "./meta";
 import { lookup, lookupForm, renderLookup, type Lookup } from "./lookup";
 import { PRIVACY_UPDATED, REMOVAL_SENT, type RemovalForm, renderNotFound, renderPrivacy, renderRemoval, renderRemovalSent } from "./pages";
 import { TooLarge, forwardRemoval, readRemoval, validate, verifyTurnstile, type RemovalInput } from "./removal";
+import { checkFreshness } from "./alert";
 import { authorized, challenge, secure, type Kind } from "./security";
 
 const DESCRIPTION =
@@ -188,6 +189,8 @@ async function ipLookup(req: Request, env: Env, ctx: ExecutionContext, path: str
   } catch {
     segment = "";
   }
+  const trimmed = segment.endsWith("/") ? parseAddr(segment.slice(0, -1)) : null;
+  if (trimmed) return redirect(`/ip/${trimmed.slug}`, 301);
   const wantsJson = segment.endsWith(".json");
   const input = wantsJson ? segment.slice(0, -5) : segment;
   const addr = parseAddr(input);
@@ -225,19 +228,20 @@ async function removal(req: Request, env: Env): Promise<Response> {
   const fail = (status: number, error: string, field?: string) =>
     wantsJson ? Response.json({ ok: false, error, field }, { status }) : removalPage(env, { ...input, error, field }, status);
 
-  if (env.REMOVAL_LIMIT && !(await env.REMOVAL_LIMIT.limit({ key: limitKey(clientIp) })).success) {
-    return withHeaders(fail(429, "Too many requests from your network. Try again later, or write to abuse@offseq.com."), { "retry-after": "60" });
-  }
   try {
     input = await readRemoval(req);
   } catch (e) {
-    if (e instanceof TooLarge) return text("Too large.\n", TEXT, 413);
+    if (e instanceof TooLarge) return fail(413, "The request is too large. Shorten the reason and try again.");
     throw e;
   }
 
   const check = validate(input);
   if (!check.ok) return fail(400, check.error, check.field);
   input.ip = check.ip;
+  // Limited after validation, so fixing a typo never costs an attempt or loses what was typed.
+  if (env.REMOVAL_LIMIT && !(await env.REMOVAL_LIMIT.limit({ key: limitKey(clientIp) })).success) {
+    return withHeaders(fail(429, "Too many requests from your network. Try again later, or write to abuse@offseq.com."), { "retry-after": "60" });
+  }
   // Bots that fill the hidden field get the normal success response and nothing is forwarded.
   if (!input.website) {
     if (!(await verifyTurnstile(input.token, clientIp, env))) {
@@ -327,7 +331,8 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
       return [await home(req, env, ctx), "page"];
     case "/removal": {
       const ip = new URL(req.url).searchParams.get("ip")?.trim().slice(0, 64);
-      return [removalPage(env, ip ? { ip } : {}), "removal"];
+      if (!ip) return [removalPage(env, {}), "removal"];
+      return [withHeaders(removalPage(env, { ip }), { "cache-control": `${NO_STORE}, no-transform` }), "removal-private"];
     }
     case "/removal/sent":
       return [page(env, path, "Request received", renderRemovalSent(), { noindex: true, description: REMOVAL_SENT }), "page"];
@@ -378,5 +383,8 @@ export default {
     const [res, kind] = await route(req, env, ctx, path);
     const out = await secure(res, env, kind);
     return req.method === "HEAD" ? new Response(null, out) : out;
+  },
+  async scheduled(event: ScheduledController, env: Env): Promise<void> {
+    await checkFreshness(env, event.scheduledTime);
   },
 } satisfies ExportedHandler<Env>;

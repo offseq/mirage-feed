@@ -3,8 +3,10 @@ name: publish
 on:
   schedule:
     - cron: "17 3 * * *"
-    # GitHub drops scheduled runs under load; a same-day rerun republishes identical files.
+    # GitHub drops and delays scheduled runs; later slots retry, and skip publishing once the snapshot is live.
     - cron: "47 9 * * *"
+    - cron: "23 15 * * *"
+    - cron: "53 20 * * *"
   workflow_dispatch:
     inputs:
       allow_delta:
@@ -38,6 +40,7 @@ jobs:
       day: ${{ steps.meta.outputs.day }}
       generated: ${{ steps.meta.outputs.generated }}
       sha: ${{ steps.src.outputs.sha }}
+      live: ${{ steps.meta.outputs.live }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -107,6 +110,12 @@ jobs:
           [[ "$generated" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || { echo "::error::invalid generated"; exit 1; }
           echo "day=$day" >> "$GITHUB_OUTPUT"
           echo "generated=$generated" >> "$GITHUB_OUTPUT"
+          live=false
+          if [ "$GITHUB_EVENT_NAME" = schedule ] && [ -f prev/feed.json ] && [ "$(jq -r .generated prev/feed.json)" = "$generated" ]; then
+            live=true
+            echo "::notice::snapshot $generated is already published; skipping publish"
+          fi
+          echo "live=$live" >> "$GITHUB_OUTPUT"
 
       - name: Safety gates
         env:
@@ -156,6 +165,7 @@ jobs:
   publish:
     name: Sign and publish
     needs: build
+    if: needs.build.outputs.live != 'true'
     runs-on: ubuntu-24.04
     environment: publish
     timeout-minutes: 15

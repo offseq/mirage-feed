@@ -77,6 +77,20 @@ describe("removal POST headers", () => {
     expect(outcomes[5].headers.get("retry-after")).toBe("60");
   });
 
+  it("validates before rate limiting and keeps the input on a 429", async () => {
+    const limited = setup({ REMOVAL_LIMIT: { limit: async () => ({ success: false }) } }).env;
+    expect((await call(limited, "/removal", post({ ...valid, email: "nope" }))).status).toBe(400);
+    const html = await (await call(limited, "/removal", post(valid))).text();
+    expect(html).toContain('value="9.9.9.9"');
+    expect(html).toContain("This is our office NAT gateway");
+  });
+
+  it("answers JSON clients with JSON on an oversized body", async () => {
+    const res = await call(setup().env, "/removal", post({ ...valid, reason: "x".repeat(9000) }, { accept: "application/json" }));
+    expect(res.status).toBe(413);
+    expect(await res.json()).toMatchObject({ ok: false });
+  });
+
   it("rejects a Turnstile token issued for another hostname or action", async () => {
     vi.stubGlobal("fetch", siteverify({ hostname: "evil.example" }));
     expect((await call(setup().env, "/removal", post(valid))).status).toBe(400);
@@ -100,6 +114,18 @@ describe("removal form", () => {
     expect(html).toMatch(/id="reason"[^>]*aria-describedby="reason-hint"/);
     expect(html).toContain('data-action="removal"');
     expect(html).not.toContain("autofocus");
+  });
+
+  it("keeps a prefilled form out of analytics, CSP reports and referrers", async () => {
+    const res = await call(setup().env, "/removal?ip=9.9.9.9");
+    const csp = res.headers.get("content-security-policy") ?? "";
+    expect(res.headers.get("cache-control")).toBe("no-store, no-transform");
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(csp).toContain("challenges.cloudflare.com");
+    expect(csp).not.toContain("cloudflareinsights");
+    expect(csp).not.toContain("report-uri");
+    expect(csp).not.toContain("ainalytic");
+    expect((await call(setup().env, "/removal")).headers.get("content-security-policy")).toContain("report-uri");
   });
 
   it("prefills the address from ?ip= and escapes it", async () => {
@@ -245,13 +271,19 @@ describe("address parsing", () => {
     ["2a01::1", "2a01::/64", "2a01::"],
   ])("%s -> %s", (input, value, slug) => expect(parseAddr(input)).toMatchObject({ value, slug }));
 
-  it.each(["", "10.0.0.1", "9.9.9.9/32", "2a01:4f8::/48", "::ffff:8.8.8.8", "fe80::1", "2001:db8::1", "example.com", "1.2.3.4<", "9".repeat(70)])(
+  it.each(["", "10.0.0.1", "9.9.9.9/32", "2a01:4f8::/48", "::ffff:8.8.8.8", "fe80::1", "2001:db8::1", "3fff::1", "2002:c000:204::1", "2001::1", "example.com", "1.2.3.4<", "9".repeat(70)])(
     "rejects %j",
     (input) => expect(parseAddr(input)).toBeNull(),
   );
 });
 
 describe("/ip lookup", () => {
+  it("redirects a trailing slash to the canonical address", async () => {
+    const res = await call(setup().env, "/ip/8.8.8.8/");
+    expect(res.status).toBe(301);
+    expect(res.headers.get("location")).toBe("/ip/8.8.8.8");
+  });
+
   it("shows a listed address with its lists, record and removal link", async () => {
     const { env, r2 } = setup();
     lookupData(r2);
@@ -470,7 +502,7 @@ describe("home content and accessibility", () => {
   it("makes code blocks keyboard scrollable and drops empty header cells", async () => {
     const html = await homeHtml();
     expect(html).not.toMatch(/<pre>/);
-    expect(html).toContain('<pre tabindex="0" aria-label="FortiGate configuration">');
+    expect(html).toContain('<pre tabindex="0" role="region" aria-label="FortiGate configuration">');
     expect(html).not.toContain('<th scope="col"></th>');
     expect(html).toMatch(/<a href="\/mirage-feed\/SHA256SUMS" aria-label="SHA-256 [0-9a-f]{64}, full list in SHA256SUMS">/);
   });

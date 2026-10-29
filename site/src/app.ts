@@ -129,6 +129,7 @@ ${ANALYTICS_JS}
         headers: { accept: "application/json" },
         body: new URLSearchParams(new FormData(form)),
       });
+      if (!(res.headers.get("content-type") || "").includes("application/json")) throw new Error();
       const data = await res.json();
       if (data.ok) {
         track("Removal Submitted");
@@ -150,7 +151,7 @@ ${ANALYTICS_JS}
       } else msg.focus();
     } catch {
       msg.hidden = false;
-      msg.textContent = "Network error. Try again, or write to abuse@offseq.com.";
+      msg.textContent = "The request could not be sent. Try again, or write to abuse@offseq.com.";
       msg.focus();
     }
     if (window.turnstile) window.turnstile.reset();

@@ -101,19 +101,20 @@ function gapBar(active: number, observed: number): string {
 <div class="legend"><span><i aria-hidden="true"></i>in the feed ${share}%</span><span><i class="h" aria-hidden="true"></i>seen, not in the feed</span></div>`;
 }
 
-function headline(obs: Counts, pub: Counts): string {
+function headline(obs: Counts, pub: Counts, stale: boolean): string {
+  const window = stale ? "in the 24 hours before this build" : "in the last 24 hours";
   const active = pub.active_24h;
   const seen = obs.ips;
   if (typeof active !== "number" || typeof seen !== "number" || seen <= 0) {
     return `<p class="big">${num(pub.ips)}</p>\n<p class="lede">source IPs in the 7-day feed</p>`;
   }
   return `<p class="big">${num(Math.min(active, seen))}</p>
-<p class="lede">of ${num(seen)} source IPs seen in the last 24 hours are in the feed</p>
+<p class="lede">of ${num(seen)} source IPs seen ${window} are in the feed</p>
 ${gapBar(active, seen)}
-<p>Every address Mirage saw attacking in the last 24 hours counts as seen. Those in the feed have passed the <a href="#methodology">listing rules</a>. The gap is what the <a href="${esc(upsell("status"))}">full feed</a> holds.</p>`;
+<p>Every address Mirage saw attacking ${window} counts as seen. Those in the feed have passed the <a href="#methodology">listing rules</a>. The gap is what the <a href="${esc(upsell("status"))}">full feed</a> holds.</p>`;
 }
 
-function status(feed: FeedIndex | null, stats: Stats | null): string {
+function status(feed: FeedIndex | null, stats: Stats | null, stale: boolean): string {
   const obs = stats?.observed;
   const pub = stats?.published;
   if (!obs || !pub) {
@@ -133,7 +134,7 @@ function status(feed: FeedIndex | null, stats: Stats | null): string {
     ),
   ].join("");
   return `${when ? `<p class="dim">${when}.</p>` : ""}
-${headline(obs, pub)}
+${headline(obs, pub, stale)}
 <div class="scroll" tabindex="0" role="region" aria-label="Counts for the last 24 hours and in the feed"><table><thead><tr><td></td><th scope="col" class="n">Last 24 h</th><th scope="col" class="n">In the feed</th></tr></thead><tbody>${rows}</tbody></table></div>
 <p class="dim">Feed lists cover the last 7 days of activity (30 days for <code>ipv4-30d.txt</code>).</p>
 ${tops ? `<div class="tops">${tops}</div>` : ""}`;
@@ -141,12 +142,15 @@ ${tops ? `<div class="tops">${tops}</div>` : ""}`;
 
 export const STALE_AFTER_H = 36;
 
-function staleNotice(feed: FeedIndex | null, now: number): string {
+function ageHours(feed: FeedIndex | null, now: number): number | null {
   const built = Date.parse(feed?.generated ?? "");
-  if (!Number.isFinite(built)) return "";
-  const hours = Math.floor((now - built) / 3_600_000);
-  if (hours <= STALE_AFTER_H) return "";
-  return `<p class="msg err" role="status">Stale: this snapshot was built ${hours} hours ago. A daily build is overdue. The lists still load, but they are not current.</p>\n`;
+  return Number.isFinite(built) ? Math.floor((now - built) / 3_600_000) : null;
+}
+
+function staleNotice(feed: FeedIndex | null, hours: number | null): string {
+  if (hours === null || hours <= STALE_AFTER_H) return "";
+  const age = hours >= 72 ? `${Math.floor(hours / 24)} days` : `${hours} hours`;
+  return `<p class="msg err">Stale: this snapshot was built ${esc(utc(feed!.generated!))}, ${age} ago. A daily build is overdue. The lists still load, but they are not current.</p>\n`;
 }
 
 function files(feed: FeedIndex | null): string {
@@ -160,10 +164,11 @@ function files(feed: FeedIndex | null): string {
       (f) => `<tr><td class="nw"><a href="/mirage-feed/${esc(f.path)}">${esc(f.path)}</a>${f.consumers?.length ? `<span class="used">${esc(f.consumers.join(", "))}</span>` : ""}</td><td class="n">${num(f.count)}</td><td class="n">${bytes(f.bytes)}</td><td class="nw"><a href="/mirage-feed/SHA256SUMS" aria-label="SHA-256 ${esc(f.sha256 ?? "")}, full list in SHA256SUMS"><abbr title="${esc(f.sha256 ?? "")}">${esc((f.sha256 ?? "").slice(0, 12))}</abbr></a></td></tr>`,
     )
     .join("");
+  // Mirrors are URL prefixes for the same paths, not browsable pages.
   const mirrors = (feed?.mirrors ?? [])
     .map((m) => (typeof m === "string" ? m : (m.url ?? "")))
-    .filter((u) => /^https:\/\//.test(u))
-    .map((u) => `<a href="${esc(u)}">${esc(u.replace(/^https:\/\//, ""))}</a>`)
+    .filter((u) => /^https:\/\//.test(u) && !u.startsWith(SITE))
+    .map((u) => `<code>${esc(u)}</code>`)
     .join(", ");
   return `<div class="scroll" tabindex="0" role="region" aria-label="File index"><table><thead><tr><th scope="col">path <span class="dim">and tools that read it</span></th><th scope="col" class="n">count</th><th scope="col" class="n">size</th><th scope="col">sha256</th></tr></thead><tbody>${rows}</tbody></table></div>
 <p class="dim">Full checksums in <a href="/mirage-feed/SHA256SUMS">SHA256SUMS</a>. Index as JSON: <a href="/mirage-feed/feed.json">feed.json</a>.${mirrors ? ` Mirrors: ${mirrors}.` : ""}</p>
@@ -244,8 +249,9 @@ export function renderHome(feed: FeedIndex | null, stats: Stats | null, now: num
   const ttl = p.ttl_days ?? 7;
   const subscribe = SUBSCRIBE.map(([use, path]) => `<tr><td>${use}</td><td>${copyable(`${BASE}/${path}`, use)}</td></tr>`).join("");
 
+  const hours = ageHours(feed, now);
   return `<h1 class="sr">Mirage Feed: daily honeypot threat intelligence from OffSeq</h1>
-<section aria-labelledby="h-name"><h2 id="h-name">Name</h2>
+${staleNotice(feed, hours)}<section aria-labelledby="h-name"><h2 id="h-name">Name</h2>
 <p class="name"><b>mirage-feed</b> - daily attacker indicators from the OffSeq Mirage honeypot fleet</p>
 <p>Handshake-verified attacker IPs, exploited CVEs, payload URLs and tool fingerprints, rebuilt every day in the formats firewalls, SIEMs and threat-intel platforms already read. Free to use under CC BY 4.0, marked TLP:CLEAR.</p>
 <p>Need it in real time, with full session context? That is the <a href="${esc(upsell("hero"))}">full feed in OffSeq Mirage</a>.</p>
@@ -257,7 +263,7 @@ ${cmd(`curl -fsSL ${BASE}/latest/ipv4-7d.txt`, "curl command")}
 </section>
 
 <section id="status" aria-labelledby="h-status"><h2 id="h-status">Status</h2>
-${staleNotice(feed, now)}${status(feed, stats)}
+${status(feed, stats, hours !== null && hours > STALE_AFTER_H)}
 </section>
 
 <section id="lookup" aria-labelledby="h-lookup"><h2 id="h-lookup">Look up an address</h2>
@@ -292,7 +298,7 @@ ${integrations()}
 <ol>
 <li>It completed a TCP handshake and sent application data. UDP-only and spoofable traffic never qualifies.</li>
 <li>At least <b>${sensors} Mirage sensors in at least ${networks} networks</b> saw it within ${ttl} days. One-off hits stay out.</li>
-<li>It is not a known research scanner and not in the <a href="${REPO_URL}/blob/main/generator/allowlist.txt">allowlist</a>: private and special-purpose ranges, public DNS resolvers, root servers, and the first-party ranges of Cloudflare, Akamai, Fastly, Google, Microsoft 365, Apple and GitHub.</li>
+<li>It is not a known research scanner and not in the <a href="${REPO_URL}/blob/main/generator/allowlist.txt">allowlist</a>: private and special-purpose ranges, public DNS resolvers, root servers, and the first-party ranges of Cloudflare, Akamai, Fastly, Google, Microsoft 365, Apple and GitHub, and the published crawler ranges of Google, Bing and OpenAI.</li>
 <li>Its first sighting is at least <b>${delay} hours</b> old.</li>
 </ol>
 <p>Entries expire <b>${ttl} days</b> after the last observed activity; new activity renews them. Research scanners are excluded from the blocklists and published separately in <code>known-scanners-ipv4.txt</code> and <code>known-scanners-ipv6.txt</code>, so you can allowlist them.</p>

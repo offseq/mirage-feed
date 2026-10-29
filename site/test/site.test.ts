@@ -47,7 +47,7 @@ describe("pages", () => {
     const { env, r2 } = setup();
     vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-26T00:00:00Z"));
     published(r2);
-    expect(await (await call(env, "/")).text()).toContain("Stale: this snapshot was built 44 hours ago.");
+    expect(await (await call(env, "/")).text()).toContain("Stale: this snapshot was built 2026-10-24 03:05 UTC, 44 hours ago.");
   });
 
   it("renders a designed empty state before the first publish", async () => {

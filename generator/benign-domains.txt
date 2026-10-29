@@ -1,5 +1,5 @@
 # Domains (and their subdomains) never published in domains-7d.txt; they may still appear inside URLs.
-# misp-warninglists@fe7651f9f9723fda977cc90d07a2cdcb535909aa: tranco10k, plus shared hosting and file-drop services.
+# misp-warninglists@fe7651f9f9723fda977cc90d07a2cdcb535909aa: tranco10k, shared hosting, file drops, security vendors.
 0123tt.ru
 029whhg.com
 0lin.com
@@ -1757,6 +1757,7 @@ cengage.com
 censor.net
 census.gov
 census.gov.in
+censys.io
 centos.org
 centralnic.net
 centrastage.net
@@ -4955,6 +4956,7 @@ leadconnectorhq.com
 leadsquared.com
 leagueoflegends.com
 leakgallery.com
+leakix.net
 leaktube.net
 learncbse.in
 learnings.ai
@@ -6599,6 +6601,7 @@ pendingrenewaldeletion.com
 pendo.io
 penguinrandomhouse.com
 pensador.com
+pentest-tools.com
 people.cn
 people.com
 people.com.cn
@@ -7652,6 +7655,7 @@ sfx.ms
 sgvps.net
 sh.gov.cn
 shaalaa.com
+shadowserver.org
 shahrekhabar.com
 shahvani.com
 shalltry.com

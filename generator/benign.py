@@ -3,10 +3,12 @@
 import re
 from functools import cache
 from pathlib import Path
+from urllib.parse import urlsplit
 
 BENIGN_DOMAINS = Path(__file__).resolve().parent / "benign-domains.txt"
 LABEL = re.compile(r"(?!-)[a-z0-9-]{1,63}(?<!-)")
 TLD = re.compile(r"[a-z]{2,63}|xn--[a-z0-9-]{1,59}")
+URL = re.compile(r"[a-z][a-z0-9+.-]*://\S+")
 PUBLIC_SUFFIXES = frozenset(
     [
         "com",
@@ -174,6 +176,10 @@ DENY_PATHS = frozenset(
         "/v1/models",
     }
 )
+# Pages of the AI decoy sites themselves, reached by crawlers following the decoy's own links.
+DENY_PATH_PREFIXES = (
+    "/dashboard/", "/account", "/forgot-password", "/reset-password", "/onboarding", "/members", "/projects",
+)  # fmt: skip
 # LeakIX encodes the scanned target in /s/<token>/; long hex or base64 runs are per-target tokens too.
 TOKEN_PATH = re.compile(
     r"/s/[^/]+/|[0-9a-fA-F]{16,}|(?=[A-Za-z0-9+=]*[0-9])(?=[A-Za-z0-9+=]*[A-Za-z])[A-Za-z0-9+=]{16,}"
@@ -191,8 +197,12 @@ ATTACK_TOOL_UA = re.compile(
 )
 SELF_ID_UA = re.compile(
     r"bot|crawl|spider|scan|archiver|fetcher|externalagent|webindexer|inspect|measurement|infrawatch|xpanse"
-    r"|research|reconnaissance|authorized|cohere-ai|https?://|www\.|@",
+    r"|research|reconnaissance|authorized|discovery|customuseragent|cohere-ai|https?://|www\.|@",
     re.I,
+)
+# Real VPN clients: worth hunting on, but an IDS rule on them would fire on every employee login.
+VPN_CLIENT_UA = re.compile(
+    r"anyconnect|f5 ?access|pulse-?secure|globalprotect|citrixreceiver|fortisslvpn|forticlient|openvpn", re.I
 )
 LIBRARY_UA = re.compile(
     r"^(curl|wget|python-requests|python-urllib|python-httpx|aiohttp|go-http-client|okhttp|axios|node-fetch|undici"
@@ -228,13 +238,26 @@ def domain_ok(domain: str) -> bool:
     return not any(s in deny for s in _suffixes(domain))
 
 
+def url_ok(url: str) -> bool:
+    if not URL.fullmatch(url) or "%U%" in url:
+        return False
+    parts = urlsplit(url)
+    host = (parts.hostname or "").rstrip(".")
+    # A listed site's front page is a scanner fetching it, not a payload.
+    if parts.path in ("", "/") and not parts.query and TLD.fullmatch(host.rsplit(".", 1)[-1]) and not domain_ok(host):
+        return False
+    # Per-target query tokens could name the sensor that was attacked.
+    return not TOKEN_PATH.search(parts.query)
+
+
 def _path_key(path: str) -> str:
     key = re.sub(r"/{2,}", "/", path.casefold()).rstrip("/") or "/"
     return key.removeprefix("/api") if key.startswith("/api/") else key
 
 
 def path_ok(path: str) -> bool:
-    if len(path) < 3 or path.startswith("/.well-known/") or _path_key(path) in DENY_PATHS:
+    key = _path_key(path)
+    if len(path) < 3 or path.startswith("/.well-known/") or key in DENY_PATHS or key.startswith(DENY_PATH_PREFIXES):
         return False
     if "@" in path.removeprefix("/@vite/"):
         return False

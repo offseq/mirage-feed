@@ -56,6 +56,7 @@ export function setup(overrides: Partial<Env> = {}) {
   const env: Env = {
     FEED: r2 as unknown as R2Bucket,
     GITHUB_REPO: "offseq/mirage-feed",
+    ALERT_TO: "ops@example.org",
     GITHUB_REF: "data",
     REMOVAL_UPSTREAM: "https://mirage.example/api/feed/removal",
     FEED_PROXY_SECRET: "proxy-secret",

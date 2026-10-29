@@ -1,6 +1,6 @@
 import pytest
 
-from generator.benign import distinctive_path, domain_ok, path_ok, user_agent_ok
+from generator.benign import distinctive_path, domain_ok, path_ok, url_ok, user_agent_ok
 
 
 @pytest.mark.parametrize(
@@ -137,4 +137,34 @@ def test_user_agent_kept(ua):
     ],
 )
 def test_user_agent_dropped(ua):
+    assert not user_agent_ok(ua)
+
+
+@pytest.mark.parametrize(
+    ("url", "ok"),
+    [
+        ("http://198.51.100.7/bins/x86", True),
+        ("http://198.51.100.7:8080/", True),
+        ("http://evil-payload.example/", True),
+        ("https://pentest-tools.com/", False),
+        ("https://github.com/", False),
+        ("https://raw.githubusercontent.com/x/y/main/m.sh", True),
+        ("HTTP://198.51.100.7/x", False),
+        (" http://198.51.100.7/x", False),
+        ("http://198.51.100.7:8080/%U%?s=0123456789abcdef", False),
+        ("http://198.51.100.7/x.sh?s=0123456789abcdef", False),
+        ("http://198.51.100.7/x.sh?id=1", True),
+    ],
+)
+def test_url_ok(url, ok):
+    assert url_ok(url) is ok
+
+
+@pytest.mark.parametrize("path", ["/dashboard/api-keys", "/forgot-password", "/account", "/projects/new"])
+def test_decoy_navigation_paths_are_dropped(path):
+    assert not path_ok(path)
+
+
+@pytest.mark.parametrize("ua", ["MyCustomUserAgent/1.0", "zenox-opendir-discovery/1.0"])
+def test_self_identified_junk_uas_are_dropped(ua):
     assert not user_agent_ok(ua)

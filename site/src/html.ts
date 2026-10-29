@@ -123,4 +123,4 @@ export const cmd = (text: string, label: string): string =>
   `<div class="cmd"><span class="p" aria-hidden="true">$</span>${copyable(text, label)}</div>`;
 
 export const pre = (code: string, label: string): string =>
-  `<pre tabindex="0" aria-label="${esc(label)}"><code>${esc(code)}</code></pre>`;
+  `<pre tabindex="0" role="region" aria-label="${esc(label)}"><code>${esc(code)}</code></pre>`;

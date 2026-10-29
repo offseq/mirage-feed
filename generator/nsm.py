@@ -1,7 +1,7 @@
 import base64
 
 from . import BASE_URL
-from .benign import distinctive_path
+from .benign import VPN_CLIENT_UA, distinctive_path
 from .common import Artifact, Snapshot, lines, network
 
 ZEEK_HEADER = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url"
@@ -16,8 +16,8 @@ alert http any any -> $HOME_NET any (msg:"Mirage feed: attacker user-agent"; flo
 http.user_agent; dataset:isset,mirage-uas,type string,load datasets/uas.lst; {THRESHOLD} classtype:misc-activity; \
 sid:1900002; rev:1;)
 alert http any any -> $HOME_NET any (msg:"Mirage feed: path probed by attackers"; flow:established,to_server; \
-http.uri; dataset:isset,mirage-paths,type string,load datasets/paths.lst; {THRESHOLD} classtype:misc-activity; \
-sid:1900003; rev:1;)
+http.uri.raw; dataset:isset,mirage-paths,type string,load datasets/paths.lst; {THRESHOLD} classtype:misc-activity; \
+sid:1900003; rev:2;)
 alert http any any -> any any (msg:"Mirage feed: known payload SHA-256"; flow:established; \
 filesha256:datasets/sha256.lst; classtype:trojan-activity; sid:1900004; rev:1;)
 """
@@ -35,9 +35,13 @@ def zeek(s: Snapshot) -> bytes:
     rows += [(_zeek_value(r["url"]), "Intel::URL", f"{r['kind']} url") for r in s.lists["urls"]]
     rows += [(r["domain"], "Intel::DOMAIN", "payload domain") for r in s.lists["domains"]]
     rows += [(r["sha256"], "Intel::FILE_HASH", "payload sha256") for r in s.lists["hashes"]]
-    rows += [(r["value"], "Intel::SOFTWARE", "attacker user-agent") for r in s.lists["user_agents"]]
+    rows += [(ua, "Intel::SOFTWARE", "attacker user-agent") for ua in _alertable_uas(s)]
     body = [ZEEK_HEADER] + ["\t".join((v, k, SOURCE, d, BASE_URL)) for v, k, d in sorted(set(rows))]
     return lines(body)
+
+
+def _alertable_uas(s: Snapshot) -> list[str]:
+    return [r["value"] for r in s.lists["user_agents"] if not VPN_CLIENT_UA.search(r["value"])]
 
 
 def _score(confidence) -> int:
@@ -54,7 +58,7 @@ def render(s: Snapshot) -> list[Artifact]:
     v4 = [r["ip"] for r in ips if network(r["ip"]).version == 4]
     sha = sorted({r["sha256"] for r in s.lists["hashes"]})
     paths = _b64(r["value"] for r in s.lists["paths"] if distinctive_path(r["value"], r.get("cves")))
-    uas = _b64(r["value"] for r in s.lists["user_agents"])
+    uas = _b64(_alertable_uas(s))
     zeek_data = zeek(s)
     suri = ("suricata",)
     return [
