@@ -17,11 +17,23 @@ export function staleAlert(generated: string | undefined, now: number, repo: str
   };
 }
 
+async function readGenerated(env: Env): Promise<string | undefined> {
+  try {
+    return ((await (await env.FEED.get("_meta/published.json"))?.json()) as { generated?: string } | null)?.generated;
+  } catch (e) {
+    console.error("freshness: published.json unreadable", e);
+    return undefined;
+  }
+}
+
 export async function checkFreshness(env: Env, now: number): Promise<void> {
-  if (!env.ALERT) return;
-  const meta = (await (await env.FEED.get("_meta/published.json"))?.json().catch(() => null)) as { generated?: string } | null;
-  const alert = staleAlert(meta?.generated, now, env.GITHUB_REPO);
+  const alert = staleAlert(await readGenerated(env), now, env.GITHUB_REPO);
   if (!alert) return;
+  // Observability is off, so console output in `wrangler tail` is the only trace of a missed alert.
+  if (!env.ALERT) {
+    console.error(`freshness: no ALERT binding; ${alert.subject}`);
+    return;
+  }
   const raw = [
     `From: Mirage Feed <${FROM}>`,
     `To: ${env.ALERT_TO}`,

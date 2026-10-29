@@ -142,13 +142,14 @@ ${tops ? `<div class="tops">${tops}</div>` : ""}`;
 
 export const STALE_AFTER_H = 36;
 
-function ageHours(feed: FeedIndex | null, now: number): number | null {
-  const built = Date.parse(feed?.generated ?? "");
-  return Number.isFinite(built) ? Math.floor((now - built) / 3_600_000) : null;
+// Same threshold as /status.json and the freshness badge, which compare in seconds, not whole hours.
+function staleHours(feed: FeedIndex | null, now: number): number | null {
+  const age = now - Date.parse(feed?.generated ?? "");
+  return Number.isFinite(age) && age > STALE_AFTER_H * 3_600_000 ? Math.floor(age / 3_600_000) : null;
 }
 
 function staleNotice(feed: FeedIndex | null, hours: number | null): string {
-  if (hours === null || hours <= STALE_AFTER_H) return "";
+  if (hours === null) return "";
   const age = hours >= 72 ? `${Math.floor(hours / 24)} days` : `${hours} hours`;
   return `<p class="msg err">Stale: this snapshot was built ${esc(utc(feed!.generated!))}, ${age} ago. A daily build is overdue. The lists still load, but they are not current.</p>\n`;
 }
@@ -249,7 +250,7 @@ export function renderHome(feed: FeedIndex | null, stats: Stats | null, now: num
   const ttl = p.ttl_days ?? 7;
   const subscribe = SUBSCRIBE.map(([use, path]) => `<tr><td>${use}</td><td>${copyable(`${BASE}/${path}`, use)}</td></tr>`).join("");
 
-  const hours = ageHours(feed, now);
+  const hours = staleHours(feed, now);
   return `<h1 class="sr">Mirage Feed: daily honeypot threat intelligence from OffSeq</h1>
 ${staleNotice(feed, hours)}<section aria-labelledby="h-name"><h2 id="h-name">Name</h2>
 <p class="name"><b>mirage-feed</b> - daily attacker indicators from the OffSeq Mirage honeypot fleet</p>
@@ -263,7 +264,7 @@ ${cmd(`curl -fsSL ${BASE}/latest/ipv4-7d.txt`, "curl command")}
 </section>
 
 <section id="status" aria-labelledby="h-status"><h2 id="h-status">Status</h2>
-${status(feed, stats, hours !== null && hours > STALE_AFTER_H)}
+${status(feed, stats, hours !== null)}
 </section>
 
 <section id="lookup" aria-labelledby="h-lookup"><h2 id="h-lookup">Look up an address</h2>

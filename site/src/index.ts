@@ -88,11 +88,13 @@ function page(env: Env, path: string, title: string, body: string, o: PageOpts =
 }
 
 const TURNSTILE_JS = '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>';
-const removalPage = (env: Env, form: RemovalForm = {}, status = 200) =>
+// A prefilled form is noindex, which also keeps app.js analytics from firing against its narrowed CSP.
+const removalPage = (env: Env, form: RemovalForm = {}, status = 200, prefilled = false) =>
   page(env, "/removal", `${form.error ? "Error: " : ""}Removal request`, renderRemoval(form, env.TURNSTILE_SITEKEY), {
     status,
     head: TURNSTILE_JS,
     description: "Ask for an IP address to be taken out of the Mirage Feed. No account needed; requests are answered within 72 hours.",
+    ...(prefilled && { noindex: true, canonical: false, noreferrer: true }),
   });
 
 async function snapshot(req: Request, env: Env, ctx: ExecutionContext): Promise<{ feed: FeedIndex | null; stats: Stats | null }> {
@@ -189,17 +191,17 @@ async function ipLookup(req: Request, env: Env, ctx: ExecutionContext, path: str
   } catch {
     segment = "";
   }
-  const trimmed = segment.endsWith("/") ? parseAddr(segment.slice(0, -1)) : null;
-  if (trimmed) return redirect(`/ip/${trimmed.slug}`, 301);
-  const wantsJson = segment.endsWith(".json");
-  const input = wantsJson ? segment.slice(0, -5) : segment;
+  const slashed = segment.endsWith("/");
+  const bare = slashed ? segment.slice(0, -1) : segment;
+  const wantsJson = bare.endsWith(".json");
+  const input = wantsJson ? bare.slice(0, -5) : bare;
   const addr = parseAddr(input);
   const fail = (status: number, error: string, extra: Record<string, string> = {}) =>
     wantsJson
       ? json({ error }, status, NO_STORE, { "x-robots-tag": "noindex", ...extra })
       : withHeaders(lookupPage(env, path, "Error: Look up an address", `<section aria-labelledby="h-ip"><h1 id="h-ip">Look up an address</h1>\n${lookupForm(input.slice(0, 64), error)}\n</section>`, status, NO_STORE), extra);
   if (!addr) return fail(400, "Not a public IPv4 address, IPv6 address or IPv6 /64.");
-  if (addr.slug !== input) return redirect(`/ip/${addr.slug}${wantsJson ? ".json" : ""}`, 301);
+  if (slashed || addr.slug !== input) return redirect(`/ip/${addr.slug}${wantsJson ? ".json" : ""}`, 301);
 
   if (env.LOOKUP_LIMIT && !(await env.LOOKUP_LIMIT.limit({ key: limitKey(req.headers.get("cf-connecting-ip") ?? "") })).success) {
     return fail(429, "Too many lookups from your network. Try again in a minute.", { "retry-after": "60" });
@@ -332,7 +334,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
     case "/removal": {
       const ip = new URL(req.url).searchParams.get("ip")?.trim().slice(0, 64);
       if (!ip) return [removalPage(env, {}), "removal"];
-      return [withHeaders(removalPage(env, { ip }), { "cache-control": `${NO_STORE}, no-transform` }), "removal-private"];
+      return [withHeaders(removalPage(env, { ip }, 200, true), { "cache-control": `${NO_STORE}, no-transform` }), "removal-private"];
     }
     case "/removal/sent":
       return [page(env, path, "Request received", renderRemovalSent(), { noindex: true, description: REMOVAL_SENT }), "page"];
@@ -385,6 +387,11 @@ export default {
     return req.method === "HEAD" ? new Response(null, out) : out;
   },
   async scheduled(event: ScheduledController, env: Env): Promise<void> {
-    await checkFreshness(env, event.scheduledTime);
+    try {
+      await checkFreshness(env, event.scheduledTime);
+    } catch (e) {
+      console.error("freshness: alert not sent", e);
+      throw e;
+    }
   },
 } satisfies ExportedHandler<Env>;

@@ -125,6 +125,9 @@ describe("removal form", () => {
     expect(csp).not.toContain("cloudflareinsights");
     expect(csp).not.toContain("report-uri");
     expect(csp).not.toContain("ainalytic");
+    const html = await res.text();
+    expect(html).toContain('<meta name="robots" content="noindex,nofollow">');
+    expect(html).not.toContain('rel="canonical"');
     expect((await call(setup().env, "/removal")).headers.get("content-security-policy")).toContain("report-uri");
   });
 
@@ -226,6 +229,7 @@ describe("status and badges", () => {
     expect(res.status).toBe(503);
     expect(((await res.json()) as { stale: boolean }).stale).toBe(true);
     expect(((await (await call(env, "/badge/freshness.json")).json()) as { color: string }).color).toBe("red");
+    expect(await (await call(env, "/")).text()).toContain("Stale: this snapshot was built 2026-10-24 03:05 UTC, 36 hours ago.");
     expect((await call(setup().env, "/status.json")).status).toBe(503);
   });
 });
@@ -278,10 +282,14 @@ describe("address parsing", () => {
 });
 
 describe("/ip lookup", () => {
-  it("redirects a trailing slash to the canonical address", async () => {
-    const res = await call(setup().env, "/ip/8.8.8.8/");
+  it.each([
+    ["/ip/8.8.8.8/", "/ip/8.8.8.8"],
+    ["/ip/8.8.8.8.json/", "/ip/8.8.8.8.json"],
+    ["/ip/2a01:4f8::1/64/", "/ip/2a01:4f8::"],
+  ])("redirects a trailing slash on %s to the canonical address", async (path, location) => {
+    const res = await call(setup().env, path);
     expect(res.status).toBe(301);
-    expect(res.headers.get("location")).toBe("/ip/8.8.8.8");
+    expect(res.headers.get("location")).toBe(location);
   });
 
   it("shows a listed address with its lists, record and removal link", async () => {
