@@ -299,7 +299,7 @@ ${integrations()}
 <ol>
 <li>It completed a TCP handshake and sent application data. UDP-only and spoofable traffic never qualifies.</li>
 <li>At least <b>${sensors} Mirage sensors in at least ${networks} networks</b> saw it within ${ttl} days. One-off hits stay out.</li>
-<li>It is not a known research scanner and not in the <a href="${REPO_URL}/blob/main/generator/allowlist.txt">allowlist</a>: private and special-purpose ranges, public DNS resolvers, root servers, and the first-party ranges of Cloudflare, Akamai, Fastly, Google, Microsoft 365, Apple and GitHub, and the published crawler ranges of Google, Bing and OpenAI.</li>
+<li>It is not a known research scanner and not in the <a href="${REPO_URL}/blob/main/generator/allowlist.txt">allowlist</a>: private and special-purpose ranges, public DNS resolvers, root servers, and the first-party ranges of Cloudflare, Akamai, Fastly, Google, Microsoft 365, Apple and GitHub, and the crawler ranges of Google, Bing, OpenAI, Apple, DuckDuckGo, Ahrefs and Semrush.</li>
 <li>Its first sighting is at least <b>${delay} hours</b> old.</li>
 </ol>
 <p>Entries expire <b>${ttl} days</b> after the last observed activity; new activity renews them. Research scanners are excluded from the blocklists and published separately in <code>known-scanners-ipv4.txt</code> and <code>known-scanners-ipv6.txt</code>, so you can allowlist them.</p>

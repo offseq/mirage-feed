@@ -24,7 +24,7 @@ GITHUB_META = "https://api.github.com/meta"
 GITHUB_KEYS = ("hooks", "web", "api", "git", "pages")
 GOOGLE_ALL = "https://www.gstatic.com/ipranges/goog.json"
 GOOGLE_CLOUD = "https://www.gstatic.com/ipranges/cloud.json"
-# Published search and AI crawler ranges; several sit inside customer clouds, so they are added after the subtraction.
+# Search, SEO and AI crawler ranges; several sit inside customer clouds, so they are added after the subtraction.
 CRAWLERS = (
     "https://developers.google.com/static/crawling/ipranges/common-crawlers.json",
     "https://developers.google.com/static/crawling/ipranges/special-crawlers.json",
@@ -33,6 +33,9 @@ CRAWLERS = (
     "https://openai.com/gptbot.json",
     "https://openai.com/searchbot.json",
     "https://openai.com/chatgpt-user.json",
+    "https://search.developer.apple.com/applebot.json",
+    "https://duckduckgo.com/duckduckbot.json",
+    "https://api.ahrefs.com/v3/public/crawler-ip-ranges",
 )
 STATIC = {
     "IANA special-purpose registries (RFC 6890)": (
@@ -48,6 +51,7 @@ STATIC = {
         "2001:7fe::53 2001:503:c27::2:30 2001:7fd::1 2001:500:9f::42 2001:dc3::35"
     ),
     "Microsoft global edge AS8068 (Front Door, Microsoft 365)": "13.107.0.0/16",
+    "SemrushBot (https://www.semrush.com/bot/), no machine-readable list": "85.208.96.0/24 185.191.171.0/24",
 }
 # Security vendors whose own sites show up as "payload" hosts when their scanners fetch them.
 SECURITY_VENDORS = ["pentest-tools.com", "shodan.io", "censys.io", "leakix.net", "shadowserver.org", "rapid7.com"]

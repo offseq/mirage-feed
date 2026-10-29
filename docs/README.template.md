@@ -227,8 +227,8 @@ An address appears in the feed only when **all** of these hold:
    RFC 5735, RFC 6598, RFC 6890, multicast, IPv6 link-local), public DNS resolvers and root servers, and the
    first-party ranges of Cloudflare, Akamai (without Linode), Fastly, Apple and Microsoft 365 from the vendored
    [MISP warninglists](https://github.com/MISP/misp-warninglists), Google's own ranges (not Google Cloud), GitHub and
-   Microsoft's AS8068 edge, and the published crawler ranges of Google, Bing and OpenAI. Customer clouds (AWS, Azure,
-   Google Cloud, Linode) are not excluded: that is where attackers rent machines.
+   Microsoft's AS8068 edge, and the crawler ranges of Google, Bing, OpenAI, Apple, DuckDuckGo, Ahrefs and Semrush.
+   Customer clouds (AWS, Azure, Google Cloud, Linode) are not excluded: that is where attackers rent machines.
 4. It is not a known research scanner: Alpha Strike, BinaryEdge, Bitsight, Censys, Criminal IP, Cyber Resilience,
    Driftnet, FOFA, Hadrian, Internet Census, Internet Measurement, Intrinsec, IPIP, LeakIX, Modat, Netlas, NETSCOUT,
    ONYPHE, Palo Alto Xpanse, Quake, Rapid7, ReCyber, Shadowserver, Shodan, Stretchoid, Tenable, ZoomEye, university

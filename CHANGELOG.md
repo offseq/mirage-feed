@@ -9,9 +9,10 @@ Changed on 2026-10-29 (no paths or columns added, so `schema_version` stays `2.0
 
 - `suricata/mirage.rules` sid 1900003 rev 2 matches `datasets/paths.lst` against `http.uri.raw`, so paths listed
   with their original encoding match; rev 1 used the normalised `http.uri`.
-- VPN client user agents (AnyConnect, GlobalProtect, Pulse Secure, FortiClient, F5 Access, Citrix Receiver, OpenVPN)
-  stay in `user-agents-7d.txt` and MISP but are no longer in `zeek/mirage.intel` or `suricata/datasets/uas.lst`.
-- The allowlist covers the published crawler ranges of Google, Bing and OpenAI. An attacker IP inside the allowlist
+- `zeek/mirage.intel` and `suricata/datasets/uas.lst` hold only user agents safe to alert on: named attack tools, or
+  strings with neither a browser engine marker nor a VPN client name (AnyConnect, GlobalProtect, Pulse Secure,
+  FortiClient, F5 Access, Citrix Receiver and Workspace, OpenVPN). The others stay in `user-agents-7d.txt` and MISP.
+- The allowlist covers the crawler ranges of Google, Bing, OpenAI, Apple, DuckDuckGo, Ahrefs and Semrush. An attacker IP inside the allowlist
   is dropped when the snapshot is loaded, and leaves through `ipv4-removed-1d.txt`.
 - `urls-7d.txt` needs a lowercase scheme and a parseable host, and drops the front page of a site in
   `benign-domains.txt` and URLs whose query carries a per-target token.

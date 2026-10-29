@@ -1,7 +1,7 @@
 import base64
 
 from . import BASE_URL
-from .benign import VPN_CLIENT_UA, distinctive_path
+from .benign import alertable_ua, distinctive_path
 from .common import Artifact, Snapshot, lines, network
 
 ZEEK_HEADER = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url"
@@ -41,7 +41,7 @@ def zeek(s: Snapshot) -> bytes:
 
 
 def _alertable_uas(s: Snapshot) -> list[str]:
-    return [r["value"] for r in s.lists["user_agents"] if not VPN_CLIENT_UA.search(r["value"])]
+    return [r["value"] for r in s.lists["user_agents"] if alertable_ua(r["value"])]
 
 
 def _score(confidence) -> int:

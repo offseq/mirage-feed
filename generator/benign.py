@@ -199,8 +199,12 @@ SELF_ID_UA = re.compile(
 )
 # Real VPN clients: worth hunting on, but an IDS rule on them would fire on every employee login.
 VPN_CLIENT_UA = re.compile(
-    r"anyconnect|f5 ?access|pulse-?secure|globalprotect|citrixreceiver|fortisslvpn|forticlient|openvpn", re.I
+    r"anyconnect|f5 ?access|pulse-?secure|globalprotect|citrixreceiver|cwawebview|fortisslvpn|forticlient|openvpn"
+    r"|^connect/[0-9]",
+    re.I,
 )
+# A browser engine marker: such UAs are hunting leads, but an IDS rule on them would fire on real users.
+ENGINE_UA = re.compile(r"applewebkit/|gecko/|trident/|presto/", re.I)
 LIBRARY_UA = re.compile(
     r"^(curl|wget|python-requests|python-urllib|python-httpx|aiohttp|go-http-client|okhttp|axios|node-fetch|undici"
     r"|java|apache-httpclient|libwww-perl|vlc|ureq|reqwest|postmanruntime)\b",
@@ -273,6 +277,12 @@ def distinctive_path(path: str, cves) -> bool:
 def _browser(ua: str) -> bool:
     products = PARENS.sub(" ", ua).split()
     return all(p.split("/", 1)[0].casefold() in BROWSER_TOKENS for p in products)
+
+
+def alertable_ua(ua: str) -> bool:
+    if ATTACK_TOOL_UA.search(ua):
+        return True
+    return not (VPN_CLIENT_UA.search(ua) or ENGINE_UA.search(ua))
 
 
 def user_agent_ok(ua: str) -> bool:

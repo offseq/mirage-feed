@@ -1,6 +1,6 @@
 import pytest
 
-from generator.benign import distinctive_path, domain_ok, path_ok, url_ok, user_agent_ok
+from generator.benign import alertable_ua, distinctive_path, domain_ok, path_ok, url_ok, user_agent_ok
 
 
 @pytest.mark.parametrize(
@@ -179,3 +179,19 @@ def test_paths_sharing_a_decoy_prefix_are_kept(path):
 @pytest.mark.parametrize("ua", ["MyCustomUserAgent/1.0", "zenox-opendir-discovery/1.0"])
 def test_self_identified_junk_uas_are_dropped(ua):
     assert not user_agent_ok(ua)
+
+
+@pytest.mark.parametrize(
+    ("ua", "ok"),
+    [
+        ("zgrab/0.x", True),
+        ("Mozilla/5.0 (X11; Linux x86_64) Chrome/120.0 Safari/537.36 Nuclei", True),
+        ("TRAC/1.0", True),
+        ("AnyConnect Windows 5.1.7.80", False),
+        ("Connect/3.3.6/win32", False),
+        ("Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/150.0 Edg/150.0 CWAWEBVIEW/26.3.10.16", False),
+        ("Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/124.0 YaBrowser/24.4 Safari/537.36", False),
+    ],
+)
+def test_alertable_ua(ua, ok):
+    assert alertable_ua(ua) is ok
