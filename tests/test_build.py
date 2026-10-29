@@ -477,3 +477,12 @@ def test_og_images(out, snapshot_raw):
     assert og.card(s, (1200, 630)) == (out / "og.png").read_bytes()
     next(r for r in snapshot_raw["ips"] if r["window"] == "7d")["window"] = "1d"
     assert og.card(Snapshot(snapshot_raw), (1200, 630)) != (out / "og.png").read_bytes()
+
+
+def test_geo_pseudo_countries_become_null(snapshot_raw):
+    snapshot_raw["ips"][0]["country"] = "T1"
+    snapshot_raw["ips"][1]["country"] = "XX"
+    s = Snapshot(snapshot_raw)
+    by_ip = {r["ip"]: r for r in s.lists["ips"]}
+    assert by_ip[snapshot_raw["ips"][0]["ip"]]["country"] is None
+    assert by_ip[snapshot_raw["ips"][1]["ip"]]["country"] is None

@@ -31,7 +31,8 @@ TECHNIQUE = re.compile(r"T\d{4}(\.\d{3})?")
 CVE = re.compile(r"CVE-\d{4}-\d{4,}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 TOKEN = re.compile(r"[a-z0-9_-]{1,32}")
-COUNTRY = re.compile(r"[A-Z]{2}")
+# XX is Cloudflare's "unknown"; T1 (Tor) already fails the pattern.
+COUNTRY = re.compile(r"(?!XX)[A-Z]{2}")
 NAME = re.compile(r"[\w .,()/&'+-]{1,80}")
 
 
@@ -249,7 +250,8 @@ def _check_ip(i: int, rec) -> dict:
     for key in ("services", "tags", "attack", "cves"):
         if not isinstance(rec.get(key, []), list) or not all(isinstance(v, str) for v in rec.get(key, [])):
             raise SnapshotError(f"{where}.{key}: not a list of strings")
-    return {**rec, "ip": ip}
+    country = rec.get("country")
+    return {**rec, "ip": ip, "country": country if isinstance(country, str) and COUNTRY.fullmatch(country) else None}
 
 
 class Snapshot:
