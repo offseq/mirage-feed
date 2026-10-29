@@ -27,7 +27,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | Networks (ASNs) | 1,519 | 411 | 7 days |
 | Countries | 137 | 81 | 7 days |
 | CVEs exploited (11 in CISA KEV) | 11 | 12 | 7 days |
-| Payload / download URLs | 37 | 16 | 7 days |
+| Payload / download URLs | 37 | 10 | 7 days |
 | Malware hashes | 4 | 3 | 30 days |
 | Tooling fingerprints (JA4, HASSH) | — | 90 | 7 days |
 | Research scanners (excluded) | — | 6,039 | 7 days |
