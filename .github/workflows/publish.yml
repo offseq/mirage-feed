@@ -111,7 +111,10 @@ jobs:
           echo "day=$day" >> "$GITHUB_OUTPUT"
           echo "generated=$generated" >> "$GITHUB_OUTPUT"
           live=false
-          if [ "$GITHUB_EVENT_NAME" = schedule ] && [ -f prev/feed.json ] && [ "$(jq -r .generated prev/feed.json)" = "$generated" ]; then
+          # Both mirrors must already serve it: a run that failed between the data push and the R2 flip must retry.
+          edge=$(curl -fsS --retry 3 https://feeds.offseq.com/mirage-feed/feed.json | jq -r .generated) || edge=
+          if [ "$GITHUB_EVENT_NAME" = schedule ] && [ -f prev/feed.json ] && [ "$(jq -r .generated prev/feed.json)" = "$generated" ] \
+            && [ "$edge" = "$generated" ]; then
             live=true
             echo "::notice::snapshot $generated is already published; skipping publish"
           fi
@@ -205,16 +208,10 @@ jobs:
       - name: Sign checksums
         env:
           MINISIGN_KEY: ${{ secrets.MINISIGN_KEY }}
-          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
         run: |
           key="$RUNNER_TEMP/minisign.key"
           (umask 077 && printf '%s\n' "$MINISIGN_KEY" > "$key")
-          sign=(minisign -S -s "$key" -m out/SHA256SUMS -x out/SHA256SUMS.minisig -t "mirage-feed $DAY generated $GENERATED")
-          if [ -n "$MINISIGN_PASSWORD" ]; then
-            printf '%s\n' "$MINISIGN_PASSWORD" | "${sign[@]}"
-          else
-            "${sign[@]}" < /dev/null
-          fi
+          minisign -S -s "$key" -m out/SHA256SUMS -x out/SHA256SUMS.minisig -t "mirage-feed $DAY generated $GENERATED" < /dev/null
           rm -f "$key"
 
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
@@ -238,10 +235,11 @@ jobs:
       - name: Load deploy key
         env:
           DATA_DEPLOY_KEY: ${{ secrets.DATA_DEPLOY_KEY }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           key="$RUNNER_TEMP/deploy_key"
           (umask 077 && printf '%s\n' "$DATA_DEPLOY_KEY" > "$key")
-          curl -fsS https://api.github.com/meta | jq -r '.ssh_keys[] | "github.com " + .' > "$RUNNER_TEMP/known_hosts"
+          gh api meta --jq '.ssh_keys[] | "github.com " + .' > "$RUNNER_TEMP/known_hosts"
           echo "GIT_SSH_COMMAND=ssh -i $key -o IdentitiesOnly=yes -o UserKnownHostsFile=$RUNNER_TEMP/known_hosts -o StrictHostKeyChecking=yes" >> "$GITHUB_ENV"
 
       - name: Publish data branch
@@ -266,15 +264,18 @@ jobs:
           tag="spotlight-$(date -u +%G-%V)"
           gh release view "$tag" > /dev/null 2>&1 && exit 0
           mv dist/spotlight.tar.zst "dist/mirage-feed-spotlight-$DAY.tar.zst"
-          git push git@github.com:offseq/mirage-feed.git "HEAD:refs/tags/$tag"
+          # A run that pushed the tag but failed to create the release must not be blocked by its own tag.
+          git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null \
+            || git push git@github.com:offseq/mirage-feed.git "HEAD:refs/tags/$tag"
           gh release create "$tag" --verify-tag --title "Mirage spotlight $tag" --notes-file dist/notes.md \
             "dist/mirage-feed-spotlight-$DAY.tar.zst" out/SHA256SUMS out/SHA256SUMS.minisig
 
       - name: Update README stats
         run: |
+          export GIT_AUTHOR_NAME="$BOT_NAME" GIT_AUTHOR_EMAIL="$BOT_EMAIL" GIT_COMMITTER_NAME="$BOT_NAME" GIT_COMMITTER_EMAIL="$BOT_EMAIL"
           cp dist/README.md README.md
-          if ! git diff --quiet -- README.md; then
-            git -c user.name="$BOT_NAME" -c user.email="$BOT_EMAIL" commit -m "readme: stats for $DAY" -- README.md
-            git -c user.name="$BOT_NAME" -c user.email="$BOT_EMAIL" pull --rebase origin main
-            git push origin HEAD:main
-          fi
+          git diff --quiet -- README.md && exit 0
+          git commit -m "readme: stats for $DAY" -- README.md
+          # A human push between the rebase and the push is retried rather than failing a live publish.
+          for _ in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && exit 0; sleep 20; done
+          exit 1
