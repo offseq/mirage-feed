@@ -20,21 +20,21 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 
 | | Observed by Mirage, last 24 h | In the feed | Feed window |
 |---|---:|---:|---|
-| Source IPs active in the last 24 h | 9,200 | 852 | 24 h |
-| Source IPs | — | 1,788 | 7 days |
-| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 47 | 7 days |
-| IPv4 addresses (`ipv4-30d.txt`) | — | 5,374 | 30 days |
-| Networks (ASNs) | 1,032 | 367 | 7 days |
-| Countries | 110 | 76 | 7 days |
-| CVEs exploited (10 in CISA KEV) | 8 | 11 | 7 days |
-| Payload / download URLs | 21 | 9 | 7 days |
-| Malware hashes | 10 | 3 | 30 days |
-| Tooling fingerprints (JA4, HASSH) | — | 77 | 7 days |
-| Research scanners (excluded) | — | 5,517 | 7 days |
-| Credential pairs tried | 115,331 | top 100 passwords | 7 days |
-| Events | 651.91k events | — | — |
+| Source IPs active in the last 24 h | 13,435 | 1,082 | 24 h |
+| Source IPs | — | 2,079 | 7 days |
+| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 103 | 7 days |
+| IPv4 addresses (`ipv4-30d.txt`) | — | 5,800 | 30 days |
+| Networks (ASNs) | 1,519 | 411 | 7 days |
+| Countries | 137 | 81 | 7 days |
+| CVEs exploited (11 in CISA KEV) | 11 | 12 | 7 days |
+| Payload / download URLs | 37 | 16 | 7 days |
+| Malware hashes | 4 | 3 | 30 days |
+| Tooling fingerprints (JA4, HASSH) | — | 90 | 7 days |
+| Research scanners (excluded) | — | 6,039 | 7 days |
+| Credential pairs tried | 216,246 | top 100 passwords | 7 days |
+| Events | 1.08M events | — | — |
 
-<sub>Snapshot 2026-10-27 02:41 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-10-29 02:34 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
