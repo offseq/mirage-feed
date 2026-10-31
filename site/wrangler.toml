@@ -33,7 +33,7 @@ namespace_id = "1002"
 simple = { limit = 30, period = 60 }
 
 [triggers]
-crons = ["0 7,19 * * *"]
+crons = ["0 * * * *"]
 
 [vars]
 ALERT_TO = "npu+platforms@offseq.com"
