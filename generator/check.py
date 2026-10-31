@@ -300,16 +300,10 @@ def _gap(out: Path, prev: Path) -> int:
     return max(days, 1)
 
 
-def check_delta(out: Path, prev: Path | None, allow_delta: bool, bootstrap: bool) -> list[str]:
-    if bootstrap:
-        return []
-    if not prev or not (prev / "feed.json").is_file():
-        return ["no previous data to compare against; pass --bootstrap only for the first publish"]
-    if allow_delta:
-        return []
+def _delta(out: Path, prev: Path) -> dict[str, str]:
     days = _gap(out, prev)
     span = f" over {days} days" if days > 1 else ""
-    errors = []
+    found = {}
     for rel, limit in DELTA_LIMITS.items():
         if not (pair := _sizes(out, prev, rel)):
             continue
@@ -317,7 +311,7 @@ def check_delta(out: Path, prev: Path | None, allow_delta: bool, bootstrap: bool
         limit *= min(days, MAX_GAP_SCALE)
         if abs(new - old) >= MIN_CHANGE and (not old or abs(new - old) / old > limit):
             change = f"{(new - old) / old:+.1%}" if old else "from empty"
-            errors.append(
+            found[f"size {rel}"] = (
                 f"{rel}: size {old} -> {new} ({change}), limit ±{limit:.0%}{span}; use --allow-delta if expected"
             )
     churn = min(CHURN_LIMIT + (days - 1) * DAILY_CHURN, MAX_CHURN)
@@ -327,10 +321,18 @@ def check_delta(out: Path, prev: Path | None, allow_delta: bool, bootstrap: bool
         cur, old = pair
         added, gone = len(cur - old) / len(cur), len(old - cur) / len(old)
         if added > churn and gone > churn:
-            errors.append(
+            found[f"churn {rel}"] = (
                 f"{rel}: {added:.0%} new and {gone:.0%} gone since the previous build, limit {churn:.0%}{span}"
             )
-    return errors
+    return found
+
+
+def check_delta(out: Path, prev: Path | None, allow_delta: bool, bootstrap: bool) -> list[str]:
+    if bootstrap:
+        return []
+    if not prev or not (prev / "feed.json").is_file():
+        return ["no previous data to compare against; pass --bootstrap only for the first publish"]
+    return [] if allow_delta else list(_delta(out, prev).values())
 
 
 def _shares(keys: list[str]) -> dict[str, float]:
@@ -342,10 +344,9 @@ def _over(cur: dict[str, float], prev: dict[str, float], floor: float, jump: flo
     return [(k, v, limits[k]) for k, v in sorted(cur.items()) if v > limits[k]]
 
 
-def check_concentration(rows: list[tuple[str, str]], prev_rows: list[tuple[str, str]] = ()) -> list[str]:
-    """rows: (ip, asn) for the 7-day list; prev_rows: the same for the previous publish."""
+def _concentration(rows: list[tuple[str, str]], prev_rows: list[tuple[str, str]]) -> dict[str, str]:
     if len(rows) < CONCENTRATION_MIN:
-        return []
+        return {}
 
     def by_asn(r):
         return _shares([asn for _, asn in r if asn])
@@ -355,10 +356,15 @@ def check_concentration(rows: list[tuple[str, str]], prev_rows: list[tuple[str, 
 
     asns = _over(by_asn(rows), by_asn(prev_rows), MAX_ASN_SHARE, ASN_JUMP)
     blocks = _over(by_block(rows), by_block(prev_rows), MAX_SLASH16_SHARE, SLASH16_JUMP)
-    return [
-        *(f"AS{k} holds {v:.0%} of the 7-day list, limit {lim:.0%}" for k, v, lim in asns),
-        *(f"{k} holds {v:.0%} of the IPv4 list, limit {lim:.0%}" for k, v, lim in blocks),
-    ]
+    return {
+        **{f"asn {k}": f"AS{k} holds {v:.0%} of the 7-day list, limit {lim:.0%}" for k, v, lim in asns},
+        **{f"block {k}": f"{k} holds {v:.0%} of the IPv4 list, limit {lim:.0%}" for k, v, lim in blocks},
+    }
+
+
+def check_concentration(rows: list[tuple[str, str]], prev_rows: list[tuple[str, str]] = ()) -> list[str]:
+    """rows: (ip, asn) for the 7-day list; prev_rows: the same for the previous publish."""
+    return list(_concentration(rows, prev_rows).values())
 
 
 def check_schema(out: Path) -> list[str]:
@@ -469,8 +475,28 @@ def check_lookup(out: Path) -> list[str]:
     return errors
 
 
-def _ip_asn_rows(root: Path) -> list[tuple[str, str]]:
+def _ip_asn_rows(root: Path | None) -> list[tuple[str, str]]:
+    if not root or not (root / IP_CSVS[0]).is_file():
+        return []
     return list(zip(_csv_column(root, IP_CSVS[0], "ip"), _csv_column(root, IP_CSVS[0], "asn"), strict=True))
+
+
+def sustained(out: Path, prev: Path | None, mid: Path) -> dict[str, str]:
+    """Anomalies of out against prev, if mid (a snapshot day between them) already showed every one of them while
+    out is within limits of mid: a shift seen on two consecutive days is real, a one-day spike is not."""
+    if not prev:
+        return {}
+    try:
+        if not _index(prev)["day"] < _index(mid)["day"] < _index(out)["day"] or _anomalies(out, mid):
+            return {}
+        found = _anomalies(out, prev)
+        return found if found.keys() <= _anomalies(mid, prev).keys() else {}
+    except (OSError, KeyError, ValueError):
+        return {}
+
+
+def _anomalies(out: Path, prev: Path) -> dict[str, str]:
+    return {**_delta(out, prev), **_concentration(_ip_asn_rows(out), _ip_asn_rows(prev))}
 
 
 def run(
@@ -489,8 +515,6 @@ def run(
     missing = [f"missing output {rel}" for rel in REQUIRED if not (out / rel).is_file()]
     if missing:
         return missing
-    rows = _ip_asn_rows(out)
-    prev_rows = _ip_asn_rows(prev) if prev and (prev / IP_CSVS[0]).is_file() else []
     canaries = Allowlist(canary)
     return [
         *check_leaks(out, list(leak_patterns), list(leak_literals), require_leak_rules),
@@ -499,7 +523,7 @@ def run(
         *check_anonymizers(out),
         *check_delta(out, prev, allow_delta, bootstrap),
         *([] if allow_rollback else check_rollback(out, prev)),
-        *([] if allow_delta else check_concentration(rows, prev_rows)),
+        *([] if allow_delta else check_concentration(_ip_asn_rows(out), _ip_asn_rows(prev))),
         *check_schema(out),
         *check_stix(out),
         *check_expiry(out),

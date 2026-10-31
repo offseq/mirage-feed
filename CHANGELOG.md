@@ -7,6 +7,9 @@ exist stay stable within a major version; additions bump the minor version.
 
 Changed on 2026-10-29 (no paths or columns added, so `schema_version` stays `2.0`):
 
+- The publish job no longer stays stale when the size, churn or concentration checks fail on a real shift: if the
+  previous snapshot day already failed the same checks against the published build and the new build is within limits
+  of it, the build publishes with a warning. A one-day spike is still refused.
 - `suricata/mirage.rules` sid 1900003 rev 2 matches `datasets/paths.lst` against `http.uri.raw`, so paths listed
   with their original encoding match; rev 1 used the normalised `http.uri`.
 - `zeek/mirage.intel` and `suricata/datasets/uas.lst` hold only user agents safe to alert on: named attack tools, or

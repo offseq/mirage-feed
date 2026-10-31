@@ -14,7 +14,8 @@ from .common import Snapshot, parse_ts
 
 DEFAULT_URL = "https://mirage.offseq.com/api/feed/community"
 TOKEN_ENV = "MIRAGE_FEED_TOKEN"
-ATTEMPTS = 5
+# About 6.5 minutes in all, so a backend redeploy does not fail a publish slot.
+ATTEMPTS = 8
 TIMEOUT = 60
 MAX_BODY = 64 << 20
 MAX_JSON = 256 << 20
@@ -81,7 +82,7 @@ def fetch(url: str, dest: Path, day: str | None = None, sleep=time.sleep, now: d
         except (urllib.error.URLError, TimeoutError, OSError, EOFError, http.client.IncompleteRead) as exc:
             last = exc
         if attempt < ATTEMPTS - 1:
-            sleep(5 * 2**attempt)
+            sleep(min(5 * 2**attempt, 120))
     else:
         raise FetchError(f"GET {url}: giving up after {ATTEMPTS} attempts: {last}")
     try:

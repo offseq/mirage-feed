@@ -6,6 +6,7 @@ import shutil
 import pytest
 
 from generator import check
+from generator.__main__ import main
 from generator.netlist import DEFAULT_ALLOWLIST, Allowlist
 
 from .conftest import ALLOWLIST
@@ -208,6 +209,74 @@ def test_concentration():
     assert any("AS64500 holds 30%" in e for e in check.check_concentration(half))
     assert check.check_concentration(half, prev_rows=half[:380]) == []
     assert any("AS64500" in e for e in check.check_concentration(half, prev_rows=half[120:]))
+
+
+def set_day(root, day):
+    feed = json.loads((root / "feed.json").read_text())
+    feed["day"] = f"2026-10-{day:02d}"
+    (root / "feed.json").write_text(json.dumps(feed))
+
+
+def three_days(out, tmp_path, old, mid, new, rel="latest/ipv4-7d.txt", write=None):
+    """Published build on 10-21, the backend's 10-22 snapshot and today's 10-23 build."""
+    prev, middle = tmp_path / "prev", tmp_path / "mid"
+    for root, day in ((prev, 21), (middle, 22)):
+        shutil.copytree(out, root)
+        set_day(root, day)
+    for root, values in ((prev, old), (middle, mid), (out, new)):
+        if write:
+            write(root, values)
+        else:
+            (root / rel).write_text("\n".join(values) + "\n")
+    return prev, middle
+
+
+URLS = [f"http://payload.example/{i}" for i in range(200)]
+
+
+def test_sustained_shift_is_accepted(out, tmp_path):
+    prev, mid = three_days(out, tmp_path, DOC_IPS[:100], DOC_IPS[:195], DOC_IPS[:200])
+    assert list(check.sustained(out, prev, mid)) == ["size latest/ipv4-7d.txt"]
+
+
+@pytest.mark.parametrize("mid", [100, 140])
+def test_one_day_spike_is_refused(out, tmp_path, mid):
+    prev, middle = three_days(out, tmp_path, DOC_IPS[:100], DOC_IPS[:mid], DOC_IPS[:200])
+    assert check.sustained(out, prev, middle) == {}
+
+
+def test_missing_or_stale_previous_day_is_refused(out, tmp_path):
+    prev, mid = three_days(out, tmp_path, DOC_IPS[:100], DOC_IPS[:195], DOC_IPS[:200])
+    assert check.sustained(out, prev, tmp_path / "absent") == {}
+    assert check.sustained(out, None, mid) == {}
+    set_day(mid, 21)
+    assert check.sustained(out, prev, mid) == {}
+
+
+def test_sustained_concentration_is_accepted(out, tmp_path):
+    def rows(share):
+        return [(f"{11 + i // 250}.{i % 250}.0.1", "64500" if i < share * 4 else str(64600 + i)) for i in range(400)]
+
+    def write(root, r):
+        (root / check.IP_CSVS[0]).write_text("ip,asn\n" + "".join(f"{ip},{asn}\n" for ip, asn in r))
+
+    prev, mid = three_days(out, tmp_path, rows(5), rows(38), rows(40), write=write)
+    assert list(check.sustained(out, prev, mid)) == ["asn 64500"]
+    _, spike = three_days(out, tmp_path / "spike", rows(5), rows(5), rows(40), write=write)
+    assert check.sustained(out, prev, spike) == {}
+    # Out within limits of mid, but mid itself had not crossed the limit yet: not two days of the same shift.
+    prev, ramp = three_days(out, tmp_path / "ramp", rows(5), rows(22), rows(30), write=write)
+    assert check.check_concentration(check._ip_asn_rows(out), check._ip_asn_rows(prev))
+    assert check.sustained(out, prev, ramp) == {}
+
+
+def test_check_cli_overrides_a_sustained_shift(out, tmp_path, capsys):
+    prev, mid = three_days(out, tmp_path, URLS[:100], URLS[:195], URLS[:200], rel="latest/urls-7d.txt")
+    args = ["check", str(out), "--previous", str(prev), "--allowlist", str(ALLOWLIST)]
+    assert main(args) == 1
+    assert main([*args, "--confirm-with", str(mid)]) == 0
+    assert "::warning::anomaly gate overridden" in capsys.readouterr().out
+    assert main([*args, "--confirm-with", str(prev)]) == 1
 
 
 @pytest.mark.parametrize(

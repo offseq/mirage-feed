@@ -19,6 +19,6 @@ jobs:
           persist-credentials: false
       - name: Install tools
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends minisign nftables
+          sudo apt-get update -o Acquire::Retries=5 -qq
+          sudo apt-get install -o Acquire::Retries=5 -y -qq --no-install-recommends minisign nftables
       - run: scripts/check-feed.sh https://feeds.offseq.com/mirage-feed

@@ -28,6 +28,11 @@ concurrency:
 
 permissions: {}
 
+defaults:
+  run:
+    # Explicit bash runs with pipefail; the implicit default would let `check | tee` hide a failing gate.
+    shell: bash
+
 jobs:
   build:
     name: Build and gate
@@ -84,8 +89,8 @@ jobs:
       - name: Install tools
         run: |
           pip install --require-hashes -r requirements-publish.txt
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends nftables suricata
+          sudo apt-get update -o Acquire::Retries=5 -qq
+          sudo apt-get install -o Acquire::Retries=5 -y -qq --no-install-recommends nftables suricata
 
       - name: Fetch snapshot
         env:
@@ -121,7 +126,9 @@ jobs:
           echo "live=$live" >> "$GITHUB_OUTPUT"
 
       - name: Safety gates
-        env:
+        id: gates
+        continue-on-error: true
+        env: &gates
           PREV: ${{ steps.prev.outputs.exists }}
           ALLOW_DELTA: ${{ inputs.allow_delta }}
           ALLOW_ROLLBACK: ${{ inputs.allow_rollback }}
@@ -132,7 +139,39 @@ jobs:
           if [ "$PREV" = true ]; then args+=(--previous prev); else args+=(--bootstrap); fi
           if [ "$ALLOW_DELTA" = true ]; then args+=(--allow-delta); fi
           if [ "$ALLOW_ROLLBACK" = true ]; then args+=(--allow-rollback); fi
-          python -m generator check out "${args[@]}"
+          printf '%s\0' "${args[@]}" > "$RUNNER_TEMP/gate-args"
+          python -m generator check out "${args[@]}" 2>&1 | tee "$RUNNER_TEMP/gates.log"
+
+      # Anomaly gates compare against the published build, which stays put while they fail; a shift the
+      # previous snapshot day already showed is real and must not keep the feed stale.
+      - name: Fetch previous snapshot day
+        if: steps.gates.outcome == 'failure' && steps.prev.outputs.exists == 'true' && inputs.allow_delta != true
+        env:
+          DAY: ${{ steps.meta.outputs.day }}
+          MIRAGE_FEED_TOKEN: ${{ secrets.MIRAGE_FEED_TOKEN }}
+          MIRAGE_FEED_URL: ${{ vars.MIRAGE_FEED_URL || 'https://mirage.offseq.com/api/feed/community' }}
+        run: python -m generator fetch --day "$(date -u -d "$DAY - 1 day" +%F)" --out prev-day.json
+
+      - name: Confirm sustained shift
+        if: steps.gates.outcome == 'failure'
+        env: *gates
+        run: |
+          [ -f prev-day.json ] || { echo "::error::safety gates failed"; exit 1; }
+          python -m generator build --snapshot prev-day.json --out prev-day
+          mapfile -d '' args < "$RUNNER_TEMP/gate-args"
+          python -m generator check out "${args[@]}" --confirm-with prev-day 2>&1 | tee "$RUNNER_TEMP/gates.log"
+
+      - name: Keep gate failures
+        if: failure()
+        run: grep '^FAIL ' "$RUNNER_TEMP/gates.log" > gates.txt || true
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: gates
+          path: gates.txt
+          if-no-files-found: ignore
+          retention-days: 3
 
       - name: Validate with upstream tools
         run: |
@@ -202,8 +241,8 @@ jobs:
 
       - name: Install minisign
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends minisign
+          sudo apt-get update -o Acquire::Retries=5 -qq
+          sudo apt-get install -o Acquire::Retries=5 -y -qq --no-install-recommends minisign
 
       - name: Sign checksums
         env:
@@ -279,3 +318,55 @@ jobs:
           # A human push between the rebase and the push is retried rather than failing a live publish.
           for _ in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && exit 0; sleep 20; done
           exit 1
+
+  notify:
+    name: Track failures
+    needs: [build, publish]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BUILD: ${{ needs.build.result }}
+      PUBLISH: ${{ needs.publish.result }}
+      LABEL: publish-failure
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: github.event_name == 'schedule' && (needs.build.result == 'failure' || needs.publish.result == 'failure')
+        continue-on-error: true
+        with:
+          name: gates
+          path: gates
+
+      - name: Open or update the failure issue
+        if: github.event_name == 'schedule' && (needs.build.result == 'failure' || needs.publish.result == 'failure')
+        run: |
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          {
+            echo "Scheduled publish failed: $run_url"
+            echo
+            if [ -s gates/gates.txt ]; then
+              echo "Failing gates:"
+              echo
+              # Indented code block: gate output cannot break out of it or mention anyone.
+              head -n 50 gates/gates.txt | cut -c1-300 | sed 's/^/    /'
+            else
+              echo "No gate failures recorded (build: $BUILD, publish: $PUBLISH); see the run log."
+            fi
+          } > body.md
+          gh label create "$LABEL" --force --color B60205 --description "Scheduled feed publish failed"
+          issue=$(gh issue list --label "$LABEL" --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body-file body.md
+          else
+            gh issue create --title "Scheduled feed publish is failing" --label "$LABEL" --body-file body.md
+          fi
+
+      - name: Close the failure issue
+        if: needs.publish.result == 'success'
+        run: |
+          issue=$(gh issue list --label "$LABEL" --state open --limit 1 --json number --jq '.[0].number // empty')
+          [ -z "$issue" ] || gh issue close "$issue" --comment "Published in $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

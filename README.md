@@ -261,6 +261,10 @@ Before every publish, CI refuses the build when any of these checks fail:
 - Any file matches the private leak rules (sensor addresses, decoy hostnames, internal markers).
 - A record fails the schema, or the STIX bundle has duplicate ids, missing properties or no TLP:CLEAR marking.
 
+The size, churn and concentration checks are overridden, with a warning, when the previous day's snapshot already
+failed the same ones against the published build and this build is within limits of it: a shift that holds for two
+consecutive days is real, a one-day spike is not.
+
 Domains, paths and user agents are filtered as well:
 
 - **Domains**: popular sites (Tranco top 10k), code-hosting and file-sharing services and public suffixes never

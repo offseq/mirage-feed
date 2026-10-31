@@ -29,6 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--allow-delta", action="store_true", help="accept size, churn and concentration anomalies")
     p.add_argument("--bootstrap", action="store_true", help="first publish: no previous data to compare")
     p.add_argument("--allow-rollback", action="store_true", help="accept a snapshot no newer than the previous build")
+    p.add_argument("--confirm-with", type=Path, help="build of the previous snapshot day; accept anomalies it shares")
     p.add_argument(
         "--require-leak-rules", action="store_true", help=f"fail when {' and '.join(check.LEAK_ENV)} are empty"
     )
@@ -54,11 +55,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"wrote {len(arts)} files to {args.out}")
         elif args.cmd == "check":
             patterns, literals = ([v for v in os.environ.get(k, "").splitlines() if v.strip()] for k in check.LEAK_ENV)
+            overridden = check.sustained(args.out, args.previous, args.confirm_with) if args.confirm_with else {}
+            for msg in overridden.values():
+                print(f"::warning::anomaly gate overridden, the shift held for two snapshot days: {msg}")
             errors = check.run(
                 args.out,
                 args.previous,
                 args.allowlist,
-                allow_delta=args.allow_delta,
+                allow_delta=args.allow_delta or bool(overridden),
                 bootstrap=args.bootstrap,
                 allow_rollback=args.allow_rollback,
                 leak_patterns=patterns,
