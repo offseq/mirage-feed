@@ -1,0 +1,16 @@
+AnyConnect Windows 4.5.04029
+AnyConnect Windows 5.1.7.80
+CitrixReceiver/4.12.0.65534 Windows/10.0 AuthManager/12.2.0.18007 (Release) X1Class
+Connect/3.3.6/win32/10.0.20348(20348)/x64
+F5 Access
+FortiSSLVPN (Windows NT; SV1 [SV{v=02.01; f=07;}])
+Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; .NET4.0C; .NET4.0E; .NET CLR 2.0.50727; .NET CLR 3.0.30729; .NET CLR 3.5.30729; rv:11.0) like Gecko
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0 CWAWEBVIEW/26.3.10.16 Windows/10.0 (24H2 Build 26100.32860)
+Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/92.0.4515.159 Safari/537.36
+Mozilla/5.0 (compatible; nmap-http-info)
+Mozilla/5.0 zgrab/0.x
+PAN GlobalProtect/6.2.8-223 (Microsoft Windows Server 2012 , 64-bit) Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+Pulse-Secure/22.7.3.27767
+TRAC/986105950
+friendly-scanner
+libredtail-http

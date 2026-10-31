@@ -1,0 +1,93 @@
+[
+  {
+    "active_24h": 1566,
+    "added": 0,
+    "anonymizers": 0,
+    "cves": 17,
+    "day": "2026-10-22",
+    "generated": "2026-10-23T20:18:52Z",
+    "hashes": 2,
+    "ips_7d": 3115,
+    "removed": 0,
+    "scanners": 3736,
+    "urls": 2
+  },
+  {
+    "active_24h": 931,
+    "added": 178,
+    "anonymizers": 42,
+    "cves": 24,
+    "day": "2026-10-23",
+    "generated": "2026-10-24T02:37:49Z",
+    "hashes": 2,
+    "ips_7d": 1706,
+    "removed": 1587,
+    "scanners": 5407,
+    "urls": 6
+  },
+  {
+    "active_24h": 789,
+    "added": 137,
+    "anonymizers": 46,
+    "cves": 10,
+    "day": "2026-10-24",
+    "generated": "2026-10-25T20:43:27Z",
+    "hashes": 3,
+    "ips_7d": 1688,
+    "removed": 155,
+    "scanners": 5412,
+    "urls": 9
+  },
+  {
+    "active_24h": 858,
+    "added": 202,
+    "anonymizers": 45,
+    "cves": 10,
+    "day": "2026-10-25",
+    "generated": "2026-10-26T10:16:17Z",
+    "hashes": 4,
+    "ips_7d": 1747,
+    "removed": 143,
+    "scanners": 5468,
+    "urls": 9
+  },
+  {
+    "active_24h": 852,
+    "added": 173,
+    "anonymizers": 47,
+    "cves": 11,
+    "day": "2026-10-26",
+    "generated": "2026-10-27T02:41:22Z",
+    "hashes": 3,
+    "ips_7d": 1788,
+    "removed": 132,
+    "scanners": 5517,
+    "urls": 9
+  },
+  {
+    "active_24h": 1075,
+    "added": 574,
+    "anonymizers": 103,
+    "cves": 12,
+    "day": "2026-10-28",
+    "generated": "2026-10-29T16:16:50Z",
+    "hashes": 3,
+    "ips_7d": 2059,
+    "removed": 303,
+    "scanners": 6102,
+    "urls": 10
+  },
+  {
+    "active_24h": 1936,
+    "added": 1591,
+    "anonymizers": 82,
+    "cves": 12,
+    "day": "2026-10-30",
+    "generated": "2026-10-31T02:52:29Z",
+    "hashes": 2,
+    "ips_7d": 3232,
+    "removed": 418,
+    "scanners": 6721,
+    "urls": 11
+  }
+]

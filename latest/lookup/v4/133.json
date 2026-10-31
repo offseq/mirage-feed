@@ -1,0 +1,1 @@
+{"133.242.174.119":{"lists":["ipv4-7d.txt","ipv4-30d.txt","ipv4-top10k.txt"],"record":{"as_org":"SAKURA-A SAKURA Internet Inc.","asn":7684,"attack":["T1110","T1190","T1595"],"confidence":36,"country":"JP","cves":[],"first_seen":"2026-10-21T00:00:00Z","hits":21,"kev":false,"last_seen":"2026-10-28T09:00:00Z","networks":2,"sensors":4,"services":["http"],"tags":["web-exploit"]}}}
