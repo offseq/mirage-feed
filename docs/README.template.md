@@ -73,8 +73,8 @@ it as "no entries".
 
 ### Schedule and polling
 
-The feed is built once a day, starting at **03:17 UTC** (GitHub sometimes runs it hours late), and entries appear **24 hours** after their first sighting.
-Poll at most once an hour; once a day after 03:30 UTC is enough. `feeds.offseq.com` answers `If-None-Match`
+The feed is built once a day, usually between **03:00 and 04:00 UTC**, and entries appear **24 hours** after their first sighting.
+Poll at most once an hour; once a day after 04:00 UTC is enough. `feeds.offseq.com` answers `If-None-Match`
 (ETag) and `If-Modified-Since` with `304 Not Modified`, so unchanged files cost nothing to re-check.
 `history.json` holds 90 days of daily totals, and format changes are listed in [CHANGELOG.md](CHANGELOG.md).
 

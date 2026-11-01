@@ -2,11 +2,9 @@ name: publish
 
 on:
   schedule:
-    - cron: "17 3 * * *"
-    # GitHub drops and delays scheduled runs; later slots retry, and skip publishing once the snapshot is live.
-    - cron: "47 9 * * *"
-    - cron: "23 15 * * *"
-    - cron: "53 20 * * *"
+    # GitHub starts scheduled runs hours late or drops them; hourly slots that exit early unless the backend has a
+    # newer day keep the lag short. The site Worker also dispatches this workflow as soon as a new day exists.
+    - cron: "41 * * * *"
   workflow_dispatch:
     inputs:
       allow_delta:
@@ -34,8 +32,32 @@ defaults:
     shell: bash
 
 jobs:
+  due:
+    name: Check for a new snapshot day
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    outputs:
+      run: ${{ steps.due.outputs.run }}
+    steps:
+      - id: due
+        run: |
+          run=true
+          if [ "$GITHUB_EVENT_NAME" = schedule ]; then
+            backend=$(curl -fsS --retry 3 -m 20 https://mirage.offseq.com/api/health | jq -r '.feed.day // empty') || backend=
+            live=$(curl -fsS --retry 3 -m 20 https://feeds.offseq.com/mirage-feed/feed.json | jq -r '.day // empty') || live=
+            # Either side unreadable runs the full build, whose own checks decide.
+            if [ -n "$backend" ] && [ -n "$live" ] && [[ ! "$backend" > "$live" ]]; then
+              run=false
+              echo "::notice::backend day $backend is already published"
+            fi
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build and gate
+    needs: due
+    if: needs.due.outputs.run == 'true'
     runs-on: ubuntu-24.04
     environment: publish
     timeout-minutes: 20
