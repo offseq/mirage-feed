@@ -13,6 +13,7 @@ export interface Env {
   TURNSTILE_SECRET?: string;
   ALERT?: SendEmail;
   ALERT_TO: string;
+  GH_DISPATCH_TOKEN?: string;
 }
 
 export const isShadow = (env: Env): boolean => env.SHADOW === "1";

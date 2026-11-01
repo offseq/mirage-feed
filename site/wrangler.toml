@@ -47,3 +47,5 @@ TURNSTILE_SITEKEY = "0x4AAAAAAFi-F5MxBaDk0zXN"
 #   TURNSTILE_SECRET   Turnstile secret key for TURNSTILE_SITEKEY
 #   FEED_PROXY_SECRET  shared secret sent upstream as X-Feed-Proxy-Secret
 #   SHADOW_AUTH        user:pass for the Basic-auth gate while SHADOW = "1"
+#   GH_DISPATCH_TOKEN  fine-grained PAT (offseq org or owner), repository access offseq/mirage-feed only,
+#                      permission Actions: Read and write; the hourly cron dispatches publish.yml when the backend is ahead

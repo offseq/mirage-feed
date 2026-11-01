@@ -9,7 +9,7 @@ const REPEAT_AT = [7, 19];
 const FROM = "feeds-alert@platforms.offseq.com";
 export const HEALTH_URL = "https://mirage.offseq.com/api/health";
 
-interface Health {
+export interface Health {
   ok?: boolean;
   degraded?: boolean;
   stale?: unknown[];
@@ -53,27 +53,27 @@ export function staleAlert(
   };
 }
 
-async function readGenerated(env: Env): Promise<string | undefined> {
+export async function readPublished(env: Env): Promise<{ generated?: string; day?: string } | null> {
   try {
-    return ((await (await env.FEED.get("_meta/published.json"))?.json()) as { generated?: string } | null)?.generated;
+    return (await (await env.FEED.get("_meta/published.json"))?.json()) ?? null;
   } catch (e) {
-    console.error("freshness: published.json unreadable", e);
-    return undefined;
+    console.error("cron: published.json unreadable", e);
+    return null;
   }
 }
 
-async function readHealth(): Promise<Health | null> {
+export async function readHealth(): Promise<Health | null> {
   try {
     const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(15_000), headers: { accept: "application/json" } });
     return res.ok ? ((await res.json()) as Health) : null;
   } catch (e) {
-    console.error("freshness: backend health unreadable", e);
+    console.error("cron: backend health unreadable", e);
     return null;
   }
 }
 
 export async function checkFreshness(env: Env, now: number): Promise<void> {
-  const alert = staleAlert(await readGenerated(env), await readHealth(), now, env.GITHUB_REPO);
+  const alert = staleAlert((await readPublished(env))?.generated, await readHealth(), now, env.GITHUB_REPO);
   if (!alert) return;
   // Observability is off, so console output in `wrangler tail` is the only trace of a missed alert.
   if (!env.ALERT) {

@@ -9,6 +9,7 @@ import { lookup, lookupForm, renderLookup, type Lookup } from "./lookup";
 import { PRIVACY_UPDATED, REMOVAL_SENT, type RemovalForm, renderNotFound, renderPrivacy, renderRemoval, renderRemovalSent } from "./pages";
 import { TooLarge, forwardRemoval, readRemoval, validate, verifyTurnstile, type RemovalInput } from "./removal";
 import { checkFreshness } from "./alert";
+import { dispatchPublish } from "./dispatch";
 import { authorized, challenge, secure, type Kind } from "./security";
 
 const DESCRIPTION =
@@ -387,6 +388,11 @@ export default {
     return req.method === "HEAD" ? new Response(null, out) : out;
   },
   async scheduled(event: ScheduledController, env: Env): Promise<void> {
+    try {
+      await dispatchPublish(env, event.scheduledTime);
+    } catch (e) {
+      console.error("dispatch: failed", e);
+    }
     try {
       await checkFreshness(env, event.scheduledTime);
     } catch (e) {
