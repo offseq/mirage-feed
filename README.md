@@ -20,21 +20,21 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 
 | | Observed by Mirage, last 24 h | In the feed | Feed window |
 |---|---:|---:|---|
-| Source IPs active in the last 24 h | 12,088 | 1,652 | 24 h |
-| Source IPs | — | 3,727 | 7 days |
-| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 77 | 7 days |
-| IPv4 addresses (`ipv4-30d.txt`) | — | 7,690 | 30 days |
-| Networks (ASNs) | 1,401 | 751 | 7 days |
-| Countries | 121 | 102 | 7 days |
-| CVEs exploited (13 in CISA KEV) | 11 | 14 | 7 days |
-| Payload / download URLs | 27 | 13 | 7 days |
-| Malware hashes | 3 | 2 | 30 days |
+| Source IPs active in the last 24 h | 12,371 | 1,646 | 24 h |
+| Source IPs | — | 3,807 | 7 days |
+| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 153 | 7 days |
+| IPv4 addresses (`ipv4-30d.txt`) | — | 7,893 | 30 days |
+| Networks (ASNs) | 1,419 | 750 | 7 days |
+| Countries | 133 | 102 | 7 days |
+| CVEs exploited (13 in CISA KEV) | 8 | 14 | 7 days |
+| Payload / download URLs | 44 | 13 | 7 days |
+| Malware hashes | 23 | 3 | 30 days |
 | Tooling fingerprints (JA4, HASSH) | — | 200 | 7 days |
-| Research scanners (excluded) | — | 7,234 | 7 days |
-| Credential pairs tried | 145,262 | top 100 passwords | 7 days |
-| Events | 898.76k events | — | — |
+| Research scanners (excluded) | — | 7,450 | 7 days |
+| Credential pairs tried | 143,528 | top 100 passwords | 7 days |
+| Events | 1.04M events | — | — |
 
-<sub>Snapshot 2026-11-02 02:53 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-11-03 02:50 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
