@@ -222,7 +222,7 @@ LIBRARY_UA = re.compile(
 BROWSER_TOKENS = frozenset(
     {"mozilla", "applewebkit", "chrome", "chromium", "safari", "firefox", "gecko", "version", "mobile", "edg", "edga",
      "edge", "opr", "crios", "fxios", "yabrowser", "samsungbrowser", "trident", "vivaldi", "electron", "xiaomi",
-     "miuibrowser", "ucbrowser", "huaweibrowser"}
+     "miuibrowser", "ucbrowser", "huaweibrowser", "like", "u3"}
 )  # fmt: skip
 PARENS = re.compile(r"\([^)]*\)?")
 

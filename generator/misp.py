@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from . import benign
-from .common import Artifact, Snapshot, anonymizer, dumps, network, parse_ts, uid
+from .common import Artifact, Snapshot, anonymizer, dumps, network, parse_ts, shared_address, uid
 from .netlist import DEFAULT_ALLOWLIST, Allowlist
 
 KEEP_EVENTS = 8
@@ -26,9 +26,14 @@ TYPES = {
 
 
 def _attributes(s: Snapshot) -> list[tuple[str, str, str, bool]]:
-    # VPN and Tor exits are shared egress: context for analysts, never an IDS or block signal.
+    # VPN and Tor exits, carrier NAT and residential-proxy VPN brute force are shared: context, not an IDS signal.
     ips = [
-        ("ip-src", r["ip"], f"confidence={r['confidence']} tags={';'.join(r.get('tags', []))}", not anonymizer(r))
+        (
+            "ip-src",
+            r["ip"],
+            f"confidence={r['confidence']} tags={';'.join(r.get('tags', []))}",
+            not (anonymizer(r) or shared_address(r)),
+        )
         for r in s.ips_in("7d")
     ]
     attrs = [("url", r["url"], r["kind"]) for r in s.lists["urls"]]
@@ -78,6 +83,7 @@ def _carried(prev: Path | None, s: Snapshot, allow: Allowlist) -> dict[str, dict
     stamp = str(int(parse_ts(s.generated).timestamp()))
     # An IDS attribute needs a block-listed address; an anonymizer context attribute only a listed one.
     live = {True: {r["ip"] for r in s.blockable("30d")}, False: {r["ip"] for r in s.ips_in("30d")}}
+    shared = {r["ip"] for r in s.ips_in("30d") if shared_address(r)}
     kept = {}
     entries = json.loads(manifest.read_text(encoding="utf-8"))
     for event_uuid, meta in sorted(entries.items(), key=lambda kv: kv[1]["date"], reverse=True):
@@ -94,9 +100,12 @@ def _carried(prev: Path | None, s: Snapshot, allow: Allowlist) -> dict[str, dict
                 gone = a["value"] not in live[bool(a.get("to_ids"))] or allow.hit(network(a["value"]))
             else:
                 gone = not STILL_OK.get(a["type"], bool)(a["value"])
+            # MISP only re-pulls an event whose timestamp moved, and only drops attributes sent as deleted.
             if gone:
-                # MISP only re-pulls an event whose timestamp moved, and only drops attributes sent as deleted.
                 a.update(deleted=True, to_ids=False, timestamp=stamp)
+                pruned = True
+            elif a.get("to_ids") and a["value"] in shared:
+                a.update(to_ids=False, timestamp=stamp)
                 pruned = True
         if pruned:
             ev["timestamp"] = ev["publish_timestamp"] = stamp

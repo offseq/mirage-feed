@@ -24,6 +24,7 @@ export interface FeedEntry {
 export interface FeedIndex {
   generated?: string;
   day?: string;
+  build?: string;
   policy?: { min_sensors?: number; min_networks?: number; delay_hours?: number; ttl_days?: number };
   stats?: Stats;
   mirrors?: (string | { url?: string; name?: string })[];

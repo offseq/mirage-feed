@@ -66,6 +66,7 @@ jobs:
     outputs:
       day: ${{ steps.meta.outputs.day }}
       generated: ${{ steps.meta.outputs.generated }}
+      build: ${{ steps.meta.outputs.build }}
       sha: ${{ steps.src.outputs.sha }}
       live: ${{ steps.meta.outputs.live }}
     steps:
@@ -133,17 +134,21 @@ jobs:
         run: |
           day=$(jq -r .day out/feed.json)
           generated=$(jq -r .generated out/feed.json)
+          build=$(jq -r .build out/feed.json)
           [[ "$day" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "::error::invalid day"; exit 1; }
           [[ "$generated" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || { echo "::error::invalid generated"; exit 1; }
+          [[ "$build" =~ ^[0-9a-f]{16}$ ]] || { echo "::error::invalid build"; exit 1; }
           echo "day=$day" >> "$GITHUB_OUTPUT"
           echo "generated=$generated" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
           live=false
           # Both mirrors must already serve it: a run that failed between the data push and the R2 flip must retry.
-          edge=$(curl -fsS --retry 3 https://feeds.offseq.com/mirage-feed/feed.json | jq -r .generated) || edge=
-          if [ "$GITHUB_EVENT_NAME" = schedule ] && [ -f prev/feed.json ] && [ "$(jq -r .generated prev/feed.json)" = "$generated" ] \
-            && [ "$edge" = "$generated" ]; then
+          # The build id, not generated: a generator change rebuilding the same snapshot must republish.
+          edge=$(curl -fsS --retry 3 https://feeds.offseq.com/mirage-feed/feed.json | jq -r .build) || edge=
+          if [ "$GITHUB_EVENT_NAME" = schedule ] && [ -f prev/feed.json ] && [ "$(jq -r .build prev/feed.json)" = "$build" ] \
+            && [ "$edge" = "$build" ]; then
             live=true
-            echo "::notice::snapshot $generated is already published; skipping publish"
+            echo "::notice::build $build of snapshot $generated is already published; skipping publish"
           fi
           echo "live=$live" >> "$GITHUB_OUTPUT"
 
@@ -240,6 +245,7 @@ jobs:
     env:
       DAY: ${{ needs.build.outputs.day }}
       GENERATED: ${{ needs.build.outputs.generated }}
+      BUILD: ${{ needs.build.outputs.build }}
       SHA: ${{ needs.build.outputs.sha }}
       BOT_NAME: github-actions[bot]
       BOT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
@@ -248,6 +254,7 @@ jobs:
         run: |
           [[ "$DAY" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "::error::invalid day"; exit 1; }
           [[ "$GENERATED" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || { echo "::error::invalid generated"; exit 1; }
+          [[ "$BUILD" =~ ^[0-9a-f]{16}$ ]] || { echo "::error::invalid build"; exit 1; }
           [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::invalid source sha"; exit 1; }
 
       # The commit the build used: the spotlight tag points at it and the README commit is rebased onto main.
@@ -272,7 +279,7 @@ jobs:
         run: |
           key="$RUNNER_TEMP/minisign.key"
           (umask 077 && printf '%s\n' "$MINISIGN_KEY" > "$key")
-          minisign -S -s "$key" -m out/SHA256SUMS -x out/SHA256SUMS.minisig -t "mirage-feed $DAY generated $GENERATED" < /dev/null
+          minisign -S -s "$key" -m out/SHA256SUMS -x out/SHA256SUMS.minisig -t "mirage-feed $DAY generated $GENERATED build $BUILD" < /dev/null
           rm -f "$key"
 
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2

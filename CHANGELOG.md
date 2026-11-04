@@ -3,6 +3,33 @@
 Format changes to the published feed. `feed.json` carries the current `schema_version`. Paths and columns that
 exist stay stable within a major version; additions bump the minor version.
 
+## 2.1
+
+Added on 2026-11-04:
+
+- `feed.json` and each new `history.json` row carry `build`, the first 16 hex digits of the SHA-256 of the
+  `SHA256SUMS` lines of every file but `feed.json` and `history.json`, and the minisign trusted comment reads
+  `mirage-feed <day> generated <generated> build <build>`. A rebuild of the same snapshot with changed files keeps
+  `generated` but gets a new `build`; an identical rebuild keeps both. Key change detection on `build`.
+
+Changed on 2026-11-04:
+
+- `ipv4-top{1k,10k}.txt` and `defender/defender-top500.csv` rank equal confidence by sensors, networks, hits and last
+  sighting, then address, instead of by address alone.
+- Records tagged `cgnat` (carrier-grade NAT) are treated like VPN-login brute force alone, and records with only
+  reconnaissance or discovery techniques (T1046, T1589, T1590, T1592, T1595) and no CVE leave the same lists: both
+  stay in `ipv4-{1d,7d,30d}.txt` but leave `ipv4-top{1k,10k}.txt` and the Defender CSV, with the Suricata IP
+  reputation score capped at 80.
+- VPN-login brute force alone and `cgnat` records are MISP `ip-src` attributes with `to_ids: false` (carried events
+  are updated too) and STIX `malicious-activity` indicators with `confidence` at most 50.
+- A CVE `name` over 200 characters or shaped like an article title (` | `, "what we know", "- vendor.com" and similar)
+  is published empty. CVE-2024-55591, CVE-2026-109618 and CVE-2026-109619 carry curated names.
+- `stats.observed.ips` and `stats.observed.cves` are never below `stats.published.active_24h` and
+  `stats.published.cves`. The README stats block is computed with the allowlist, so it matches `feed.json`.
+- `user-agents-7d.txt` drops Internet Explorer 11 (`like Gecko`) and UC Browser (`U3/`) strings.
+- `defender/defender-top500.csv` `MitreTechniques` holds the record's lead technique (T1485, T1486, T1657, T1190,
+  T1210, T1110 in that order) instead of its lowest-numbered one.
+
 ## 2.0
 
 Changed on 2026-11-04 (no paths or columns added, so `schema_version` stays `2.0`):

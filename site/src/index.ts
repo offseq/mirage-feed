@@ -128,6 +128,7 @@ async function statusJson(req: Request, env: Env, ctx: ExecutionContext): Promis
   const body = {
     generated: feed?.generated ?? null,
     day: feed?.day ?? null,
+    build: feed?.build ?? null,
     age_seconds: age,
     stale,
     counts: { ips_7d: pub.ips ?? null, active_24h: pub.active_24h ?? null, scanners: pub.scanners ?? null, cves: pub.cves ?? null },

@@ -38,6 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--snapshot", type=Path, required=True)
     p.add_argument("--template", type=Path, required=True)
     p.add_argument("--readme", type=Path, required=True)
+    p.add_argument("--allowlist", type=Path, default=netlist.DEFAULT_ALLOWLIST)
 
     p = sub.add_parser("spotlight", help="print weekly release notes as Markdown")
     p.add_argument("--snapshot", type=Path, required=True)
@@ -76,10 +77,12 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
             print("all gates passed")
         elif args.cmd == "readme":
-            changed = readme.write(args.snapshot, args.template, args.readme)
+            changed = readme.write(args.snapshot, args.template, args.readme, args.allowlist)
             print(f"{args.readme}: {'updated' if changed else 'unchanged'}")
         elif args.cmd == "spotlight":
-            sys.stdout.write(spotlight.notes(Snapshot.load(args.snapshot)))
+            sys.stdout.write(
+                spotlight.notes(Snapshot.load(args.snapshot, netlist.Allowlist(netlist.DEFAULT_ALLOWLIST)))
+            )
     except (SnapshotError, fetch.FetchError, FileExistsError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

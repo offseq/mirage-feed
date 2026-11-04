@@ -49,7 +49,7 @@ def _shards(arts: list[Artifact]) -> dict:
     }
 
 
-def feed_index(s: Snapshot, arts: list[Artifact]) -> dict:
+def feed_index(s: Snapshot, arts: list[Artifact], build: str) -> dict:
     shards = [a for a in arts if a.format == lookup.FORMAT]
     files = [
         {
@@ -73,6 +73,7 @@ def feed_index(s: Snapshot, arts: list[Artifact]) -> dict:
         "license": {"data": LICENSE_DATA, "code": LICENSE_CODE},
         "tlp": TLP,
         "generated": s.generated,
+        "build": build,
         "day": s.day,
         "policy": s.policy,
         "stats": s.stats,
@@ -92,16 +93,18 @@ def artifacts(s: Snapshot, prev: Path | None = None, allow: Allowlist | None = N
         *og.render(s),
     ]
     arts += lookup.render(s, arts)
-    counts = {a.path: a.count for a in arts}
-    arts.append(history.render(s, prev, counts["latest/ipv4-added-1d.txt"], counts["latest/ipv4-removed-1d.txt"]))
     arts.append(
         Artifact("schema/record.schema.json", SCHEMA_FILE.read_bytes(), "json-schema", 1, None, ("jsonschema",))
     )
     arts.append(Artifact("LICENSE-DATA", LICENSE_FILE.read_bytes(), "text", 1, None, ()))
     arts.append(Artifact("stats.json", dumps(s.stats, indent=2), "json", 1, None, ("feeds.offseq.com",)))
-    arts.append(
-        Artifact("feed.json", dumps(feed_index(s, arts), indent=2), "json", len(arts), None, ("feeds.offseq.com",))
-    )
+    # Content identity: a republish of the same snapshot with changed files gets a new one, an identical rebuild not.
+    build_id = _sha256(_sums(arts).encode())[:16]
+    counts = {a.path: a.count for a in arts}
+    added, removed = counts["latest/ipv4-added-1d.txt"], counts["latest/ipv4-removed-1d.txt"]
+    arts.append(history.render(s, prev, added, removed, build_id))
+    index = feed_index(s, arts, build_id)
+    arts.append(Artifact("feed.json", dumps(index, indent=2), "json", len(arts), None, ("feeds.offseq.com",)))
     # feed.json lists every other file's hash but not SHA256SUMS', so signing it here is not circular.
     arts.append(Artifact("SHA256SUMS", _sums(arts).encode(), "sha256sums", len(arts), None, ("sha256sum", "minisign")))
     return arts

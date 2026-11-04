@@ -27,6 +27,9 @@ ANONYMIZER_TAGS = frozenset({"vpn-exit", "tor-exit"})
 # Residential-proxy botnets brute-force VPN logins from shared home and mobile addresses: blocking them has collateral.
 VPN_ONLY_TAGS = frozenset({"vpn-bruteforce", "web-exploit", "web-scan"})
 VPN_ONLY_ATTACK = frozenset({"T1110", "T1190", "T1595"})
+# Carrier-grade NAT: one address fronts many subscribers.
+SHARED_TAGS = frozenset({"cgnat"})
+RECON_ATTACK = frozenset({"T1046", "T1589", "T1590", "T1592", "T1595"})
 MAX_BREAKDOWN = 50
 IP_COUNTS = {"sensors": 3, "networks": 2, "confidence": 0, "hits": 0}
 HOST_NETS = ((4, 32), (6, 64))
@@ -42,6 +45,20 @@ TOKEN = re.compile(r"[a-z0-9_-]{1,32}")
 # XX is Cloudflare's "unknown"; T1 (Tor) already fails the pattern.
 COUNTRY = re.compile(r"(?!XX)[A-Z]{2}")
 NAME = re.compile(r"[\w .,()/&'+-]{1,80}")
+CVE_NAME_MAX = 200
+# Same rule as the backend's snapshot.py: a resolver that returns an article title is not a CVE name.
+PAGE_TITLE = re.compile(
+    r"\s\|\s|\b(?:official blog|news roundup|what we know|explained|everything you need)\b"
+    r"|\s[-\u2013\u2014]\s(?:[\w-]+(?:\.[\w-]+)*\.(?:com|net|org|io|co|info|news|blog)|bleepingcomputer"
+    r"|securityweek|dark ?reading|help net security|the (?:hacker news|record|register)|kaspersky|sophos|rapid7"
+    r"|unit ?42|tenable|qualys|wiz|picus|socradar|gbhackers)(?:\s(?:blog|news|research|labs))?\s*$",
+    re.I,
+)
+CVE_NAMES = {
+    "CVE-2024-55591": "FortiOS / FortiProxy authentication bypass (jsconsole websocket)",
+    "CVE-2026-109618": "PHP2Shell",
+    "CVE-2026-109619": "PHP2Shell",
+}
 
 
 class SnapshotError(ValueError):
@@ -244,6 +261,31 @@ def vpn_bruteforce_only(rec: dict) -> bool:
     )
 
 
+def shared_address(rec: dict) -> bool:
+    """Malicious, but the address is shared with real users: no high-confidence list or IDS block signal."""
+    return not SHARED_TAGS.isdisjoint(rec.get("tags", [])) or vpn_bruteforce_only(rec)
+
+
+def recon_only(rec: dict) -> bool:
+    attack = rec.get("attack", [])
+    return bool(attack) and not rec.get("cves") and {t.split(".")[0] for t in attack} <= RECON_ATTACK
+
+
+def high_confidence(rec: dict) -> bool:
+    return not (shared_address(rec) or recon_only(rec))
+
+
+def cve_name(rec: dict) -> str | None:
+    name = rec.get("name")
+    ok = isinstance(name, str) and len(name) <= CVE_NAME_MAX and not PAGE_TITLE.search(name)
+    return CVE_NAMES.get(rec["cve"]) or (name if ok else None)
+
+
+def _rank(rec: dict) -> tuple:
+    seen = parse_ts(rec["last_seen"]).timestamp()
+    return -rec["confidence"], -rec["sensors"], -rec["networks"], -rec["hits"], -seen, ip_key(rec["ip"])
+
+
 def _ip_cves(ips: list[dict], known: list[dict]) -> list[dict]:
     """cves rows for CVEs cited by published IPs but missing from the snapshot's CVE list."""
     have = {c["cve"] for c in known}
@@ -259,6 +301,7 @@ def _ip_cves(ips: list[dict], known: list[dict]) -> list[dict]:
         rows.append(
             {
                 "cve": cve,
+                "name": CVE_NAMES.get(cve),
                 "kev": pinned or cve in kev.catalog(),
                 "sources": len(recs),
                 "first_seen": min(r["first_seen"] for r in recs),
@@ -379,7 +422,8 @@ class Snapshot:
         if not self.lists["ips"] or not self.lists["scanners"]:
             raise SnapshotError("ips and scanners must not be empty")
         self.lists["cves"] = [
-            {**c, "kev": c.get("kev") is True or c["cve"] in kev.catalog()} for c in self.lists["cves"]
+            {**c, "kev": c.get("kev") is True or c["cve"] in kev.catalog(), "name": cve_name(c)}
+            for c in self.lists["cves"]
         ]
         self.lists["cves"] += _ip_cves(self.ips_in("7d"), self.lists["cves"])
         kevs = {c["cve"] for c in self.lists["cves"] if c["kev"]} | kev.catalog()
@@ -399,6 +443,11 @@ class Snapshot:
             "fingerprints": len(self.lists["fingerprints"]),
             "anonymizers": len(self.anonymizers()),
         }
+        # Same-window pairs: the fleet saw at least what the feed publishes.
+        observed = self.stats["observed"]
+        for obs, pub in (("ips", "active_24h"), ("cves", "cves")):
+            if obs in observed:
+                observed[obs] = max(observed[obs], self.stats["published"][pub])
 
     @classmethod
     def load(cls, path: str | Path, allowlist=None) -> "Snapshot":
@@ -428,7 +477,7 @@ class Snapshot:
             for r in self.blockable("7d", 4)
             if skip_tags.isdisjoint(r.get("tags", []))
             and not (r.get("tags") and set(r["tags"]) <= skip_only)
-            and not vpn_bruteforce_only(r)
+            and high_confidence(r)
         ]
-        ranked = sorted(pool, key=lambda r: (-int(r["confidence"]), ip_key(r["ip"])))
+        ranked = sorted(pool, key=_rank)
         return sorted(ranked[:limit], key=lambda r: ip_key(r["ip"]))

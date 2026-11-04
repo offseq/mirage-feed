@@ -18,7 +18,7 @@ def _carried(prev: Path | None) -> list[dict]:
         rows = None
     if not isinstance(rows, list):
         return []
-    keep = ("day", "generated", *FIELDS)
+    keep = ("day", "generated", "build", *FIELDS)
     return [
         {k: r[k] for k in keep if k in r}
         for r in rows
@@ -26,11 +26,12 @@ def _carried(prev: Path | None) -> list[dict]:
     ]
 
 
-def entry(s: Snapshot, added: int, removed: int) -> dict:
+def entry(s: Snapshot, added: int, removed: int, build: str) -> dict:
     pub = s.stats["published"]
     return {
         "day": s.day,
         "generated": s.generated,
+        "build": build,
         "ips_7d": pub["ips"],
         "active_24h": pub["active_24h"],
         "added": added,
@@ -39,9 +40,9 @@ def entry(s: Snapshot, added: int, removed: int) -> dict:
     }
 
 
-def render(s: Snapshot, prev: Path | None, added: int, removed: int) -> Artifact:
+def render(s: Snapshot, prev: Path | None, added: int, removed: int, build: str) -> Artifact:
     cutoff = (date.fromisoformat(s.day) - timedelta(days=KEEP_DAYS - 1)).isoformat()
     rows = {r["day"]: r for r in _carried(prev) if cutoff <= r["day"] < s.day}
-    rows[s.day] = entry(s, added, removed)
+    rows[s.day] = entry(s, added, removed, build)
     history = [rows[d] for d in sorted(rows)]
     return Artifact("history.json", dumps(history, indent=2), "json", len(history), "90d", ("feeds.offseq.com", "atom"))

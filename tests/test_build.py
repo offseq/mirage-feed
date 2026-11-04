@@ -424,7 +424,7 @@ def test_stats_are_whitelisted(snapshot_raw):
 
 def test_feed_index_and_sums(out):
     feed = json.loads((out / "feed.json").read_text())
-    assert feed["schema_version"] == "2.0"
+    assert feed["schema_version"] == "2.1"
     assert "SHA256SUMS" not in {f["path"] for f in feed["files"]}
     by_path = {f["path"]: f for f in feed["files"]}
     assert by_path["latest/ipv4-7d.txt"]["count"] == len(text_lines(out, "latest/ipv4-7d.txt"))
@@ -445,11 +445,11 @@ def test_feed_index_and_sums(out):
 def test_readme_stats_idempotent(tmp_path):
     template = Path(__file__).parents[1] / "docs/README.template.md"
     target = tmp_path / "README.md"
-    assert readme.write(SNAPSHOT, template, target)
+    assert readme.write(SNAPSHOT, template, target, ALLOWLIST)
     first = target.read_text()
     assert "{{" not in first and "Snapshot 2026-10-24 03:05 UTC" in first
     assert "| Source IPs active in the last 24 h | 8,715 |" in first
-    assert not readme.write(SNAPSHOT, template, target)
+    assert not readme.write(SNAPSHOT, template, target, ALLOWLIST)
     assert target.read_text() == first
     assert first.split(readme.END)[1] == readme.render_template(template.read_text()).split(readme.END)[1]
 
@@ -518,6 +518,7 @@ def test_history_rolls_and_carries_over(tmp_path, snapshot_raw):
     assert today == {
         "day": "2026-10-23",
         "generated": "2026-10-24T03:05:00Z",
+        "build": json.loads((out / "feed.json").read_text())["build"],
         "ips_7d": 62,
         "active_24h": 13,
         "added": 0,

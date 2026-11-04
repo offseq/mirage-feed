@@ -9,7 +9,7 @@ import zlib
 
 import pytest
 
-from generator import build, check, fetch, firewall, nsm
+from generator import benign, build, check, fetch, firewall, nsm, readme
 from generator.common import Snapshot, ip_key, parse_ts
 from generator.netlist import Allowlist
 
@@ -355,3 +355,128 @@ def test_carried_misp_events_are_refiltered(tmp_path):
     ]
     assert ev["timestamp"] == stamp
     assert hashlib.md5(b"dpaste.org").hexdigest() not in (out2 / "misp/hashes.csv").read_text()
+
+
+def _rec(raw, ip, **change):
+    rec = next(r for r in raw["ips"] if r["ip"] == ip)
+    rec.update(change)
+    return rec
+
+
+def test_top_list_ties_break_on_evidence_not_address():
+    raw = snap()
+    for r in raw["ips"]:
+        r.update(confidence=56, sensors=3, networks=2, hits=10, last_seen="2026-10-23T00:00:00Z")
+    _rec(raw, "203.0.113.38", sensors=9)
+    _rec(raw, "203.0.113.36", networks=5)
+    _rec(raw, "203.0.113.34", hits=500)
+    _rec(raw, "203.0.113.33", last_seen="2026-10-23T23:00:00Z")
+    top = Snapshot(raw).ranked_v4(4)
+    assert {r["ip"] for r in top} == {"203.0.113.38", "203.0.113.36", "203.0.113.34", "203.0.113.33"}
+
+
+def test_recon_only_and_cgnat_leave_high_confidence_lists(tmp_path):
+    raw = snap()
+    _rec(raw, "198.51.100.30", confidence=100)
+    _rec(raw, "203.0.113.1", tags=["cgnat", "db-ransom", "sip-bruteforce"], attack=["T1110", "T1485"], confidence=100)
+    out = run_build(tmp_path, raw)
+    for ip in ("198.51.100.30", "203.0.113.1"):
+        assert ip in lines(out, V4_7D)
+        assert ip not in lines(out, "latest/ipv4-top1k.txt") + lines(out, "latest/ipv4-top10k.txt")
+        assert f",{ip}," not in (out / "latest/defender/defender-top500.csv").read_text()
+        assert f"{ip},1,80" in lines(out, "latest/suricata/mirage-iprep.list")
+    s = Snapshot(raw)
+    assert next(r for r in s.lists["ips"] if r["ip"] == "203.0.113.1")["tags"] == [
+        "cgnat",
+        "db-ransom",
+        "sip-bruteforce",
+    ]
+    with_cve = snap()
+    _rec(with_cve, "198.51.100.30", confidence=100, cves=["CVE-2021-41773"])
+    assert "198.51.100.30" in {r["ip"] for r in Snapshot(with_cve).ranked_v4(1000)}
+    misp = next(p for p in (out / "misp").glob("*.json") if p.name != "manifest.json")
+    attrs = {a["value"]: a for a in json.loads(misp.read_text())["Event"]["Attribute"] if a["type"] == "ip-src"}
+    assert attrs["203.0.113.1"]["to_ids"] is False and attrs["198.51.100.30"]["to_ids"] is True
+    bundle = json.loads((out / "latest/stix/mirage.json").read_text())
+    ind = next(o for o in bundle["objects"] if o.get("pattern") == "[ipv4-addr:value = '203.0.113.1']")
+    assert ind["indicator_types"] == ["malicious-activity"] and ind["confidence"] == 50
+    assert check.run(out, None, ALLOWLIST, bootstrap=True) == []
+
+
+def test_carried_misp_ids_flag_drops_for_shared_addresses(tmp_path):
+    out1 = run_build(tmp_path, snap(), name="m1")
+    raw = snap(**NEXT)
+    _rec(raw, "203.0.113.1", tags=["cgnat", "ssh-bruteforce"])
+    out2 = run_build(tmp_path, raw, out1, "m2")
+    uuid = next(u for u, m in json.loads((out1 / "misp/manifest.json").read_text()).items())
+    ev = json.loads((out2 / f"misp/{uuid}.json").read_text())["Event"]
+    stamp = str(int(parse_ts(NEXT["generated"]).timestamp()))
+    attr = next(a for a in ev["Attribute"] if a["value"] == "203.0.113.1")
+    assert (attr["to_ids"], attr["timestamp"], attr.get("deleted")) == (False, stamp, None)
+    assert ev["timestamp"] == stamp
+
+
+def test_build_id_tracks_content(tmp_path):
+    out1 = run_build(tmp_path, snap(), name="b1")
+    again = run_build(tmp_path, snap(), name="b2")
+    feed1 = json.loads((out1 / "feed.json").read_text())
+    assert (out1 / "SHA256SUMS").read_bytes() == (again / "SHA256SUMS").read_bytes()
+    skip = ("  feed.json", "  history.json", "  SHA256SUMS")
+    sums = "".join(f"{x}\n" for x in lines(out1, "SHA256SUMS") if not x.endswith(skip))
+    assert feed1["build"] == hashlib.sha256(sums.encode()).hexdigest()[:16]
+    assert json.loads((out1 / "history.json").read_text())[-1]["build"] == feed1["build"]
+    raw = snap()
+    raw["ips"] = [r for r in raw["ips"] if r["ip"] != plain_v4(FIX)[0]]
+    changed = run_build(tmp_path, raw, name="b3")
+    feed2 = json.loads((changed / "feed.json").read_text())
+    assert feed2["generated"] == feed1["generated"] and feed2["build"] != feed1["build"]
+
+
+def test_cve_names_reject_page_titles():
+    raw = snap()
+    raw["cves"] += [
+        {"cve": "CVE-2026-109618", "name": "PHP2Shell: what we know | Kaspersky official blog", "sources": 5},
+        {"cve": "CVE-2024-55591", "name": "Execute unauthorized code or commands in Fortinet FortiOS", "sources": 4},
+        {"cve": "CVE-2025-0001", "name": "x" * 201, "sources": 3},
+        {"cve": "CVE-2025-0002", "name": "Some appliance RCE - bleepingcomputer.com", "sources": 3},
+    ]
+    _rec(raw, "198.51.100.9", cves=["CVE-2026-109619"])
+    names = {c["cve"]: c["name"] for c in Snapshot(raw).lists["cves"]}
+    assert names["CVE-2026-109618"] == names["CVE-2026-109619"] == "PHP2Shell"
+    assert names["CVE-2024-55591"] == "FortiOS / FortiProxy authentication bypass (jsconsole websocket)"
+    assert names["CVE-2025-0001"] is names["CVE-2025-0002"] is names["CVE-2024-3400"] is None
+    assert names["CVE-2021-26855"] == "ProxyLogon"
+
+
+def test_readme_numbers_match_the_feed(tmp_path):
+    raw = snap()
+    raw["stats"]["observed"]["cves"] = 1
+    path = tmp_path / "s.json"
+    path.write_text(json.dumps(raw))
+    build.build(path, tmp_path / "out", None, ALLOWLIST)
+    feed = json.loads((tmp_path / "out/feed.json").read_text())["stats"]
+    assert feed["observed"]["cves"] == feed["published"]["cves"] == 7
+    target = tmp_path / "README.md"
+    readme.write(path, SNAPSHOT.parents[2] / "docs/README.template.md", target, ALLOWLIST)
+    pub = feed["published"]
+    text = target.read_text()
+    assert f"| Source IPs | — | {pub['ips']} | 7 days |" in text
+    assert f"| 7 | {pub['cves']} | 7 days |" in text
+
+
+def test_browser_user_agents_are_dropped():
+    ie11 = "Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; .NET4.0C; rv:11.0) like Gecko"
+    uc = (
+        "Mozilla/5.0 (Linux; U; Android 4.4.2; en-US; HM NOTE 1W Build/KOT49H) AppleWebKit/534.30 (KHTML, like Gecko) "
+        "Version/4.0 UCBrowser/11.0.5.850 U3/0.8.0 Mobile Safari/534.30"
+    )
+    assert not benign.user_agent_ok(ie11) and not benign.user_agent_ok(uc)
+    assert all(benign.user_agent_ok(ua) for ua in ("AnyConnect Windows 5.1.7.80", "F5 Access", "Mozilla/5.0 zgrab/0.x"))
+
+
+def test_defender_names_the_lead_technique():
+    assert firewall.lead_technique(["T1059", "T1059.004", "T1078", "T1110", "T1592.002"]) == "T1110"
+    assert firewall.lead_technique(["T1110", "T1190", "T1657"]) == "T1657"
+    assert firewall.lead_technique(["T1110", "T1190", "T1595"]) == "T1190"
+    assert firewall.lead_technique(["T1046", "T1595"]) == "T1046"
+    assert firewall.lead_technique([]) == ""

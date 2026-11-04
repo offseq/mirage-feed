@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from .common import Artifact, Snapshot, anonymizer, dumps, expiry, network, parse_ts, uid
+from .common import Artifact, Snapshot, anonymizer, dumps, expiry, network, parse_ts, shared_address, uid
 
 TLP_CLEAR_ID = "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487"
 TLP_EXTENSION = "extension-definition--60a3c5c5-0d10-413e-aab3-9e08dde9e88d"
@@ -14,6 +14,8 @@ TLP_CLEAR = {
     "extensions": {TLP_EXTENSION: {"extension_type": "property-extension", "tlp_2_0": "clear"}},
 }
 EPOCH = "2026-10-01T00:00:00.000Z"
+# "Medium" on the STIX 2.1 Appendix A Low/Med/High scale.
+SHARED_CONFIDENCE = 50
 # Markings and the identity first, relationships last, so importers that resolve refs in one pass always succeed.
 ORDER = {"marking-definition": 0, "identity": 1, "relationship": 3}
 IDENTITY_ID = f"identity--{uid('identity', 'offseq')}"
@@ -145,7 +147,7 @@ def bundle(s: Snapshot, prev: Path | None = None) -> dict:
                 # Shared VPN and Tor egress: anonymization context, not a malicious-activity block signal.
                 "anonymization" if anonymizer(rec) else "malicious-activity",
                 description=desc,
-                confidence=int(rec["confidence"]),
+                confidence=min(rec["confidence"], SHARED_CONFIDENCE) if shared_address(rec) else rec["confidence"],
                 **({"labels": labels} if labels else {}),
             )
         )

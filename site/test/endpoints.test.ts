@@ -211,6 +211,7 @@ describe("status and badges", () => {
     expect(await res.json()).toEqual({
       generated: "2026-10-24T03:05:00Z",
       day: "2026-10-23",
+      build: null,
       age_seconds: 21_300,
       stale: false,
       counts: { ips_7d: 2140, active_24h: 1052, scanners: 790, cves: 8 },
@@ -237,7 +238,7 @@ describe("status and badges", () => {
 describe("atom feed", () => {
   const history = [
     { day: "2026-10-22", generated: "2026-10-23T03:05:00Z", ips_7d: 3000, active_24h: 1500, added: 120, removed: 98, cves: 9, urls: 3, hashes: 1, scanners: 3700, anonymizers: 40 },
-    { day: "2026-10-23", generated: "2026-10-24T03:05:00Z", ips_7d: 3115, active_24h: 1566, added: 210, removed: 95, cves: 10, urls: 2, hashes: 2, scanners: 3736, anonymizers: 41 },
+    { day: "2026-10-23", generated: "2026-10-24T03:05:00Z", build: "0123456789abcdef", ips_7d: 3115, active_24h: 1566, added: 210, removed: 95, cves: 10, urls: 2, hashes: 2, scanners: 3736, anonymizers: 41 },
     { day: "bad<", generated: "x" },
   ];
 
@@ -248,7 +249,7 @@ describe("atom feed", () => {
     expect(res.headers.get("content-type")).toBe("application/atom+xml; charset=utf-8");
     const xml = await res.text();
     expect(xml.match(/<entry>/g)).toHaveLength(2);
-    expect(xml.indexOf("build/2026-10-23")).toBeLessThan(xml.indexOf("build/2026-10-22"));
+    expect(xml.indexOf("build/2026-10-23/0123456789abcdef</id>")).toBeLessThan(xml.indexOf("build/2026-10-22</id>"));
     expect(xml).toContain("<updated>2026-10-24T03:05:00Z</updated>\n<author>");
     expect(xml).toContain("3,115 IPs in the 7-day list (210 added, 95 removed)");
     expect(xml).not.toContain("bad<");

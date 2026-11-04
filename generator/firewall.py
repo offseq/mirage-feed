@@ -7,6 +7,8 @@ DEFENDER_TOP = 500
 # Defender raises tenant-wide alerts: shared egress stays out, and so does recon with nothing worse behind it.
 DEFENDER_SKIP_TAGS = ANONYMIZER_TAGS
 RECON_ONLY_TAGS = frozenset({"web-scan"})
+# Impact first: the technique an analyst would name the record by, ahead of the brute force or scanning around it.
+LEAD_TECHNIQUES = ("T1485", "T1486", "T1657", "T1190", "T1210", "T1110")
 DEFENDER_COLS = (
     "IndicatorType",
     "IndicatorValue",
@@ -78,6 +80,10 @@ def crowdsec(recs: list[dict]) -> list[list]:
     return [["168h", "Range" if "/" in r["ip"] else "Ip", r["ip"], "mirage-feed"] for r in recs]
 
 
+def lead_technique(attack: list[str]) -> str:
+    return next((t for t in LEAD_TECHNIQUES if t in attack), min(attack, default=""))
+
+
 def _severity(confidence: int) -> str:
     return "High" if confidence >= 90 else "Medium" if confidence >= 70 else "Low"
 
@@ -103,7 +109,7 @@ def defender(recs: list[dict], generated: str) -> list[list]:
                 "Block inbound connections from this address.",
                 "",
                 "SuspiciousActivity",
-                (r.get("attack") or [""])[0],
+                lead_technique(r.get("attack", [])),
                 str(severity != "Low"),
             ]
         )

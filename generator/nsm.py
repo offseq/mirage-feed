@@ -2,7 +2,7 @@ import base64
 
 from . import BASE_URL
 from .benign import alertable_ua, distinctive_path
-from .common import Artifact, Snapshot, lines, network, vpn_bruteforce_only
+from .common import Artifact, Snapshot, high_confidence, lines, network
 
 ZEEK_HEADER = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url"
 SOURCE = "mirage-feed"
@@ -51,7 +51,7 @@ def _alertable_uas(s: Snapshot) -> list[str]:
 
 def _score(r: dict) -> int:
     score = min(127, max(1, (int(r["confidence"]) * 127 + 50) // 100))
-    return min(score, HIGH_SCORE) if vpn_bruteforce_only(r) else score
+    return score if high_confidence(r) else min(score, HIGH_SCORE)
 
 
 def _b64(values) -> list[str]:

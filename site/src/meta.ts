@@ -4,6 +4,7 @@ import { ISO, SITE, esc, num } from "./html";
 export interface HistoryRow {
   day?: string;
   generated?: string;
+  build?: string;
   ips_7d?: number;
   active_24h?: number;
   added?: number;
@@ -32,7 +33,7 @@ export function renderAtom(history: HistoryRow[] | null, now: number): string {
         `${num(r.anonymizers)} anonymizers`,
       ].join(", ");
       return `<entry>
-<id>tag:feeds.offseq.com,2026:build/${esc(r.day)}</id>
+<id>tag:feeds.offseq.com,2026:build/${esc(r.day)}${/^[0-9a-f]{16}$/.test(r.build ?? "") ? `/${r.build}` : ""}</id>
 <title>Mirage Feed build ${esc(r.day)}</title>
 <updated>${esc(r.generated)}</updated>
 <link rel="alternate" type="text/html" href="${SITE}/"/>

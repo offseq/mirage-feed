@@ -62,7 +62,7 @@ it as "no entries".
 | You want to | Use |
 |---|---|
 | Block attackers on a firewall | `ipv4-7d.txt`, plus `ipv6-7d.txt` if you route IPv6 |
-| Block on a device with a small table | `ipv4-top1k.txt` or `ipv4-top10k.txt`: the 1,000 or 10,000 highest-confidence addresses (file sorted by address), without [VPN-login brute force alone](#how-an-ip-gets-listed) |
+| Block on a device with a small table | `ipv4-top1k.txt` or `ipv4-top10k.txt`: the 1,000 or 10,000 highest-confidence addresses (file sorted by address), without [shared addresses and recon alone](#how-an-ip-gets-listed) |
 | Block only what is active right now | `ipv4-1d.txt` |
 | Alert or enrich with a longer memory | `ipv4-30d.txt` (better for detection than for blocking) |
 | Review what changed since yesterday | `ipv4-added-1d.txt` and `ipv4-removed-1d.txt` |
@@ -76,6 +76,8 @@ it as "no entries".
 The feed is built once a day, usually between **03:00 and 04:00 UTC**, and entries appear **24 hours** after their first sighting.
 Poll at most once an hour; once a day after 04:00 UTC is enough. `feeds.offseq.com` answers `If-None-Match`
 (ETag) and `If-Modified-Since` with `304 Not Modified`, so unchanged files cost nothing to re-check.
+To tell builds apart, key on `build` in `feed.json`, not `generated`: a rebuild of the same snapshot with changed files
+keeps `generated` and gets a new `build`.
 `history.json` holds 90 days of daily totals, and format changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Integrations
@@ -188,8 +190,9 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
   `{"sourcesystem": "OffSeq Mirage", "stixobjects": [...]}`. [`scripts/sentinel-upload.sh`](scripts/sentinel-upload.sh)
   splits `latest/stix/mirage.json` that way.
 - **Defender for Endpoint**: import `latest/defender/defender-top500.csv` (one CSV import batch): the 500
-  highest-confidence IPv4 addresses, leaving out VPN/Tor exits, records whose only tag is `web-scan` and VPN-login
-  brute force alone.
+  highest-confidence IPv4 addresses, leaving out VPN/Tor exits, records whose only tag is `web-scan`, shared
+  addresses and recon alone. `MitreTechniques` holds the record's lead technique: data destruction or encryption,
+  financial theft, exploitation, then brute force, before the scanning or valid-account use around them.
   Rows with Severity Low import with `GenerateAlert` set to False.
 - **Splunk**: upload `latest/attackers-7d.csv` as the lookup table file `mirage_attackers.csv`. Its key column is
   `ip`: `... | lookup mirage_attackers.csv ip AS src_ip OUTPUT confidence tags as_org`.
@@ -200,7 +203,7 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
 | File | Contents |
 |---|---|
 | `ipv4-{1d,7d,30d}.txt` | Attacker IPv4 addresses by activity window |
-| `ipv4-top{1k,10k}.txt` | The 1,000 or 10,000 highest-confidence addresses (file sorted by address), sized for capped firewall tables. VPN-login brute force alone is left out |
+| `ipv4-top{1k,10k}.txt` | The 1,000 or 10,000 highest-confidence addresses (file sorted by address), sized for capped firewall tables. Equal confidence is ranked by sensors, networks, hits and last sighting. Shared addresses and recon alone are left out |
 | `ipv4-7d-cidr32.txt` · `ipv6-7d.txt` | IPv4 with `/32` suffix (AWS WAF IP sets) and IPv6 `/64` networks. Few attackers reach the fleet over IPv6, so `ipv6-7d.txt` is often empty |
 | `ipv4-added-1d.txt` · `ipv4-removed-1d.txt` | Addresses that entered `ipv4-7d.txt` since the previous day's build, and every address that left it: aged out, removed on request, newly allowlisted or now a VPN/Tor exit. Unblock what is in the removed list |
 | `anonymizers-7d.txt` | VPN and Tor exits that attacked the fleet (IPv4 and IPv6 `/64`). Kept out of every block list and rule file |
@@ -209,14 +212,14 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
 | `hashes-sha256-30d.txt` | Files those payloads delivered |
 | `cves-7d.csv` | CVEs exploited against the fleet in the last 7 days, with CISA KEV flag and attempt counts. Lists every CVE tried by at least 2 distinct source IPs, plus every CVE on a 7-day IP record; the KEV flag comes from the [CISA catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog), vendored in [`generator/kev.txt`](generator/kev.txt) |
 | `fingerprints.csv` · `hassh.csv` | JA4 TLS client fingerprints and SSH HASSH of attacker tooling |
-| `user-agents-7d.txt` · `paths-7d.txt` | Distinctive HTTP user agents and request paths seen in attacks. For hunting, not blocking |
+| `user-agents-7d.txt` · `paths-7d.txt` | Non-browser HTTP user agents and distinctive request paths seen in attacks. For hunting, not blocking |
 | `passwords-top100.txt` | The 100 passwords attackers tried most, without usernames. Values under 2 characters and bare SSL-VPN port numbers (form-field artifacts) are left out |
 | `attackers-7d.csv` · `attackers-ipv4-7d.csv` · `records-7d.ndjson.gz` | One record per indicator: ASN, country, first/last seen, services, tags, ATT&CK, confidence |
 | `stix/` · `misp/` · `zeek/` · `suricata/` · `mikrotik/` · `nft/` · `crowdsec/` · `defender/` | The same data, pre-rendered |
 | `history.json` | Daily totals for the last 90 days, no addresses |
 | `og.png` · `og-github.png` | Social preview images of the day's numbers |
 | `lookup/v4/<first octet>.json` · `lookup/v6/<first hextet>.json` | Every listed address grouped for the [address lookup](https://feeds.offseq.com/ip), with its lists and record. Listed in `SHA256SUMS`, and as one `latest/lookup/` entry in `feed.json` |
-| `feed.json` · `SHA256SUMS` · `SHA256SUMS.minisig` | Index with `schema_version`, checksums of every file (including `feed.json`) and signature |
+| `feed.json` · `SHA256SUMS` · `SHA256SUMS.minisig` | Index with `schema_version`, the `build` id, checksums of every file (including `feed.json`) and signature |
 
 Every record follows [`schema/record.schema.json`](schema/record.schema.json), also served at `{{BASE}}/schema/record.schema.json`.
 
@@ -242,10 +245,14 @@ VPN and Tor exits (records tagged `vpn-exit` or `tor-exit`) are listed only in `
 full-record formats, where the tag shows: CSV and NDJSON, MISP as `ip-src` with `to_ids: false`, and STIX as
 `anonymization` indicators rather than `malicious-activity`. They never reach a block list or rule file.
 
-Records whose only activity is VPN-login brute force (tags `vpn-bruteforce` plus at most `web-exploit` or `web-scan`,
-techniques T1110, T1190 and T1595 only, no CVE) are mostly residential and mobile addresses of a proxy botnet: malicious, but shared
-with real users. They stay in `ipv4-{1d,7d,30d}.txt` and the formats built from those lists, but not in
-`ipv4-top{1k,10k}.txt` or the Defender CSV, and their Suricata IP reputation score is capped at 80.
+Shared addresses are malicious, but shared with real users: records whose only activity is VPN-login brute force
+(tags `vpn-bruteforce` plus at most `web-exploit` or `web-scan`, techniques T1110, T1190 and T1595 only, no CVE), mostly
+residential and mobile addresses of a proxy botnet, and records tagged `cgnat` (carrier-grade NAT, such as Starlink).
+Recon alone means only reconnaissance and discovery techniques (T1046, T1589, T1590, T1592, T1595) and no CVE. Both stay
+in `ipv4-{1d,7d,30d}.txt` and the formats built from those lists, but not in `ipv4-top{1k,10k}.txt` or the Defender
+CSV, and their Suricata IP reputation score is capped at 80. Shared addresses are MISP `ip-src` attributes with
+`to_ids: false`, and STIX `malicious-activity` indicators with `confidence` at most 50 ("Medium" on the STIX 2.1
+scale).
 
 Entries expire **7 days** after the last observed activity. New activity renews them.
 
@@ -280,9 +287,11 @@ Domains, paths and user agents are filtered as well:
 - **Domains**: popular sites (Tranco top 10k), code-hosting, paste and file-sharing services (dpaste, paste.ee,
   termbin, 0x0.st, GitHub raw and gist content and others) and public suffixes never appear in `domains-7d.txt`,
   though they can appear inside full URLs.
-- **User agents**: only distinctive attack-tool strings are kept. Dropped are browser strings (every product token is
-  a browser one, such as `Mozilla`, `AppleWebKit`, `Chrome`, `Safari`, `Firefox`, `Edg` or `OPR`, including a bare
-  `Mozilla/5.0`), HTTP libraries (`curl`, `Wget`, `python-requests`, `Go-http-client`, `okhttp`, `axios`,
+- **User agents**: attack tools and other non-browser clients are kept, including VPN clients (AnyConnect,
+  GlobalProtect, F5 Access and others) that log in to VPN portals in brute-force runs; these are hunting leads, and
+  `zeek/mirage.intel` and `suricata/datasets/uas.lst` leave them out. Dropped are browser strings (every product token
+  is a browser one, such as `Mozilla`, `AppleWebKit`, `Chrome`, `Safari`, `Firefox`, `Edg`, `OPR`, `UCBrowser` or the
+  `like Gecko` of Internet Explorer 11, including a bare `Mozilla/5.0`), HTTP libraries (`curl`, `Wget`, `python-requests`, `Go-http-client`, `okhttp`, `axios`,
   `node-fetch`, `Java`, `libwww-perl`, `VLC` and similar) and anything that names itself a bot, crawler, spider,
   scanner or research project or carries a contact URL or address. Named attack tools (zgrab, masscan, nuclei,
   sqlmap, gobuster, SIPVicious `friendly-scanner` and others) are kept even when they say "scanner".
@@ -329,8 +338,11 @@ curl -fsSL --create-dirs -o latest/ipv4-7d.txt "$base/latest/ipv4-7d.txt"
 sha256sum -c --ignore-missing SHA256SUMS        # macOS: shasum -a 256 -c --ignore-missing SHA256SUMS
 ```
 
-The trusted comment reads `mirage-feed <day> generated <build time>` and is covered by the signature: check that the
-build time is recent, so a mirror cannot pass off an old signed build as today's. The minisign public key is also
+The trusted comment reads `mirage-feed <day> generated <snapshot time> build <build id>` and is covered by the
+signature: check that the snapshot time is recent, so a mirror cannot pass off an old signed build as today's. The build
+id, also in `feed.json` and `history.json`, is the first 16 hex digits of the SHA-256 of the `SHA256SUMS` lines of
+every file but `feed.json` and `history.json`; it changes whenever a file does, so a republish of the same snapshot is
+told apart. The minisign public key is also
 published at `https://feeds.offseq.com/.well-known/mirage-feed-minisign.pub`. `SHA256SUMS` carries a GitHub build-provenance
 attestation; check that it came from this repository's publish workflow on `main`:
 

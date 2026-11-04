@@ -3,6 +3,7 @@ from pathlib import Path
 
 from . import BASE_URL, NAME
 from .common import Snapshot, parse_ts
+from .netlist import DEFAULT_ALLOWLIST, Allowlist
 
 START, END = "<!-- stats:start -->", "<!-- stats:end -->"
 NONE = "—"
@@ -79,11 +80,12 @@ def update(readme: str, s: Snapshot) -> str:
     return pattern.sub(lambda _: stats_block(s), readme, count=1)
 
 
-def write(snapshot: Path, template: Path, readme: Path) -> bool:
+def write(snapshot: Path, template: Path, readme: Path, allowlist: Path = DEFAULT_ALLOWLIST) -> bool:
     current = readme.read_text(encoding="utf-8") if readme.exists() else None
     text = update(
         current if current is not None else render_template(template.read_text(encoding="utf-8")),
-        Snapshot.load(snapshot),
+        # Loaded as the build loads it, so the block shows feed.json's numbers.
+        Snapshot.load(snapshot, Allowlist(allowlist)),
     )
     if text == current:
         return False
