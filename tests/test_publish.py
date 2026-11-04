@@ -13,7 +13,9 @@ FAKE_AWS = r"""#!/usr/bin/env bash
 set -euo pipefail
 echo "$*" >> "$STORE/calls"
 case "$1 $2" in
-  "s3 cp") key=${4#s3://*/}; mkdir -p "$STORE/obj/$(dirname "$key")"; cp "$3" "$STORE/obj/$key" ;;
+  "s3 cp")
+    [ "${FAIL_PUT:-}" != "${3##*/}" ] || exit 1
+    key=${4#s3://*/}; mkdir -p "$STORE/obj/$(dirname "$key")"; cp "$3" "$STORE/obj/$key" ;;
   "s3 rm") key=${3#s3://*/}; rm -rf "$STORE/obj/$key" ;;
   "s3api list-objects-v2")
     [ -z "${FAIL_LIST:-}" ] || exit 1
@@ -74,6 +76,12 @@ def test_files_land_under_the_build_before_the_pointer_moves(tmp_path, env):
     meta = json.loads((Path(env["STORE"]) / "obj/_meta/published.json").read_text())
     assert meta == {"generated": "2026-10-24T03:05:00Z", "day": "2026-10-23", "sha256sums": sums, "version": version}
     assert all("--endpoint-url https://r2.example" in c for c in calls(env))
+
+
+def test_one_failed_upload_fails_the_step(tmp_path, env):
+    build_tree(tmp_path / "out", "a")
+    with pytest.raises(subprocess.CalledProcessError):
+        publish({**env, "FAIL_PUT": "feed.json"}, tmp_path / "out", "upload")
 
 
 def test_flip_keeps_the_three_newest_builds_and_the_current(tmp_path, env):

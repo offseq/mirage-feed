@@ -9,7 +9,9 @@ KEEP=3
 cmd=$1 out=$2
 sums=$(sha256sum "$out/SHA256SUMS" | cut -d' ' -f1)
 version=${sums:0:16}
-s3() { aws "$@" --endpoint-url "$R2_ENDPOINT"; }
+# A stalled request fails and is retried instead of running the job into its timeout.
+export AWS_RETRY_MODE=standard AWS_MAX_ATTEMPTS=6
+s3() { aws "$@" --endpoint-url "$R2_ENDPOINT" --cli-connect-timeout 10 --cli-read-timeout 60; }
 
 ctype() {
   case "$1" in
@@ -24,9 +26,10 @@ put() { s3 s3 cp "$1" "s3://$BUCKET/$2" --content-type "$(ctype "$2")" --only-sh
 
 case "$cmd" in
   upload)
-    (cd "$out" && find . -type f | sed 's|^\./||' | LC_ALL=C sort) | while read -r key; do
-      put "$out/$key" "builds/$version/$key"
-    done
+    export -f s3 ctype put
+    export BUCKET R2_ENDPOINT out version
+    (cd "$out" && find . -type f | sed 's|^\./||' | LC_ALL=C sort) |
+      xargs -P 8 -I{} bash -c 'put "$out/$1" "builds/$version/$1"' _ {}
     ;;
   flip)
     # The build readers are on until they re-read the pointer is kept too.
