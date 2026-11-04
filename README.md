@@ -20,17 +20,17 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 
 | | Observed by Mirage, last 24 h | In the feed | Feed window |
 |---|---:|---:|---|
-| Source IPs active in the last 24 h | 13,530 | 1,545 | 24 h |
-| Source IPs | — | 3,993 | 7 days |
+| Source IPs active in the last 24 h | 13,530 | 1,543 | 24 h |
+| Source IPs | — | 3,974 | 7 days |
 | VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 292 | 7 days |
-| IPv4 addresses (`ipv4-30d.txt`) | — | 8,206 | 30 days |
-| Networks (ASNs) | 1,536 | 749 | 7 days |
+| IPv4 addresses (`ipv4-30d.txt`) | — | 8,122 | 30 days |
+| Networks (ASNs) | 1,536 | 747 | 7 days |
 | Countries | 136 | 101 | 7 days |
-| CVEs exploited (11 in CISA KEV) | 9 | 12 | 7 days |
+| CVEs exploited (11 in CISA KEV) | 12 | 12 | 7 days |
 | Payload / download URLs | 31 | 11 | 7 days |
 | Malware hashes | 6 | 2 | 30 days |
 | Tooling fingerprints (JA4, HASSH) | — | 200 | 7 days |
-| Research scanners (excluded) | — | 7,560 | 7 days |
+| Research scanners (excluded) | — | 7,550 | 7 days |
 | Credential pairs tried | 160,680 | top 93 passwords | 7 days |
 | Events | 1.03M events | — | — |
 
