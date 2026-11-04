@@ -215,6 +215,11 @@ def test_decoy_navigation_paths_are_dropped(path):
         "/appsettings.json",
         "/wp-json/wp/v2/users",
         "/manage/account/login",
+        "/settings/.env",
+        "/billing/.git/config",
+        "/clients/.env",
+        "/dashboard/phpinfo.php",
+        "/account/login.php",
     ],
 )
 def test_paths_sharing_a_decoy_prefix_are_kept(path):

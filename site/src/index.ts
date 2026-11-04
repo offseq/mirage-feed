@@ -8,7 +8,7 @@ import { MINISIGN_PUB, renderAtom, securityTxt, type HistoryRow } from "./meta";
 import { lookup, lookupForm, renderLookup, type Lookup } from "./lookup";
 import { PRIVACY_UPDATED, REMOVAL_SENT, type RemovalForm, renderNotFound, renderPrivacy, renderRemoval, renderRemovalSent } from "./pages";
 import { TooLarge, forwardRemoval, readRemoval, validate, verifyTurnstile, type RemovalInput } from "./removal";
-import { checkFreshness } from "./alert";
+import { checkFreshness, type DispatchReport } from "./alert";
 import { dispatchPublish } from "./dispatch";
 import { authorized, challenge, secure, type Kind } from "./security";
 
@@ -395,13 +395,15 @@ export default {
   },
   // Never rejects: Cloudflare does not retry a failed cron, and each job logs its own failure.
   async scheduled(event: ScheduledController, env: Env): Promise<void> {
+    let dispatch: DispatchReport;
     try {
-      await dispatchPublish(env, event.scheduledTime);
+      dispatch = await dispatchPublish(env, event.scheduledTime);
     } catch (e) {
       console.error("dispatch: failed", e);
+      dispatch = { problem: `publish dispatch crashed: ${e}` };
     }
     try {
-      await checkFreshness(env, event.scheduledTime);
+      await checkFreshness(env, event.scheduledTime, dispatch);
     } catch (e) {
       console.error("freshness: alert not sent", e);
     }

@@ -306,6 +306,14 @@ def test_vpn_bruteforce_only_stays_out_of_high_confidence_lists(tmp_path):
     assert "198.51.100.9,1,80" in lines(out, "latest/suricata/mirage-iprep.list")
     with_cve = Snapshot(_vpn_botnet(snap(), cves=["CVE-2018-13379"]))
     assert "198.51.100.9" in {r["ip"] for r in with_cve.ranked_v4(1000)}
+    scanning = _vpn_botnet(snap())
+    next(r for r in scanning["ips"] if r["ip"] == "198.51.100.9").update(
+        tags=["vpn-bruteforce", "web-scan"], attack=["T1110", "T1595"]
+    )
+    assert "198.51.100.9" not in {r["ip"] for r in Snapshot(scanning).ranked_v4(1000)}
+    brute_ssh = _vpn_botnet(snap())
+    next(r for r in brute_ssh["ips"] if r["ip"] == "198.51.100.9").update(tags=["vpn-bruteforce", "ssh-bruteforce"])
+    assert "198.51.100.9" in {r["ip"] for r in Snapshot(brute_ssh).ranked_v4(1000)}
 
 
 def test_allowlisted_scanners_are_dropped():

@@ -321,7 +321,7 @@ describe("raw GitHub fallback", () => {
   });
 
   it("falls back instead of guessing the bucket root when only the pointer read fails", async () => {
-    const { env, r2 } = setup();
+    const { cache, env, r2 } = setup();
     const version = "c".repeat(16);
     r2.put(`builds/${version}/latest/ipv4-7d.txt`, "198.51.100.3\n");
     const get = r2.get.bind(r2);
@@ -335,6 +335,9 @@ describe("raw GitHub fallback", () => {
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("198.51.100.3\n");
     expect(r2.gets).not.toContain("latest/ipv4-7d.txt");
+    // A copy from no known build is fresh for minutes, so a later outage cannot serve it as current for an hour.
+    const fresh = await cache.match(new Request("https://feeds.offseq.com/__cache/fresh-unknown/latest/ipv4-7d.txt"));
+    expect(fresh?.headers.get("cache-control")).toBe("max-age=300");
     // The failure is not memoised: the next request reads the recovered pointer.
     pointerDown = false;
     r2.put("_meta/published.json", JSON.stringify({ generated: new Date().toISOString(), version }));

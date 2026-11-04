@@ -11,7 +11,7 @@ trap 'rm -rf "$dir"' EXIT
 cd "$dir"
 
 fail() { echo "FAIL $*" >&2; exit 1; }
-get() { curl -fsSL --retry 3 --proto =https --create-dirs -o "$1" "$base/$1"; }
+get() { curl -fsSL --retry 3 --proto =https --create-dirs -o "$1" "$base/$1" || fail "GET $1"; }
 
 get SHA256SUMS
 get SHA256SUMS.minisig

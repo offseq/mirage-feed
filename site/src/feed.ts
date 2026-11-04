@@ -103,8 +103,10 @@ export async function getFeedFile(path: string, env: Env, origin: string, ctx: E
   };
 
   const staleKey = cacheKey(origin, "stale", path);
+  // Unknown-pointer copies are not tied to one build, so a later outage must not serve them as fresh for an hour.
+  const freshTtl = pub.prefix === null ? INDEX_TTL : FRESH_TTL;
   const keep = (body: ArrayBuffer, headers: Record<string, string>) =>
-    ctx.waitUntil(Promise.all([cache.put(freshKey, withTtl(body, headers, FRESH_TTL)), cache.put(staleKey, withTtl(body, headers, STALE_TTL))]));
+    ctx.waitUntil(Promise.all([cache.put(freshKey, withTtl(body, headers, freshTtl)), cache.put(staleKey, withTtl(body, headers, STALE_TTL))]));
 
   if (pub.prefix !== null) {
     try {

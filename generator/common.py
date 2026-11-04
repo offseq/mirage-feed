@@ -25,8 +25,8 @@ OBSERVED_KEYS = ("ips", "asns", "countries", "events", "cves", "urls", "credenti
 JA4_TYPES = frozenset({"ja4"})
 ANONYMIZER_TAGS = frozenset({"vpn-exit", "tor-exit"})
 # Residential-proxy botnets brute-force VPN logins from shared home and mobile addresses: blocking them has collateral.
-VPN_ONLY_TAGS = frozenset({"vpn-bruteforce", "web-exploit"})
-VPN_ONLY_ATTACK = frozenset({"T1110", "T1190"})
+VPN_ONLY_TAGS = frozenset({"vpn-bruteforce", "web-exploit", "web-scan"})
+VPN_ONLY_ATTACK = frozenset({"T1110", "T1190", "T1595"})
 MAX_BREAKDOWN = 50
 IP_COUNTS = {"sensors": 3, "networks": 2, "confidence": 0, "hits": 0}
 HOST_NETS = ((4, 32), (6, 64))

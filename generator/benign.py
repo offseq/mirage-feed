@@ -180,6 +180,8 @@ DECOY_PATH = re.compile(
     r"(/admin)?/(dashboard|account|forgot-password|reset-password|onboarding|members|projects|billing|api-keys"
     r"|integrations|webhooks|settings|clients)([/?#]|$)|/admin/users([/?#]|$)"
 )
+# A file or dotfile below a decoy page (/settings/.env, /billing/.git/config) is a probe, not navigation.
+PROBE_LEAF = re.compile(r"/\.|\.[a-z0-9]{1,8}$")
 # Research scanners that name themselves in the path.
 SCANNER_PATH = re.compile(r"bitsight|internet[_-]?census|shadowserver|censys|stretchoid", re.I)
 # Form-field artifacts: SSL-VPN port numbers posted in the password field.
@@ -270,7 +272,8 @@ def path_ok(path: str) -> bool:
     key = _path_key(path)
     if len(path) < 3 or path.startswith("/.well-known/") or key in DENY_PATHS:
         return False
-    if (DECOY_PATH.match(key) and not EXPLOIT_PATH.search(path)) or SCANNER_PATH.search(path):
+    decoy = DECOY_PATH.match(key) and not EXPLOIT_PATH.search(path) and not PROBE_LEAF.search(key.split("?", 1)[0])
+    if decoy or SCANNER_PATH.search(path):
         return False
     if "@" in path.removeprefix("/@vite/"):
         return False

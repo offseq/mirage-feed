@@ -10,7 +10,7 @@ Changed on 2026-11-04 (no paths or columns added, so `schema_version` stays `2.0
 - `suricata/mirage.rules` leaves out sid 1900004 (payload SHA-256) while `datasets/sha256.lst` is empty: Suricata
   refuses a `filesha256` list with no hashes and would fail to load the whole file.
 - A CVE `name` or fingerprint `tool` that is not a string is published empty instead of failing the build.
-- Records whose only activity is VPN-login brute force (`vpn-bruteforce`, at most `web-exploit`, T1110/T1190 only, no
+- Records whose only activity is VPN-login brute force (`vpn-bruteforce`, at most `web-exploit` or `web-scan`, T1110/T1190/T1595 only, no
   CVE), mostly a residential-proxy botnet on shared home and mobile addresses, stay in `ipv4-{1d,7d,30d}.txt` but leave
   `ipv4-top{1k,10k}.txt` and `defender/defender-top500.csv`; their Suricata IP reputation score is capped at 80.
 - Paste and file-drop hosts (dpaste, paste.ee, hastebin, termbin, 0x0.st, ghostbin, rentry, transfer.sh and others)

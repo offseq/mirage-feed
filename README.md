@@ -242,8 +242,8 @@ VPN and Tor exits (records tagged `vpn-exit` or `tor-exit`) are listed only in `
 full-record formats, where the tag shows: CSV and NDJSON, MISP as `ip-src` with `to_ids: false`, and STIX as
 `anonymization` indicators rather than `malicious-activity`. They never reach a block list or rule file.
 
-Records whose only activity is VPN-login brute force (tags `vpn-bruteforce` and at most `web-exploit`, techniques
-T1110 and T1190 only, no CVE) are mostly residential and mobile addresses of a proxy botnet: malicious, but shared
+Records whose only activity is VPN-login brute force (tags `vpn-bruteforce` plus at most `web-exploit` or `web-scan`,
+techniques T1110, T1190 and T1595 only, no CVE) are mostly residential and mobile addresses of a proxy botnet: malicious, but shared
 with real users. They stay in `ipv4-{1d,7d,30d}.txt` and the formats built from those lists, but not in
 `ipv4-top{1k,10k}.txt` or the Defender CSV, and their Suricata IP reputation score is capped at 80.
 
@@ -291,10 +291,10 @@ Domains, paths and user agents are filtered as well:
   in their simple variants, plus any path with an `@` (other than `/@vite/`), a hex or base64 run of 16 or more
   characters or a `/s/<token>/` segment, because those encode the scanned target. The decoy sites' own pages
   (`/account`, `/billing`, `/settings`, `/webhooks`, `/admin/users`, `/admin/dashboard` and similar, as whole path
-  segments) are dropped unless the path carries an exploit pattern, and so are paths naming a research scanner
-  (Bitsight, Internet Census, Censys, Shadowserver, Stretchoid). The Suricata path dataset is
-  stricter still: it only holds paths tied to a CVE or with an exploit pattern (traversal, `;`, `%2e`, `${`,
-  `cgi-bin`, `/etc/passwd`, shell metacharacters after `.php?` and known device exploit paths).
+  segments) are dropped unless the path carries an exploit pattern or ends in a file or dotfile (`/settings/.env`),
+  and so are paths naming a research scanner (Bitsight, Internet Census, Censys, Shadowserver, Stretchoid). The
+  Suricata path dataset is stricter still: it only holds paths tied to a CVE or with an exploit pattern (traversal,
+  `;`, `%2e`, `${`, `cgi-bin`, `/etc/passwd`, shell metacharacters after `.php?` and known device exploit paths).
 
 Most listed addresses are compromised devices or rented infrastructure. A listing means
 "this address attacked honeypots", not a judgement about whoever holds it.
