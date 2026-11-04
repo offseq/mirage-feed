@@ -274,7 +274,7 @@ ${lookupForm()}
 
 <section id="subscribe" aria-labelledby="h-subscribe"><h2 id="h-subscribe">Subscribe</h2>
 <p>Point your tool at a stable URL. Files are rebuilt every day; the paths never change.</p>
-<div class="scroll"><table><thead><tr><th scope="col">Use</th><th scope="col">URL</th></tr></thead><tbody>${subscribe}</tbody></table></div>
+<div class="scroll" tabindex="0" role="region" aria-label="Feed URLs"><table><thead><tr><th scope="col">Use</th><th scope="col">URL</th></tr></thead><tbody>${subscribe}</tbody></table></div>
 <p>Plain lists hold one value per line with no comments, so they load as-is into pfBlockerNG, OPNsense aliases, FortiGate threat feeds and Palo Alto EDLs.</p>
 <h3>Which list do I want?</h3>
 <ul>

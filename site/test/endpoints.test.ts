@@ -511,6 +511,7 @@ describe("home content and accessibility", () => {
     const html = await homeHtml();
     expect(html).not.toMatch(/<pre>/);
     expect(html).toContain('<pre tabindex="0" role="region" aria-label="FortiGate configuration">');
+    expect(html).not.toContain('<div class="scroll">');
     expect(html).not.toContain('<th scope="col"></th>');
     expect(html).toMatch(/<a href="\/mirage-feed\/SHA256SUMS" aria-label="SHA-256 [0-9a-f]{64}, full list in SHA256SUMS">/);
   });

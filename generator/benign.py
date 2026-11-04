@@ -176,7 +176,14 @@ DENY_PATHS = frozenset(
     }
 )
 # Pages of the AI decoy sites themselves, reached by crawlers following the decoy's own links.
-DECOY_PATH = re.compile(r"/(dashboard|account|forgot-password|reset-password|onboarding|members|projects)([/?#]|$)")
+DECOY_PATH = re.compile(
+    r"(/admin)?/(dashboard|account|forgot-password|reset-password|onboarding|members|projects|billing|api-keys"
+    r"|integrations|webhooks|settings|clients)([/?#]|$)|/admin/users([/?#]|$)"
+)
+# Research scanners that name themselves in the path.
+SCANNER_PATH = re.compile(r"bitsight|internet[_-]?census|shadowserver|censys|stretchoid", re.I)
+# Form-field artifacts: SSL-VPN port numbers posted in the password field.
+VPN_PORTS = frozenset({"443", "4433", "4443", "8443", "10443", "11443"})
 # LeakIX encodes the scanned target in /s/<token>/; long hex or base64 runs are per-target tokens too.
 TOKEN_PATH = re.compile(
     r"/s/[^/]+/|[0-9a-fA-F]{16,}|(?=[A-Za-z0-9+=]*[0-9])(?=[A-Za-z0-9+=]*[A-Za-z])[A-Za-z0-9+=]{16,}"
@@ -263,11 +270,15 @@ def path_ok(path: str) -> bool:
     key = _path_key(path)
     if len(path) < 3 or path.startswith("/.well-known/") or key in DENY_PATHS:
         return False
-    if DECOY_PATH.match(key) and not EXPLOIT_PATH.search(path):
+    if (DECOY_PATH.match(key) and not EXPLOIT_PATH.search(path)) or SCANNER_PATH.search(path):
         return False
     if "@" in path.removeprefix("/@vite/"):
         return False
     return not TOKEN_PATH.search(path)
+
+
+def password_ok(value: str) -> bool:
+    return len(value) >= 2 and value not in VPN_PORTS
 
 
 def distinctive_path(path: str, cves) -> bool:

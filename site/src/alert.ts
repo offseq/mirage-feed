@@ -89,7 +89,7 @@ export async function checkFreshness(env: Env, now: number): Promise<void> {
     "MIME-Version: 1.0",
     "Content-Type: text/plain; charset=utf-8",
     "",
-    alert.body,
+    ...alert.body.split("\n"),
   ].join("\r\n");
   const { EmailMessage } = await import("cloudflare:email");
   await env.ALERT.send(new EmailMessage(FROM, env.ALERT_TO, raw));

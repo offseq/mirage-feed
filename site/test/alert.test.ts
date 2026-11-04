@@ -89,12 +89,20 @@ describe("scheduled freshness check", () => {
     expect(error).toHaveBeenCalledWith(expect.stringContaining("no ALERT binding"));
   });
 
-  it("logs and rethrows a failed send from the cron handler", async () => {
+  it("logs a failed send without rejecting the cron handler", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const ALERT = { send: async () => Promise.reject(new Error("destination not verified")) } as unknown as SendEmail;
     const { env } = setup({ ALERT });
     const event = { scheduledTime: Date.parse("2026-10-24T19:00:00Z") } as ScheduledController;
-    await expect(worker.scheduled(event, env)).rejects.toThrow("destination not verified");
+    await expect(worker.scheduled(event, env)).resolves.toBeUndefined();
     expect(error).toHaveBeenCalledWith("freshness: alert not sent", expect.any(Error));
+  });
+
+  it("ends every line of the message with CRLF", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { sent, ALERT } = mailer();
+    await checkFreshness(setup({ ALERT }).env, Date.parse("2026-10-24T19:00:00Z"));
+    expect(sent[0].raw).toContain("\r\n\r\nThe published Mirage Feed");
+    expect(sent[0].raw).not.toMatch(/[^\r]\n/);
   });
 });

@@ -1,14 +1,17 @@
 import base64
 import copy
 import csv
+import hashlib
 import http.client
 import json
 import shutil
+import zlib
 
 import pytest
 
 from generator import build, check, fetch, firewall, nsm
-from generator.common import Snapshot
+from generator.common import Snapshot, ip_key, parse_ts
+from generator.netlist import Allowlist
 
 from .conftest import ALLOWLIST, SNAPSHOT
 
@@ -254,3 +257,93 @@ def test_vpn_client_uas_stay_out_of_ids_rules():
     assert "AnyConnect Windows 5.1.7.80" in {r["value"] for r in s.lists["user_agents"]}
     rendered = b"".join(a.data for a in nsm.render(s))
     assert b"AnyConnect" not in rendered and base64.b64encode(b"AnyConnect Windows 5.1.7.80") not in rendered
+
+
+def test_hash_rule_needs_hashes():
+    with_hashes = Snapshot(snap())
+    without = Snapshot(snap(hashes=[]))
+    rules = {s: next(a for a in nsm.render(s) if a.path.endswith("mirage.rules")) for s in (with_hashes, without)}
+    assert b"sid:1900004" in rules[with_hashes].data and rules[with_hashes].count == 4
+    assert b"sid:1900004" not in rules[without].data and rules[without].count == 3
+
+
+@pytest.mark.parametrize("value", [["x"], {"a": 1}, 5])
+def test_non_string_labels_are_left_empty(tmp_path, value):
+    raw = snap()
+    raw["fingerprints"][0]["tool"] = value
+    raw["cves"][0]["name"] = value
+    s = Snapshot(raw)
+    assert s.lists["fingerprints"][0]["tool"] is None and s.lists["cves"][0]["name"] is None
+    run_build(tmp_path, raw)
+
+
+def test_fetch_retries_corrupt_gzip(monkeypatch, tmp_path):
+    monkeypatch.setenv(fetch.TOKEN_ENV, "t0ken")
+    answers = [zlib.error("invalid stored block lengths"), SNAPSHOT.read_bytes()]
+
+    def get(url, token):
+        item = answers.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+    monkeypatch.setattr(fetch, "_get", get)
+    assert fetch.fetch("https://x/api", tmp_path / "s.json", "2026-10-23", sleep=lambda _: None).day == "2026-10-23"
+
+
+def _vpn_botnet(raw, cves=()):
+    rec = next(r for r in raw["ips"] if r["ip"] == "198.51.100.9")
+    rec.update(tags=["vpn-bruteforce", "web-exploit"], attack=["T1110", "T1190"], cves=list(cves), confidence=100)
+    return raw
+
+
+def test_vpn_bruteforce_only_stays_out_of_high_confidence_lists(tmp_path):
+    raw = _vpn_botnet(snap())
+    out = run_build(tmp_path, raw)
+    assert "198.51.100.9" in lines(out, V4_7D)
+    assert "198.51.100.9" not in lines(out, "latest/ipv4-top1k.txt")
+    assert "198.51.100.9" not in (out / "latest/defender/defender-top500.csv").read_text()
+    assert "198.51.100.9,1,80" in lines(out, "latest/suricata/mirage-iprep.list")
+    with_cve = Snapshot(_vpn_botnet(snap(), cves=["CVE-2018-13379"]))
+    assert "198.51.100.9" in {r["ip"] for r in with_cve.ranked_v4(1000)}
+
+
+def test_allowlisted_scanners_are_dropped():
+    raw = snap()
+    raw["scanners"].append({"ip": "8.8.8.8", "name": "crawler"})
+    s = Snapshot(raw, Allowlist(ALLOWLIST))
+    assert "8.8.8.8" not in {r["ip"] for r in s.lists["scanners"]}
+    assert "8.8.8.8" in {r["ip"] for r in Snapshot(raw).lists["scanners"]}
+
+
+def test_kev_follows_the_published_cves():
+    raw = snap()
+    rec = next(r for r in raw["ips"] if r["ip"] == "198.51.100.9")
+    rec.update(kev=True, cves=[])
+    s = Snapshot(raw)
+    kev = {r["ip"]: r["kev"] for r in s.lists["ips"]}
+    assert kev["198.51.100.9"] is False and kev["203.0.113.39"] is True
+
+
+def test_zeek_ips_sort_numerically(out):
+    rows = [line.split("\t") for line in lines(out, "latest/zeek/mirage.intel")[1:]]
+    ips = [r[0] for r in rows if r[1] in ("Intel::ADDR", "Intel::SUBNET")]
+    assert ips == sorted(ips, key=ip_key) != sorted(ips)
+
+
+def test_carried_misp_events_are_refiltered(tmp_path):
+    out1 = run_build(tmp_path, snap(), name="r1")
+    uuid = next(iter(json.loads((out1 / "misp/manifest.json").read_text())))
+    path = out1 / f"misp/{uuid}.json"
+    body = json.loads(path.read_text())
+    attr = next(a for a in body["Event"]["Attribute"] if a["type"] == "url")
+    body["Event"]["Attribute"].append({**attr, "type": "domain", "value": "dpaste.org", "uuid": "x"})
+    path.write_text(json.dumps(body))
+    out2 = run_build(tmp_path, snap(**NEXT), out1, "r2")
+    ev = json.loads((out2 / f"misp/{uuid}.json").read_text())["Event"]
+    stamp = str(int(parse_ts(NEXT["generated"]).timestamp()))
+    assert [(a["deleted"], a["to_ids"], a["timestamp"]) for a in ev["Attribute"] if a["value"] == "dpaste.org"] == [
+        (True, False, stamp)
+    ]
+    assert ev["timestamp"] == stamp
+    assert hashlib.md5(b"dpaste.org").hexdigest() not in (out2 / "misp/hashes.csv").read_text()

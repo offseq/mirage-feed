@@ -60,7 +60,7 @@ def stats_block(s: Snapshot) -> str:
             *(f"| {a} | {b} | {c} | {d} |" for a, b, c, d in rows),
             "",
             f"<sub>Snapshot {stamp} · the observed column counts everything the fleet saw in the 24 h before the "
-            f"snapshot; the feed column counts what passed the listing rules over the window shown · "
+            f"snapshot (CVEs: 7 days); the feed column counts what passed the listing rules over the window shown · "
             f"entries are published {delay} h after first sighting · "
             '<a href="#how-an-ip-gets-listed">methodology</a></sub>',
             END,

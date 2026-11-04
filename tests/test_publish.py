@@ -16,6 +16,7 @@ case "$1 $2" in
   "s3 cp") key=${4#s3://*/}; mkdir -p "$STORE/obj/$(dirname "$key")"; cp "$3" "$STORE/obj/$key" ;;
   "s3 rm") key=${3#s3://*/}; rm -rf "$STORE/obj/$key" ;;
   "s3api list-objects-v2")
+    [ -z "${FAIL_LIST:-}" ] || exit 1
     cd "$STORE/obj"
     find builds -type f 2> /dev/null | sort | while read -r k; do
       printf '["%s","%s"]\n' "$k" "$(cat "$STORE/mtime/${k#builds/}" 2> /dev/null || echo 2026-10-01T00:00:00Z)"
@@ -89,3 +90,10 @@ def test_flip_keeps_the_three_newest_builds_and_the_current(tmp_path, env):
     left = sorted(p.name for p in (store / "obj/builds").iterdir())
     assert left == sorted(versions[1:])
     assert json.loads((store / "obj/_meta/published.json").read_text())["version"] == versions[1]
+
+
+def test_failed_prune_does_not_fail_the_flip(tmp_path, env):
+    build_tree(tmp_path / "out", "a")
+    publish(env, tmp_path / "out", "upload")
+    publish({**env, "FAIL_LIST": "1"}, tmp_path / "out", "flip")
+    assert (Path(env["STORE"]) / "obj/_meta/published.json").is_file()

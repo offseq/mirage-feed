@@ -7,6 +7,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zlib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -79,7 +80,7 @@ def fetch(url: str, dest: Path, day: str | None = None, sleep=time.sleep, now: d
             if exc.code < 500 and exc.code != 429:
                 raise FetchError(f"GET {url}: HTTP {exc.code} {exc.reason}") from exc
             last = exc
-        except (urllib.error.URLError, TimeoutError, OSError, EOFError, http.client.IncompleteRead) as exc:
+        except (urllib.error.URLError, TimeoutError, OSError, EOFError, zlib.error, http.client.IncompleteRead) as exc:
             last = exc
         if attempt < ATTEMPTS - 1:
             sleep(min(5 * 2**attempt, 120))

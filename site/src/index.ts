@@ -383,10 +383,17 @@ export default {
     if (isShadow(env) && !PUBLIC_PATHS.has(path) && !(await authorized(req, env))) {
       return secure(challenge(), env, "asset");
     }
-    const [res, kind] = await route(req, env, ctx, path);
-    const out = await secure(res, env, kind);
+    let routed: [Response, Kind];
+    try {
+      routed = await route(req, env, ctx, path);
+    } catch (e) {
+      console.error("fetch: unhandled", e);
+      routed = [text("Internal error, retry later.\n", TEXT, 500, { "cache-control": NO_STORE, "retry-after": "60" }), "asset"];
+    }
+    const out = await secure(routed[0], env, routed[1]);
     return req.method === "HEAD" ? new Response(null, out) : out;
   },
+  // Never rejects: Cloudflare does not retry a failed cron, and each job logs its own failure.
   async scheduled(event: ScheduledController, env: Env): Promise<void> {
     try {
       await dispatchPublish(env, event.scheduledTime);
@@ -397,7 +404,6 @@ export default {
       await checkFreshness(env, event.scheduledTime);
     } catch (e) {
       console.error("freshness: alert not sent", e);
-      throw e;
     }
   },
 } satisfies ExportedHandler<Env>;

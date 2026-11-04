@@ -310,7 +310,8 @@ jobs:
           export GIT_COMMITTER_NAME="$BOT_NAME" GIT_COMMITTER_EMAIL="$BOT_EMAIL"
           git -C out --git-dir="$GITHUB_WORKSPACE/.git" --work-tree=. add -A -f .
           commit=$(git commit-tree "$(git write-tree)" -m "data: $DAY")
-          git push --force git@github.com:offseq/mirage-feed.git "${commit}:refs/heads/data"
+          for _ in 1 2 3; do git push --force git@github.com:offseq/mirage-feed.git "${commit}:refs/heads/data" && exit 0; sleep 15; done
+          exit 1
 
       # Readers switch only once R2 and the data branch both hold the build.
       - name: Switch R2 to the build
@@ -357,18 +358,18 @@ jobs:
       LABEL: publish-failure
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        if: github.event_name == 'schedule' && (needs.build.result == 'failure' || needs.publish.result == 'failure')
+        if: needs.build.result == 'failure' || needs.publish.result == 'failure'
         continue-on-error: true
         with:
           name: gates
           path: gates
 
       - name: Open or update the failure issue
-        if: github.event_name == 'schedule' && (needs.build.result == 'failure' || needs.publish.result == 'failure')
+        if: needs.build.result == 'failure' || needs.publish.result == 'failure'
         run: |
           run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           {
-            echo "Scheduled publish failed: $run_url"
+            echo "Publish failed ($GITHUB_EVENT_NAME): $run_url"
             echo
             if [ -s gates/gates.txt ]; then
               echo "Failing gates:"
@@ -379,12 +380,12 @@ jobs:
               echo "No gate failures recorded (build: $BUILD, publish: $PUBLISH); see the run log."
             fi
           } > body.md
-          gh label create "$LABEL" --force --color B60205 --description "Scheduled feed publish failed"
+          gh label create "$LABEL" --force --color B60205 --description "Feed publish failed"
           issue=$(gh issue list --label "$LABEL" --state open --limit 1 --json number --jq '.[0].number // empty')
           if [ -n "$issue" ]; then
             gh issue comment "$issue" --body-file body.md
           else
-            gh issue create --title "Scheduled feed publish is failing" --label "$LABEL" --body-file body.md
+            gh issue create --title "Feed publish is failing" --label "$LABEL" --body-file body.md
           fi
 
       - name: Close the failure issue

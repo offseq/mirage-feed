@@ -18,11 +18,15 @@ BAD_CATEGORIES = frozenset({"Cc", "Cf", "Zl", "Zp"})
 LISTS = ("ips", "scanners", "cves", "urls", "domains", "hashes", "fingerprints", "user_agents", "paths", "passwords")
 KEYS = {"cves": "cve", "urls": "url", "domains": "domain", "hashes": "sha256", "fingerprints": "value",
         "user_agents": "value", "paths": "value", "passwords": "value"}  # fmt: skip
+LABEL_KEYS = ("name", "tool")
 POLICY_KEYS = ("min_sensors", "min_networks", "min_sources", "delay_hours", "ttl_days", "ipv6_prefix")
 OBSERVED_KEYS = ("ips", "asns", "countries", "events", "cves", "urls", "credential_pairs", "hashes")
 # JA4 (TLS client) only: the rest of JA4+ is under the FoxIO licence.
 JA4_TYPES = frozenset({"ja4"})
 ANONYMIZER_TAGS = frozenset({"vpn-exit", "tor-exit"})
+# Residential-proxy botnets brute-force VPN logins from shared home and mobile addresses: blocking them has collateral.
+VPN_ONLY_TAGS = frozenset({"vpn-bruteforce", "web-exploit"})
+VPN_ONLY_ATTACK = frozenset({"T1110", "T1190"})
 MAX_BREAKDOWN = 50
 IP_COUNTS = {"sensors": 3, "networks": 2, "confidence": 0, "hits": 0}
 HOST_NETS = ((4, 32), (6, 64))
@@ -184,6 +188,11 @@ def _clamp(rec: dict, generated: str) -> dict:
     return {**rec, **dict.fromkeys(late, generated[:14] + "00:00Z")}
 
 
+def _labels(rec: dict) -> dict:
+    """Optional free-text fields of another type are left empty rather than dropping the record."""
+    return {**rec, **{k: None for k in LABEL_KEYS if k in rec and not isinstance(rec[k], str)}}
+
+
 def _valid(kind: str, rec: dict) -> bool:
     """Shape and benign-value filters for the non-IP lists; failing records are dropped."""
     value = rec.get(KEYS[kind])
@@ -216,11 +225,23 @@ def _valid(kind: str, rec: dict) -> bool:
         case "paths":
             cves = rec.get("cves", [])
             return isinstance(cves, list) and all(isinstance(c, str) for c in cves) and benign.path_ok(value)
+        case "passwords":
+            return benign.password_ok(value)
     return True
 
 
 def anonymizer(rec: dict) -> bool:
     return not ANONYMIZER_TAGS.isdisjoint(rec.get("tags", []))
+
+
+def vpn_bruteforce_only(rec: dict) -> bool:
+    tags = set(rec.get("tags", []))
+    return (
+        "vpn-bruteforce" in tags
+        and tags <= VPN_ONLY_TAGS
+        and set(rec.get("attack", [])) <= VPN_ONLY_ATTACK
+        and not rec.get("cves")
+    )
 
 
 def _ip_cves(ips: list[dict], known: list[dict]) -> list[dict]:
@@ -335,7 +356,7 @@ class Snapshot:
         scanners = [_scanner(r) for r in raw["scanners"]]
         unique: dict[str, dict] = {}
         for rec in filter(None, scanners):
-            if rec["ip"] not in best:
+            if rec["ip"] not in best and not (allowlist and allowlist.hit(network(rec["ip"]))):
                 unique.setdefault(rec["ip"], rec)
         self.lists["scanners"] = list(unique.values())
         self.dropped: dict[str, int] = {}
@@ -351,7 +372,7 @@ class Snapshot:
             seen: dict[str, dict] = {}
             for rec in raw[kind]:
                 if isinstance(rec, dict) and _valid(kind, rec):
-                    seen.setdefault(rec[KEYS[kind]], _clamp(rec, generated))
+                    seen.setdefault(rec[KEYS[kind]], _clamp(_labels(rec), generated))
                 else:
                     self.dropped[kind] = self.dropped.get(kind, 0) + 1
             self.lists[kind] = list(seen.values())
@@ -361,6 +382,9 @@ class Snapshot:
             {**c, "kev": c.get("kev") is True or c["cve"] in kev.catalog()} for c in self.lists["cves"]
         ]
         self.lists["cves"] += _ip_cves(self.ips_in("7d"), self.lists["cves"])
+        kevs = {c["cve"] for c in self.lists["cves"] if c["kev"]} | kev.catalog()
+        for rec in self.lists["ips"]:
+            rec["kev"] = not kevs.isdisjoint(rec["cves"])
         week = self.blockable("7d")
         self.stats["published"] = {
             "ips": len(week),
@@ -402,7 +426,9 @@ class Snapshot:
         pool = [
             r
             for r in self.blockable("7d", 4)
-            if skip_tags.isdisjoint(r.get("tags", [])) and not (r.get("tags") and set(r["tags"]) <= skip_only)
+            if skip_tags.isdisjoint(r.get("tags", []))
+            and not (r.get("tags") and set(r["tags"]) <= skip_only)
+            and not vpn_bruteforce_only(r)
         ]
         ranked = sorted(pool, key=lambda r: (-int(r["confidence"]), ip_key(r["ip"])))
         return sorted(ranked[:limit], key=lambda r: ip_key(r["ip"]))

@@ -3,6 +3,7 @@
 0123tt.ru
 029whhg.com
 0lin.com
+0x0.st
 0xrpc.io
 10086.cn
 1024tera.com
@@ -1159,6 +1160,7 @@ baseball-reference.com
 basecamp.com
 basf.com
 bash.com
+bashupload.com
 batch.com
 battle.net
 baycrews.jp
@@ -2059,6 +2061,7 @@ contentsquare.net
 contextotucuman.com
 contextweb.com
 control4.com
+controlc.com
 controlup.com
 convertexperiments.com
 convertkit.com
@@ -2601,6 +2604,8 @@ downloadwella.com
 downringtone.com
 doxygen.org
 doz.pl
+dpaste.com
+dpaste.org
 dpboss.tax
 dpbosss.net.in
 dpbossss.boston
@@ -3492,6 +3497,8 @@ ggpolarbear.com
 ghanaweb.com
 ghcr.io
 ghost.org
+ghostbin.co
+ghostbin.com
 ghostery.com
 ghostery.net
 giallozafferano.it
@@ -3900,6 +3907,7 @@ harvard.edu
 haryana.gov.in
 hashicorp.com
 hasil.gov.my
+hastebin.com
 hasznaltauto.hu
 hatena.ne.jp
 hatenablog.com
@@ -4521,6 +4529,7 @@ ivi.ru
 ivicdn.tv
 ivideon.com
 ivoox.com
+ix.io
 ix.ru
 ixbt.com
 ixdzs.tw
@@ -6550,7 +6559,10 @@ partner.co.il
 partslink24.com
 partsouq.com
 passport.com
+paste.ee
+paste.rs
 pastebin.com
+pastebin.pl
 patagonia.com
 patch.com
 pathofexile.com
@@ -6868,6 +6880,7 @@ privacy-mgmt.com
 privacy.com.br
 privacymanager.io
 privacyshield.gov
+privatebin.net
 privateinternetaccess.com
 privateproperty.co.za
 privatesocks5.com
@@ -7165,6 +7178,7 @@ remotepc.com
 remove.bg
 rentalcars.com
 rentry.co
+rentry.org
 reolink.com
 repec.org
 replit.com
@@ -7993,6 +8007,7 @@ sprinthost.net
 sprinthost.ru
 sproutgigs.com
 sproutsocial.com
+sprunge.us
 sps-system.com
 sputniknews.com
 sqills.com
@@ -8373,6 +8388,7 @@ telstra.com.au
 telstra.net
 telus.com
 temp-mail.org
+temp.sh
 temple.edu
 temporary.site
 temu.com
@@ -8390,6 +8406,7 @@ tensorflow.org
 tenten.vn
 terabox.app
 terabox.com
+termbin.com
 termly.io
 termsfeed.com
 termwiki.com

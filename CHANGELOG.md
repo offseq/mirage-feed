@@ -5,6 +5,25 @@ exist stay stable within a major version; additions bump the minor version.
 
 ## 2.0
 
+Changed on 2026-11-04 (no paths or columns added, so `schema_version` stays `2.0`):
+
+- `suricata/mirage.rules` leaves out sid 1900004 (payload SHA-256) while `datasets/sha256.lst` is empty: Suricata
+  refuses a `filesha256` list with no hashes and would fail to load the whole file.
+- A CVE `name` or fingerprint `tool` that is not a string is published empty instead of failing the build.
+- Records whose only activity is VPN-login brute force (`vpn-bruteforce`, at most `web-exploit`, T1110/T1190 only, no
+  CVE), mostly a residential-proxy botnet on shared home and mobile addresses, stay in `ipv4-{1d,7d,30d}.txt` but leave
+  `ipv4-top{1k,10k}.txt` and `defender/defender-top500.csv`; their Suricata IP reputation score is capped at 80.
+- Paste and file-drop hosts (dpaste, paste.ee, hastebin, termbin, 0x0.st, ghostbin, rentry, transfer.sh and others)
+  never reach `domains-7d.txt`, Zeek or MISP as domains; their URLs stay.
+- Carried MISP events are re-filtered on every build: URL, domain and user-agent attributes that the current filters
+  drop are sent as deleted, like IPs that left the lists.
+- `known-scanners-*.txt` leave out allowlisted addresses, such as Bingbot, so verified crawlers are in neither list.
+- `zeek/mirage.intel` lists addresses in numeric order, ahead of the other indicators.
+- `passwords-top100.txt` leaves out values under 2 characters and bare SSL-VPN port numbers.
+- `paths-7d.txt` drops more decoy pages (`/billing`, `/api-keys`, `/integrations`, `/webhooks`, `/settings`,
+  `/clients/…`, and `/admin/settings`, `/admin/users`, `/admin/dashboard`) and paths naming a research scanner.
+- An IP record's `kev` is true only when one of its `cves` is KEV in `cves-7d.csv` or the vendored CISA catalog.
+
 Changed on 2026-10-29 (no paths or columns added, so `schema_version` stays `2.0`):
 
 - The publish job no longer stays stale when the size, churn or concentration checks fail on a real shift: if the

@@ -320,6 +320,58 @@ describe("raw GitHub fallback", () => {
     expect(gone.headers.get("cache-control")).toBe("no-store");
   });
 
+  it("falls back instead of guessing the bucket root when only the pointer read fails", async () => {
+    const { env, r2 } = setup();
+    const version = "c".repeat(16);
+    r2.put(`builds/${version}/latest/ipv4-7d.txt`, "198.51.100.3\n");
+    const get = r2.get.bind(r2);
+    let pointerDown = true;
+    r2.get = async (key: string) => {
+      if (key === "_meta/published.json" && pointerDown) throw new Error("R2 unavailable");
+      return get(key);
+    };
+    vi.stubGlobal("fetch", rawServing({ "feed.json": fixture("feed.json"), "latest/ipv4-7d.txt": "198.51.100.3\n" }));
+    const res = await call(env, "/mirage-feed/latest/ipv4-7d.txt");
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("198.51.100.3\n");
+    expect(r2.gets).not.toContain("latest/ipv4-7d.txt");
+    // The failure is not memoised: the next request reads the recovered pointer.
+    pointerDown = false;
+    r2.put("_meta/published.json", JSON.stringify({ generated: new Date().toISOString(), version }));
+    await call(env, "/mirage-feed/latest/ipv4-7d.txt");
+    expect(r2.gets).toContain(`builds/${version}/latest/ipv4-7d.txt`);
+  });
+
+  it("falls back when the R2 body fails mid-read, and serves the R2 copy stale when GitHub is down too", async () => {
+    const { env, r2 } = setup();
+    r2.put("latest/ipv4-7d.txt", fixture("ipv4-7d.txt"));
+    const t0 = Date.now();
+    const now = vi.spyOn(Date, "now").mockReturnValue(t0);
+    await call(env, "/mirage-feed/latest/ipv4-7d.txt");
+    const get = r2.get.bind(r2);
+    r2.get = async (key: string) => {
+      const o = await get(key);
+      return o && key !== "_meta/published.json" ? { ...o, arrayBuffer: async () => Promise.reject(new Error("stream reset")) } : o;
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("boom", { status: 503 })));
+    now.mockReturnValue(t0 + 2 * 3600_000);
+    const stale = await call(env, "/mirage-feed/latest/ipv4-7d.txt");
+    expect(stale.status).toBe(200);
+    expect(stale.headers.get("x-mirage-stale")).toBe("1");
+    expect(await stale.text()).toBe(fixture("ipv4-7d.txt"));
+  });
+
+  it("answers an unexpected error with a 500 that keeps the security headers", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { env, cache } = setup();
+    cache.match = async () => Promise.reject(new Error("cache down"));
+    const res = await call(env, "/mirage-feed/latest/ipv4-7d.txt");
+    expect(res.status).toBe(500);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(error).toHaveBeenCalledWith("fetch: unhandled", expect.any(Error));
+  });
+
   it("returns 404 when R2 errors and GitHub has no copy, and caches the miss briefly", async () => {
     const { env, fetchMock } = failingR2({});
     expect((await call(env, "/mirage-feed/latest/ipv4-7d.txt")).status).toBe(404);

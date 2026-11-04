@@ -86,7 +86,7 @@ async function isListed(path: string, env: Env, origin: string, ctx: ExecutionCo
 }
 
 // R2 is the source of truth. GitHub is consulted only when R2 errors, and only for files the current index lists,
-// so random names cannot multiply origin traffic.
+// so random names cannot multiply origin traffic. R2 reads also refresh the stale copy, the last resort when both fail.
 export async function getFeedFile(path: string, env: Env, origin: string, ctx: ExecutionContext): Promise<Response> {
   const cache = caches.default;
   const pub = await published(env);
@@ -102,31 +102,30 @@ export async function getFeedFile(path: string, env: Env, origin: string, ctx: E
     return new Response(null, { status: 404 });
   };
 
-  let obj: R2ObjectBody | null = null;
-  let failed = false;
-  try {
-    obj = await env.FEED.get(pub.prefix + path);
-  } catch {
-    failed = true;
+  const staleKey = cacheKey(origin, "stale", path);
+  const keep = (body: ArrayBuffer, headers: Record<string, string>) =>
+    ctx.waitUntil(Promise.all([cache.put(freshKey, withTtl(body, headers, FRESH_TTL)), cache.put(staleKey, withTtl(body, headers, STALE_TTL))]));
+
+  if (pub.prefix !== null) {
+    try {
+      const obj = await env.FEED.get(pub.prefix + path);
+      if (!obj) return missing();
+      const headers = { "content-type": type, etag: obj.httpEtag, "last-modified": obj.uploaded.toUTCString(), "content-length": String(obj.size) };
+      const body = await obj.arrayBuffer();
+      keep(body, headers);
+      return new Response(body, { headers });
+    } catch {}
   }
-  if (obj) {
-    const headers = { "content-type": type, etag: obj.httpEtag, "last-modified": obj.uploaded.toUTCString(), "content-length": String(obj.size) };
-    const body = await obj.arrayBuffer();
-    ctx.waitUntil(cache.put(freshKey, withTtl(body, headers, FRESH_TTL)));
-    return new Response(body, { headers });
-  }
-  if (!failed) return missing();
   const known = await isListed(path, env, origin, ctx);
   if (known === false) return missing();
 
-  const staleKey = cacheKey(origin, "stale", path);
   const upstream = known ? await fromRaw(env, path) : null;
   if (upstream?.ok) {
     const body = await upstream.arrayBuffer();
     const headers: Record<string, string> = { "content-type": type, etag: await sha256Etag(body), "content-length": String(body.byteLength) };
     const modified = upstream.headers.get("last-modified");
     if (modified) headers["last-modified"] = modified;
-    ctx.waitUntil(Promise.all([cache.put(freshKey, withTtl(body, headers, FRESH_TTL)), cache.put(staleKey, withTtl(body, headers, STALE_TTL))]));
+    keep(body, headers);
     return new Response(body, { headers });
   }
   if (upstream?.status === 404) return missing();
@@ -147,7 +146,8 @@ export async function getFeedJson<T>(path: string, env: Env, origin: string, ctx
   }
 }
 
-type Published = { generated: number | null; version: string; prefix: string };
+// prefix null: the pointer is unreadable and nothing earlier is memoised, so R2 is skipped for the fallback.
+type Published = { generated: number | null; version: string; prefix: string | null };
 const publishedMemo = new WeakMap<R2Bucket, { at: number; value: Published }>();
 
 async function published(env: Env): Promise<Published> {
@@ -163,7 +163,9 @@ async function published(env: Env): Promise<Published> {
     // A pointer without a version is a publish from before immutable builds, whose files sit at the bucket root.
     value = { generated: Number.isFinite(t) ? t : null, version: build || sums.slice(0, 16) || "0", prefix: build && `builds/${build}/` };
   } catch {
-    value = memo?.value ?? value;
+    // Not memoised, so the next request retries; a guessed root prefix would turn the outage into cached 404s.
+    if (!memo) return { generated: null, version: "unknown", prefix: null };
+    value = memo.value;
   }
   publishedMemo.set(env.FEED, { at: Date.now(), value });
   return value;

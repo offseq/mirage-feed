@@ -1,6 +1,14 @@
 import pytest
 
-from generator.benign import alertable_ua, distinctive_path, domain_ok, path_ok, url_ok, user_agent_ok
+from generator.benign import (
+    alertable_ua,
+    distinctive_path,
+    domain_ok,
+    password_ok,
+    path_ok,
+    url_ok,
+    user_agent_ok,
+)
 
 
 @pytest.mark.parametrize(
@@ -12,6 +20,11 @@ from generator.benign import alertable_ua, distinctive_path, domain_ok, path_ok,
         ("co.uk", False),
         ("github.com", False),
         ("raw.githubusercontent.com", False),
+        ("gist.githubusercontent.com", False),
+        ("dpaste.org", False),
+        ("paste.ee", False),
+        ("0x0.st", False),
+        ("termbin.com", False),
         ("localhost", False),
         ("bad_label.example", False),
     ],
@@ -165,13 +178,45 @@ def test_url_ok(url, ok):
 
 @pytest.mark.parametrize(
     "path",
-    ["/dashboard/api-keys", "/forgot-password", "/account", "/account?search=x", "/projects/new", "/API/Members"],
+    [
+        "/dashboard/api-keys",
+        "/forgot-password",
+        "/account",
+        "/account?search=x",
+        "/projects/new",
+        "/API/Members",
+        "/billing",
+        "/api-keys",
+        "/integrations",
+        "/webhooks",
+        "/settings",
+        "/admin/settings",
+        "/admin/users",
+        "/admin/dashboard",
+        "/clients/abc",
+        "/bitsight/internet_census/probe",
+    ],
 )
 def test_decoy_navigation_paths_are_dropped(path):
     assert not path_ok(path)
 
 
-@pytest.mark.parametrize("path", ["/projectsend/upload.php", "/accounts.php", "/account/..;/admin", "/members.cgi"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/projectsend/upload.php",
+        "/accounts.php",
+        "/account/..;/admin",
+        "/members.cgi",
+        "/admin/config.php",
+        "/wp-admin/setup-config.php",
+        "/.env",
+        "/settings.php",
+        "/appsettings.json",
+        "/wp-json/wp/v2/users",
+        "/manage/account/login",
+    ],
+)
 def test_paths_sharing_a_decoy_prefix_are_kept(path):
     assert path_ok(path)
 
@@ -195,3 +240,10 @@ def test_self_identified_junk_uas_are_dropped(ua):
 )
 def test_alertable_ua(ua, ok):
     assert alertable_ua(ua) is ok
+
+
+@pytest.mark.parametrize(
+    ("value", "ok"), [("P", False), ("1", False), ("443", False), ("10443", False), ("12", True), ("123456", True)]
+)
+def test_password_ok(value, ok):
+    assert password_ok(value) is ok

@@ -34,7 +34,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | Credential pairs tried | 160,680 | top 100 passwords | 7 days |
 | Events | 1.03M events | — | — |
 
-<sub>Snapshot 2026-11-04 02:46 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot; the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-11-04 02:46 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot (CVEs: 7 days); the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
@@ -62,7 +62,7 @@ it as "no entries".
 | You want to | Use |
 |---|---|
 | Block attackers on a firewall | `ipv4-7d.txt`, plus `ipv6-7d.txt` if you route IPv6 |
-| Block on a device with a small table | `ipv4-top1k.txt` or `ipv4-top10k.txt`: the 1,000 or 10,000 highest-confidence addresses (file sorted by address) |
+| Block on a device with a small table | `ipv4-top1k.txt` or `ipv4-top10k.txt`: the 1,000 or 10,000 highest-confidence addresses (file sorted by address), without [VPN-login brute force alone](#how-an-ip-gets-listed) |
 | Block only what is active right now | `ipv4-1d.txt` |
 | Alert or enrich with a longer memory | `ipv4-30d.txt` (better for detection than for blocking) |
 | Review what changed since yesterday | `ipv4-added-1d.txt` and `ipv4-removed-1d.txt` |
@@ -157,15 +157,15 @@ address has a score from 1 to 127 (confidence × 1.27), so `>,0` matches any of 
 alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; iprep:src,MirageAttacker,>,0; threshold:type limit,track by_src,count 1,seconds 3600; classtype:misc-attack; sid:1900001; rev:2;)
 ```
 
-To alert only on high-confidence addresses (confidence 64 and up), raise the threshold:
+To alert only on high-confidence addresses (confidence 64 and up, never VPN-login brute force alone), raise the threshold:
 
 ```
 alert ip any any -> $HOME_NET any (msg:"Mirage feed: high-confidence attacker"; iprep:src,MirageAttacker,>,80; threshold:type limit,track by_src,count 1,seconds 3600; classtype:misc-attack; sid:1900005; rev:1;)
 ```
 
 `latest/suricata/mirage.rules` holds the first rule plus alert-only, rate-limited hunting rules for attacker
-user agents and request paths and a payload SHA-256 rule. Copy the whole `suricata/` directory so the
-`datasets/` paths resolve.
+user agents and request paths and, while `datasets/sha256.lst` is not empty, a payload SHA-256 rule.
+Copy the whole `suricata/` directory so the `datasets/` paths resolve.
 
 Zeek Intel framework:
 
@@ -177,7 +177,9 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
 <details>
 <summary><b>MISP, OpenCTI, Sentinel, Splunk</b></summary>
 
-- **MISP**: Sync Actions → Feeds → Add. Source format **MISP Feed**, URL `https://feeds.offseq.com/mirage-feed/misp/`.
+- **MISP**: Sync Actions → Feeds → Add. Source format **MISP Feed**, URL `https://feeds.offseq.com/mirage-feed/misp/`. The feed keeps the last
+  8 daily events; every build re-applies the current allowlist and filters to the earlier ones and sends what no
+  longer passes as deleted attributes.
 - **OpenCTI**: Data → Ingestion → CSV feeds, URL `https://feeds.offseq.com/mirage-feed/latest/attackers-ipv4-7d.csv`, with the mapper in
   [`docs/opencti-csv-mapper.json`](docs/opencti-csv-mapper.json). The file leaves out addresses without a known ASN,
   which the mapper cannot link; they are in `attackers-7d.csv` and the STIX bundle. Or import `latest/stix/mirage.json`
@@ -186,7 +188,8 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
   `{"sourcesystem": "OffSeq Mirage", "stixobjects": [...]}`. [`scripts/sentinel-upload.sh`](scripts/sentinel-upload.sh)
   splits `latest/stix/mirage.json` that way.
 - **Defender for Endpoint**: import `latest/defender/defender-top500.csv` (one CSV import batch): the 500
-  highest-confidence IPv4 addresses, leaving out VPN/Tor exits and records whose only tag is `web-scan`.
+  highest-confidence IPv4 addresses, leaving out VPN/Tor exits, records whose only tag is `web-scan` and VPN-login
+  brute force alone.
   Rows with Severity Low import with `GenerateAlert` set to False.
 - **Splunk**: upload `latest/attackers-7d.csv` as the lookup table file `mirage_attackers.csv`. Its key column is
   `ip`: `... | lookup mirage_attackers.csv ip AS src_ip OUTPUT confidence tags as_org`.
@@ -197,17 +200,17 @@ redef Intel::read_files += { "/opt/mirage/mirage.intel" };
 | File | Contents |
 |---|---|
 | `ipv4-{1d,7d,30d}.txt` | Attacker IPv4 addresses by activity window |
-| `ipv4-top{1k,10k}.txt` | The 1,000 or 10,000 highest-confidence addresses (file sorted by address), sized for capped firewall tables |
+| `ipv4-top{1k,10k}.txt` | The 1,000 or 10,000 highest-confidence addresses (file sorted by address), sized for capped firewall tables. VPN-login brute force alone is left out |
 | `ipv4-7d-cidr32.txt` · `ipv6-7d.txt` | IPv4 with `/32` suffix (AWS WAF IP sets) and IPv6 `/64` networks. Few attackers reach the fleet over IPv6, so `ipv6-7d.txt` is often empty |
 | `ipv4-added-1d.txt` · `ipv4-removed-1d.txt` | Addresses that entered `ipv4-7d.txt` since the previous day's build, and every address that left it: aged out, removed on request, newly allowlisted or now a VPN/Tor exit. Unblock what is in the removed list |
 | `anonymizers-7d.txt` | VPN and Tor exits that attacked the fleet (IPv4 and IPv6 `/64`). Kept out of every block list and rule file |
-| `known-scanners-ipv4.txt` · `known-scanners-ipv6.txt` | Research scanners we saw and **excluded** (Shodan, Censys, Shadowserver …). Allowlist these if you like. |
+| `known-scanners-ipv4.txt` · `known-scanners-ipv6.txt` | Research scanners we saw and **excluded** (Shodan, Censys, Shadowserver …). Allowlist these if you like. Addresses in the [allowlist](generator/allowlist.txt), such as verified crawlers, are in neither list |
 | `urls-7d.txt` · `domains-7d.txt` | Payload, dropper and C2 locations from captured exploit attempts. A domain is listed once at least 2 distinct source IPs fetched from it; most payload hosts are bare IP addresses (they stay in `urls-7d.txt`), so `domains-7d.txt` is often empty |
 | `hashes-sha256-30d.txt` | Files those payloads delivered |
 | `cves-7d.csv` | CVEs exploited against the fleet in the last 7 days, with CISA KEV flag and attempt counts. Lists every CVE tried by at least 2 distinct source IPs, plus every CVE on a 7-day IP record; the KEV flag comes from the [CISA catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog), vendored in [`generator/kev.txt`](generator/kev.txt) |
 | `fingerprints.csv` · `hassh.csv` | JA4 TLS client fingerprints and SSH HASSH of attacker tooling |
 | `user-agents-7d.txt` · `paths-7d.txt` | Distinctive HTTP user agents and request paths seen in attacks. For hunting, not blocking |
-| `passwords-top100.txt` | The 100 passwords attackers tried most, without usernames |
+| `passwords-top100.txt` | The 100 passwords attackers tried most, without usernames. Values under 2 characters and bare SSL-VPN port numbers (form-field artifacts) are left out |
 | `attackers-7d.csv` · `attackers-ipv4-7d.csv` · `records-7d.ndjson.gz` | One record per indicator: ASN, country, first/last seen, services, tags, ATT&CK, confidence |
 | `stix/` · `misp/` · `zeek/` · `suricata/` · `mikrotik/` · `nft/` · `crowdsec/` · `defender/` | The same data, pre-rendered |
 | `history.json` | Daily totals for the last 90 days, no addresses |
@@ -239,6 +242,11 @@ VPN and Tor exits (records tagged `vpn-exit` or `tor-exit`) are listed only in `
 full-record formats, where the tag shows: CSV and NDJSON, MISP as `ip-src` with `to_ids: false`, and STIX as
 `anonymization` indicators rather than `malicious-activity`. They never reach a block list or rule file.
 
+Records whose only activity is VPN-login brute force (tags `vpn-bruteforce` and at most `web-exploit`, techniques
+T1110 and T1190 only, no CVE) are mostly residential and mobile addresses of a proxy botnet: malicious, but shared
+with real users. They stay in `ipv4-{1d,7d,30d}.txt` and the formats built from those lists, but not in
+`ipv4-top{1k,10k}.txt` or the Defender CSV, and their Suricata IP reputation score is capped at 80.
+
 Entries expire **7 days** after the last observed activity. New activity renews them.
 
 Before every publish, CI refuses the build when any of these checks fail:
@@ -247,9 +255,11 @@ Before every publish, CI refuses the build when any of these checks fail:
   [allowlist](generator/allowlist.txt) (special-purpose ranges, public resolvers, root servers and the first-party
   ranges of Cloudflare, Google, Microsoft 365, Apple, GitHub, Akamai and Fastly) or a [canary address](generator/canary.txt).
 - A scanner entry is wider than one address (one /64 or smaller for IPv6), or is also listed as an attacker.
-- An IP, URL or domain list changes size by more than 30 % (50 % for `ipv4-1d.txt`) from the previous day.
+- An IP, URL or domain list changes size by more than 30 % (50 % for `ipv4-1d.txt`) from the previous build;
+  the limit scales with the days since that build, up to 3×.
   Changes under 20 entries are ignored.
-- More than 40 % of a 7- or 30-day IP list is new while more than 40 % of the previous day's list is gone.
+- More than 40 % of a 7- or 30-day IP list is new while more than 40 % of the previous build's list is gone
+  (plus a seventh for each further day since that build, up to 90 %).
 - One ASN holds more than 25 % of the 7-day list and more than 10 points over its share in the previous build, or one
   IPv4 /16 holds more than 5 % and more than 5 points over its previous share (lists of 200 or more entries).
 - A VPN or Tor exit from `anonymizers-7d.txt` appears in any block list, firewall script, Suricata or Zeek file, the
@@ -267,8 +277,9 @@ consecutive days is real, a one-day spike is not.
 
 Domains, paths and user agents are filtered as well:
 
-- **Domains**: popular sites (Tranco top 10k), code-hosting and file-sharing services and public suffixes never
-  appear in `domains-7d.txt`, though they can appear inside full URLs.
+- **Domains**: popular sites (Tranco top 10k), code-hosting, paste and file-sharing services (dpaste, paste.ee,
+  termbin, 0x0.st, GitHub raw and gist content and others) and public suffixes never appear in `domains-7d.txt`,
+  though they can appear inside full URLs.
 - **User agents**: only distinctive attack-tool strings are kept. Dropped are browser strings (every product token is
   a browser one, such as `Mozilla`, `AppleWebKit`, `Chrome`, `Safari`, `Firefox`, `Edg` or `OPR`, including a bare
   `Mozilla/5.0`), HTTP libraries (`curl`, `Wget`, `python-requests`, `Go-http-client`, `okhttp`, `axios`,
@@ -278,7 +289,10 @@ Domains, paths and user agents are filtered as well:
 - **Paths**: dropped are `/`, `/robots.txt`, `/.well-known/*` and common legitimate endpoints (login, admin, API,
   GraphQL, health, sitemap, WordPress login and AJAX, Exchange autodiscover, VPN portal start pages, MCP and others)
   in their simple variants, plus any path with an `@` (other than `/@vite/`), a hex or base64 run of 16 or more
-  characters or a `/s/<token>/` segment, because those encode the scanned target. The Suricata path dataset is
+  characters or a `/s/<token>/` segment, because those encode the scanned target. The decoy sites' own pages
+  (`/account`, `/billing`, `/settings`, `/webhooks`, `/admin/users`, `/admin/dashboard` and similar, as whole path
+  segments) are dropped unless the path carries an exploit pattern, and so are paths naming a research scanner
+  (Bitsight, Internet Census, Censys, Shadowserver, Stretchoid). The Suricata path dataset is
   stricter still: it only holds paths tied to a CVE or with an exploit pattern (traversal, `;`, `%2e`, `${`,
   `cgi-bin`, `/etc/passwd`, shell metacharacters after `.php?` and known device exploit paths).
 

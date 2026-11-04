@@ -2,6 +2,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from . import benign
 from .common import Artifact, Snapshot, anonymizer, dumps, network, parse_ts, uid
 from .netlist import DEFAULT_ALLOWLIST, Allowlist
 
@@ -10,6 +11,8 @@ MANIFEST_KEYS = ("info", "date", "analysis", "threat_level_id", "timestamp", "Or
 ORGC = {"name": "OffSeq", "uuid": uid("misp-org", "offseq")}
 TAGS = [{"name": "tlp:clear", "colour": "#ffffff"}]
 CONSUMERS = ("misp",)
+# Today's filters, re-applied to the values of carried events.
+STILL_OK = {"url": benign.url_ok, "domain": benign.domain_ok, "user-agent": benign.user_agent_ok}
 # (category, to_ids) per MISP attribute type
 TYPES = {
     "ip-src": ("Network activity", True),
@@ -68,7 +71,7 @@ def event(s: Snapshot) -> tuple[str, dict]:
 
 
 def _carried(prev: Path | None, s: Snapshot, allow: Allowlist) -> dict[str, dict]:
-    """Earlier events; IPs no longer listed, now allowlisted or now anonymizers are marked deleted."""
+    """Earlier events; IPs no longer listed, allowlisted or anonymizers and values now benign are marked deleted."""
     manifest = prev / "misp" / "manifest.json" if prev else None
     if not manifest or not manifest.is_file():
         return {}
@@ -85,9 +88,13 @@ def _carried(prev: Path | None, s: Snapshot, allow: Allowlist) -> dict[str, dict
         ev = body["Event"]
         pruned = False
         for a in ev.get("Attribute", []):
-            if a.get("deleted") or a["type"] != "ip-src":
+            if a.get("deleted"):
                 continue
-            if a["value"] not in live[bool(a.get("to_ids"))] or allow.hit(network(a["value"])):
+            if a["type"] == "ip-src":
+                gone = a["value"] not in live[bool(a.get("to_ids"))] or allow.hit(network(a["value"]))
+            else:
+                gone = not STILL_OK.get(a["type"], bool)(a["value"])
+            if gone:
                 # MISP only re-pulls an event whose timestamp moved, and only drops attributes sent as deleted.
                 a.update(deleted=True, to_ids=False, timestamp=stamp)
                 pruned = True

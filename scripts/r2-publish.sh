@@ -37,13 +37,17 @@ case "$cmd" in
     put "$meta" _meta/published.json
     rm -f "$meta"
     # Newest build first by its latest upload; the current one is always kept.
-    s3 s3api list-objects-v2 --bucket "$BUCKET" --prefix builds/ --query 'Contents[].[Key, LastModified]' --output json \
-      | jq -r '[.[]? | {v: (.[0] | split("/")[1]), t: .[1]}] | group_by(.v) | map({v: .[0].v, t: (map(.t) | max)})
-               | sort_by(.t) | reverse | .[].v' \
-      | awk -v keep="$KEEP" -v cur="$version" -v prev="$prev" '++n > keep && $0 != cur && $0 != prev' \
-      | while read -r old; do
-          if [[ "$old" =~ ^[0-9a-f]{16}$ ]]; then s3 s3 rm "s3://$BUCKET/builds/$old/" --recursive --only-show-errors; fi
-        done
+    prune() {
+      s3 s3api list-objects-v2 --bucket "$BUCKET" --prefix builds/ --query 'Contents[].[Key, LastModified]' --output json \
+        | jq -r '[.[]? | {v: (.[0] | split("/")[1]), t: .[1]}] | group_by(.v) | map({v: .[0].v, t: (map(.t) | max)})
+                 | sort_by(.t) | reverse | .[].v' \
+        | awk -v keep="$KEEP" -v cur="$version" -v prev="$prev" '++n > keep && $0 != cur && $0 != prev' \
+        | while read -r old; do
+            if [[ "$old" =~ ^[0-9a-f]{16}$ ]]; then s3 s3 rm "s3://$BUCKET/builds/$old/" --recursive --only-show-errors; fi
+          done
+    }
+    # Readers are already on the new build; a failed cleanup is retried by the next publish.
+    prune || echo "::warning::pruning old builds failed"
     ;;
   *) echo "usage: $0 upload|flip OUT" >&2; exit 2 ;;
 esac

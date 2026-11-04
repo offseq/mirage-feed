@@ -2,12 +2,14 @@ import base64
 
 from . import BASE_URL
 from .benign import alertable_ua, distinctive_path
-from .common import Artifact, Snapshot, lines, network
+from .common import Artifact, Snapshot, lines, network, vpn_bruteforce_only
 
 ZEEK_HEADER = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url"
 SOURCE = "mirage-feed"
 CATEGORY_ID = 1
 CATEGORY = "MirageAttacker"
+# The README's high-confidence rule matches scores above this.
+HIGH_SCORE = 80
 THRESHOLD = "threshold:type limit,track by_src,count 1,seconds 3600;"
 RULES = f"""\
 alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; iprep:src,{CATEGORY},>,0; \
@@ -18,6 +20,9 @@ sid:1900002; rev:1;)
 alert http any any -> $HOME_NET any (msg:"Mirage feed: path probed by attackers"; flow:established,to_server; \
 http.uri.raw; dataset:isset,mirage-paths,type string,load datasets/paths.lst; {THRESHOLD} classtype:misc-activity; \
 sid:1900003; rev:2;)
+"""
+# Suricata refuses a filesha256 list with no hashes, so the rule is left out while the list is empty.
+HASH_RULE = """\
 alert http any any -> any any (msg:"Mirage feed: known payload SHA-256"; flow:established; \
 filesha256:datasets/sha256.lst; classtype:trojan-activity; sid:1900004; rev:1;)
 """
@@ -28,15 +33,15 @@ def _zeek_value(value: str) -> str:
 
 
 def zeek(s: Snapshot) -> bytes:
-    rows = []
+    ips = []
     for r in s.blockable("7d"):
         kind = "Intel::ADDR" if network(r["ip"]).version == 4 else "Intel::SUBNET"
-        rows.append((r["ip"], kind, f"attacker confidence={r['confidence']}"))
-    rows += [(_zeek_value(r["url"]), "Intel::URL", f"{r['kind']} url") for r in s.lists["urls"]]
+        ips.append((r["ip"], kind, f"attacker confidence={r['confidence']}"))
+    rows = [(_zeek_value(r["url"]), "Intel::URL", f"{r['kind']} url") for r in s.lists["urls"]]
     rows += [(r["domain"], "Intel::DOMAIN", "payload domain") for r in s.lists["domains"]]
     rows += [(r["sha256"], "Intel::FILE_HASH", "payload sha256") for r in s.lists["hashes"]]
     rows += [(ua, "Intel::SOFTWARE", "attacker user-agent") for ua in _alertable_uas(s)]
-    body = [ZEEK_HEADER] + ["\t".join((v, k, SOURCE, d, BASE_URL)) for v, k, d in sorted(set(rows))]
+    body = [ZEEK_HEADER] + ["\t".join((v, k, SOURCE, d, BASE_URL)) for v, k, d in ips + sorted(set(rows))]
     return lines(body)
 
 
@@ -44,8 +49,9 @@ def _alertable_uas(s: Snapshot) -> list[str]:
     return [r["value"] for r in s.lists["user_agents"] if alertable_ua(r["value"])]
 
 
-def _score(confidence) -> int:
-    return min(127, max(1, (int(confidence) * 127 + 50) // 100))
+def _score(r: dict) -> int:
+    score = min(127, max(1, (int(r["confidence"]) * 127 + 50) // 100))
+    return min(score, HIGH_SCORE) if vpn_bruteforce_only(r) else score
 
 
 def _b64(values) -> list[str]:
@@ -54,12 +60,13 @@ def _b64(values) -> list[str]:
 
 def render(s: Snapshot) -> list[Artifact]:
     ips = s.blockable("7d")
-    iprep = [f"{r['ip']},{CATEGORY_ID},{_score(r['confidence'])}" for r in ips]
+    iprep = [f"{r['ip']},{CATEGORY_ID},{_score(r)}" for r in ips]
     v4 = [r["ip"] for r in ips if network(r["ip"]).version == 4]
     sha = sorted({r["sha256"] for r in s.lists["hashes"]})
     paths = _b64(r["value"] for r in s.lists["paths"] if distinctive_path(r["value"], r.get("cves")))
     uas = _b64(_alertable_uas(s))
     zeek_data = zeek(s)
+    rules = RULES + (HASH_RULE if sha else "")
     suri = ("suricata",)
     return [
         Artifact("latest/zeek/mirage.intel", zeek_data, "zeek-intel", zeek_data.count(b"\n") - 1, "7d", ("zeek",)),
@@ -76,5 +83,5 @@ def render(s: Snapshot) -> list[Artifact]:
         Artifact("latest/suricata/datasets/sha256.lst", lines(sha), "suricata-dataset", len(sha), "30d", suri),
         Artifact("latest/suricata/datasets/paths.lst", lines(paths), "suricata-dataset", len(paths), "7d", suri),
         Artifact("latest/suricata/datasets/uas.lst", lines(uas), "suricata-dataset", len(uas), "7d", suri),
-        Artifact("latest/suricata/mirage.rules", RULES.encode(), "suricata-rules", RULES.count("sid:"), None, suri),
+        Artifact("latest/suricata/mirage.rules", rules.encode(), "suricata-rules", rules.count("sid:"), None, suri),
     ]
