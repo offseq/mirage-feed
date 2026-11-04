@@ -238,7 +238,9 @@ An address appears in the feed only when **all** of these hold:
 4. It is not a known research scanner: Alpha Strike, BinaryEdge, Bitsight, Censys, Criminal IP, Cyber Resilience,
    Driftnet, FOFA, Hadrian, Internet Census, Internet Measurement, Intrinsec, IPIP, LeakIX, Modat, Netlas, NETSCOUT,
    ONYPHE, Palo Alto Xpanse, Quake, Rapid7, ReCyber, Shadowserver, Shodan, Stretchoid, Tenable, ZoomEye, university
-   research networks and scanners that name themselves in their user agent. These go to `known-scanners-*.txt`.
+   research networks and scanners that name themselves in their user agent (and otherwise send only bare HTTP
+   clients such as curl). These go to `known-scanners-*.txt`. A source that tries a password or sends a CVE payload
+   is listed whatever it calls itself, and a scanner range alone does not outweigh it.
 5. Its first sighting is at least **24 hours** old.
 
 VPN and Tor exits (records tagged `vpn-exit` or `tor-exit`) are listed only in `anonymizers-7d.txt` and in the
