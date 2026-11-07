@@ -1,0 +1,4 @@
+alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; iprep:src,MirageAttacker,>,0; threshold:type limit,track by_src,count 1,seconds 3600; classtype:misc-attack; sid:1900001; rev:2;)
+alert http any any -> $HOME_NET any (msg:"Mirage feed: attacker user-agent"; flow:established,to_server; http.user_agent; dataset:isset,mirage-uas,type string,load datasets/uas.lst; threshold:type limit,track by_src,count 1,seconds 3600; classtype:misc-activity; sid:1900002; rev:1;)
+alert http any any -> $HOME_NET any (msg:"Mirage feed: path probed by attackers"; flow:established,to_server; http.uri.raw; dataset:isset,mirage-paths,type string,load datasets/paths.lst; threshold:type limit,track by_src,count 1,seconds 3600; classtype:misc-activity; sid:1900003; rev:2;)
+alert http any any -> any any (msg:"Mirage feed: known payload SHA-256"; flow:established; filesha256:datasets/sha256.lst; classtype:trojan-activity; sid:1900004; rev:1;)
