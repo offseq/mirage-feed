@@ -20,21 +20,21 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 
 | | Observed by Mirage, last 24 h | In the feed | Feed window |
 |---|---:|---:|---|
-| Source IPs active in the last 24 h | 9,504 | 841 | 24 h |
-| Source IPs | — | 1,784 | 7 days |
-| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 308 | 7 days |
-| IPv4 addresses (`ipv4-30d.txt`) | — | 8,035 | 30 days |
-| Networks (ASNs) | 997 | 406 | 7 days |
-| Countries | 109 | 71 | 7 days |
+| Source IPs active in the last 24 h | 10,752 | 878 | 24 h |
+| Source IPs | — | 1,693 | 7 days |
+| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 250 | 7 days |
+| IPv4 addresses (`ipv4-30d.txt`) | — | 8,105 | 30 days |
+| Networks (ASNs) | 1,136 | 376 | 7 days |
+| Countries | 153 | 68 | 7 days |
 | CVEs exploited (9 in CISA KEV) | 12 | 10 | 7 days |
-| Payload / download URLs | 27 | 11 | 7 days |
-| Malware hashes | 3 | 2 | 30 days |
+| Payload / download URLs | 35 | 11 | 7 days |
+| Malware hashes | 2 | 2 | 30 days |
 | Tooling fingerprints (JA4, HASSH) | — | 200 | 7 days |
-| Research scanners (excluded) | — | 8,655 | 7 days |
-| Credential pairs tried | 135,367 | top 100 passwords | 7 days |
-| Events | 1.09M events | — | — |
+| Research scanners (excluded) | — | 8,427 | 7 days |
+| Credential pairs tried | 103,583 | top 100 passwords | 7 days |
+| Events | 677.75k events | — | — |
 
-<sub>Snapshot 2026-11-13 02:55 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot (CVEs: 7 days); the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-11-14 02:48 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot (CVEs: 7 days); the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
