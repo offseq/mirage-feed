@@ -3,6 +3,14 @@
 Format changes to the published feed. `feed.json` carries the current `schema_version`. Paths and columns that
 exist stay stable within a major version; additions bump the minor version.
 
+## 2.2
+
+Added on 2026-11-14:
+
+- `latest/suricata/mirage.tar.gz`, a suricata-update ruleset: `rules/mirage.rules` plus the four `datasets/` lists.
+  The attacker rule matches `datasets/ips.lst` instead of IP reputation, and the rules use SIDs 3510001-3510004
+  instead of the local-use 1900001-1900004 of `mirage.rules`, which is unchanged.
+
 ## 2.1
 
 Added on 2026-11-04:

@@ -1,4 +1,7 @@
 import base64
+import gzip
+import io
+import tarfile
 
 from . import BASE_URL
 from .benign import alertable_ua, distinctive_path
@@ -26,6 +29,34 @@ HASH_RULE = """\
 alert http any any -> any any (msg:"Mirage feed: known payload SHA-256"; flow:established; \
 filesha256:datasets/sha256.lst; classtype:trojan-activity; sid:1900004; rev:1;)
 """
+
+
+# suricata-update ruleset: datasets instead of iprep, so it loads without suricata.yaml changes.
+BUNDLE = "latest/suricata/mirage.tar.gz"
+BUNDLE_RULES = f"""\
+alert ip any any -> $HOME_NET any (msg:"Mirage feed: known attacker"; ip.src; \
+dataset:isset,mirage-ips,type ipv4,load datasets/ips.lst; {THRESHOLD} classtype:misc-attack; sid:3510001; rev:1;)
+alert http any any -> $HOME_NET any (msg:"Mirage feed: attacker user-agent"; flow:established,to_server; \
+http.user_agent; dataset:isset,mirage-uas,type string,load datasets/uas.lst; {THRESHOLD} classtype:misc-activity; \
+sid:3510002; rev:1;)
+alert http any any -> $HOME_NET any (msg:"Mirage feed: path probed by attackers"; flow:established,to_server; \
+http.uri.raw; dataset:isset,mirage-paths,type string,load datasets/paths.lst; {THRESHOLD} classtype:misc-activity; \
+sid:3510003; rev:1;)
+"""
+BUNDLE_HASH_RULE = """\
+alert http any any -> any any (msg:"Mirage feed: known payload SHA-256"; flow:established; \
+filesha256:datasets/sha256.lst; classtype:trojan-activity; sid:3510004; rev:1;)
+"""
+
+
+def bundle(files: dict[str, bytes]) -> bytes:
+    buf = io.BytesIO()
+    with gzip.GzipFile(filename="", mode="wb", fileobj=buf, mtime=0) as gz, tarfile.open(fileobj=gz, mode="w") as tar:
+        for name, data in sorted(files.items()):
+            info = tarfile.TarInfo(f"rules/{name}")
+            info.size, info.mode = len(data), 0o644
+            tar.addfile(info, io.BytesIO(data))
+    return buf.getvalue()
 
 
 def _zeek_value(value: str) -> str:
@@ -67,6 +98,9 @@ def render(s: Snapshot) -> list[Artifact]:
     uas = _b64(_alertable_uas(s))
     zeek_data = zeek(s)
     rules = RULES + (HASH_RULE if sha else "")
+    datasets = {"ips.lst": lines(v4), "paths.lst": lines(paths), "uas.lst": lines(uas), "sha256.lst": lines(sha)}
+    bundle_rules = BUNDLE_RULES + (BUNDLE_HASH_RULE if sha else "")
+    tarball = bundle({"mirage.rules": bundle_rules.encode()} | {f"datasets/{k}": v for k, v in datasets.items()})
     suri = ("suricata",)
     return [
         Artifact("latest/zeek/mirage.intel", zeek_data, "zeek-intel", zeek_data.count(b"\n") - 1, "7d", ("zeek",)),
@@ -79,9 +113,15 @@ def render(s: Snapshot) -> list[Artifact]:
             suri,
         ),
         Artifact("latest/suricata/mirage-iprep.list", lines(iprep), "suricata-iprep", len(iprep), "7d", suri),
-        Artifact("latest/suricata/datasets/ips.lst", lines(v4), "suricata-dataset", len(v4), "7d", suri),
-        Artifact("latest/suricata/datasets/sha256.lst", lines(sha), "suricata-dataset", len(sha), "30d", suri),
-        Artifact("latest/suricata/datasets/paths.lst", lines(paths), "suricata-dataset", len(paths), "7d", suri),
-        Artifact("latest/suricata/datasets/uas.lst", lines(uas), "suricata-dataset", len(uas), "7d", suri),
+        *(
+            Artifact(f"latest/suricata/datasets/{name}", datasets[name], "suricata-dataset", n, window, suri)
+            for name, n, window in (
+                ("ips.lst", len(v4), "7d"),
+                ("sha256.lst", len(sha), "30d"),
+                ("paths.lst", len(paths), "7d"),
+                ("uas.lst", len(uas), "7d"),
+            )
+        ),
         Artifact("latest/suricata/mirage.rules", rules.encode(), "suricata-rules", rules.count("sid:"), None, suri),
+        Artifact(BUNDLE, tarball, "suricata-update", bundle_rules.count("sid:"), "7d", ("suricata", "suricata-update")),
     ]

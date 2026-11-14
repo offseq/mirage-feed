@@ -169,6 +169,14 @@ alert ip any any -> $HOME_NET any (msg:"Mirage feed: high-confidence attacker"; 
 user agents and request paths and, while `datasets/sha256.lst` is not empty, a payload SHA-256 rule.
 Copy the whole `suricata/` directory so the `datasets/` paths resolve.
 
+With suricata-update, use `latest/suricata/mirage.tar.gz` instead. It carries the same lists and rules, with a
+dataset in place of IP reputation, so `suricata.yaml` needs no changes (Suricata 7 or later):
+
+```
+suricata-update add-source offseq/mirage https://feeds.offseq.com/mirage-feed/latest/suricata/mirage.tar.gz
+suricata-update
+```
+
 Zeek Intel framework:
 
 ```zeek

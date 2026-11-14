@@ -119,6 +119,11 @@ def test_leak_in_gzip_and_base64_trips(out):
     assert "leak in latest/suricata/datasets/uas.lst" in errors
 
 
+def test_bundle_mismatch_trips(out):
+    append(out / "latest/suricata/datasets/uas.lst", "c2Vuc29yLTA0Mi5pbnRlcm5hbA==")
+    assert "latest/suricata/mirage.tar.gz: rules/datasets/uas.lst differs" in run(out)
+
+
 def test_leak_rules_required(out):
     errors = check.run(out, None, ALLOWLIST, bootstrap=True, require_leak_rules=True)
     assert errors == ["leak rules empty (MIRAGE_LEAK_PATTERNS, MIRAGE_LEAK_LITERALS)"]

@@ -5,13 +5,14 @@ import gzip
 import ipaddress
 import json
 import re
+import tarfile
 import unicodedata
 import urllib.parse
 from collections import Counter
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from . import lookup
+from . import lookup, nsm
 from .common import parse_ts
 from .netlist import CANARY, DEFAULT_ALLOWLIST, Allowlist
 
@@ -54,6 +55,7 @@ REQUIRED = (
     "latest/suricata/categories.txt",
     "latest/suricata/mirage-iprep.list",
     "latest/suricata/mirage.rules",
+    nsm.BUNDLE,
     "latest/mikrotik/mirage-7d.rsc",
     "latest/nft/mirage.nft",
     "latest/ipset/mirage.ipset",
@@ -283,6 +285,18 @@ def check_leaks(out: Path, patterns: list[str], literals: list[str], required: b
         if text is None or any(rx.search(text) for rx in compiled) or any(n in text for n in needles):
             errors.append(f"leak in {rel}")
     return errors
+
+
+def check_bundle(out: Path) -> list[str]:
+    """The suricata-update tarball may only repackage files the other checks already cover."""
+    with tarfile.open(out / nsm.BUNDLE) as tar:
+        members = {m.name: tar.extractfile(m).read() for m in tar.getmembers() if m.isfile()}
+    datasets = out / "latest/suricata/datasets"
+    want = {f"rules/datasets/{p.name}": p.read_bytes() for p in datasets.glob("*.lst")}
+    hashes = want.get("rules/datasets/sha256.lst", b"").strip()
+    want["rules/mirage.rules"] = (nsm.BUNDLE_RULES + (nsm.BUNDLE_HASH_RULE if hashes else "")).encode()
+    names = sorted(members.keys() | want.keys())
+    return [f"{nsm.BUNDLE}: {name} differs" for name in names if members.get(name) != want.get(name)]
 
 
 def _sizes(out: Path, prev: Path, rel: str) -> tuple[set[str], set[str]] | None:
@@ -528,4 +542,5 @@ def run(
         *check_stix(out),
         *check_expiry(out),
         *check_lookup(out),
+        *check_bundle(out),
     ]

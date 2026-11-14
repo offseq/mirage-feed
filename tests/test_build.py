@@ -4,13 +4,14 @@ import gzip
 import hashlib
 import ipaddress
 import json
+import tarfile
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 from PIL import Image
 
-from generator import build, check, firewall, kev, og, readme, spotlight
+from generator import build, check, firewall, kev, nsm, og, readme, spotlight
 from generator.common import CVE, Snapshot, SnapshotError
 from generator.netlist import CANARY, Allowlist
 from generator.tables import ATTACKER_COLS, JA4_COLS
@@ -120,6 +121,16 @@ def test_suricata(out):
     assert base64.b64decode(uas[0]).decode() == "=cmd|' /C calc'!A0"
     rules = (out / "latest/suricata/mirage.rules").read_text()
     assert "iprep:src,MirageAttacker,>,0;" in rules and "sid:1900001; rev:2;" in rules
+
+
+def test_suricata_update_bundle(out):
+    with tarfile.open(out / nsm.BUNDLE) as tar:
+        members = {m.name: tar.extractfile(m).read() for m in tar.getmembers()}
+        assert all(m.mtime == 0 and m.uid == 0 for m in tar.getmembers())
+    assert members["rules/datasets/ips.lst"] == (out / "latest/suricata/datasets/ips.lst").read_bytes()
+    rules = members["rules/mirage.rules"].decode()
+    assert "iprep" not in rules and "sid:3510001; rev:1;" in rules
+    assert ("sid:3510004;" in rules) == bool(members["rules/datasets/sha256.lst"].strip())
 
 
 def test_mikrotik_skips_empty_family():
@@ -424,7 +435,7 @@ def test_stats_are_whitelisted(snapshot_raw):
 
 def test_feed_index_and_sums(out):
     feed = json.loads((out / "feed.json").read_text())
-    assert feed["schema_version"] == "2.1"
+    assert feed["schema_version"] == "2.2"
     assert "SHA256SUMS" not in {f["path"] for f in feed["files"]}
     by_path = {f["path"]: f for f in feed["files"]}
     assert by_path["latest/ipv4-7d.txt"]["count"] == len(text_lines(out, "latest/ipv4-7d.txt"))
