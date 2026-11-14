@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this data, please cite it as below."
+type: dataset
+title: "OffSeq Mirage Feed"
+abstract: "Daily threat intelligence from the OffSeq Mirage honeypot fleet: handshake-verified attacker IPs, exploited CVEs, payload URLs and fingerprints in firewall, SIEM and TIP formats."
+authors:
+  - name: "OffSeq (SEQ SIA)"
+    city: Riga
+    country: LV
+    website: "https://offseq.com"
+    email: support@offseq.com
+url: "https://feeds.offseq.com"
+repository-code: "https://github.com/offseq/mirage-feed"
+license: CC-BY-4.0
+keywords:
+  - threat-intelligence
+  - honeypot
+  - blocklist
+  - ioc
+  - cve
+  - stix
+  - misp
