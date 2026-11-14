@@ -1,0 +1,437 @@
+{
+  "attack": [
+    {
+      "events": 486348,
+      "ips": 1824,
+      "name": "Brute Force",
+      "technique": "T1110"
+    },
+    {
+      "events": 87531,
+      "ips": 1271,
+      "name": "Exploit Public-Facing Application",
+      "technique": "T1190"
+    },
+    {
+      "events": 50619,
+      "ips": 702,
+      "name": "Active Scanning",
+      "technique": "T1595"
+    },
+    {
+      "events": 3183,
+      "ips": 489,
+      "name": "Network Service Discovery",
+      "technique": "T1046"
+    },
+    {
+      "events": 3667,
+      "ips": 393,
+      "name": "Vulnerability Scanning",
+      "technique": "T1595.002"
+    },
+    {
+      "events": 109941,
+      "ips": 385,
+      "name": "VNC",
+      "technique": "T1021.005"
+    },
+    {
+      "events": 2967,
+      "ips": 330,
+      "name": "Email Collection",
+      "technique": "T1114"
+    },
+    {
+      "events": 4297,
+      "ips": 290,
+      "name": "Valid Accounts",
+      "technique": "T1078"
+    },
+    {
+      "events": 909,
+      "ips": 256,
+      "name": "Exploitation of Remote Services",
+      "technique": "T1210"
+    },
+    {
+      "events": 3121,
+      "ips": 230,
+      "name": "Remote Desktop Protocol",
+      "technique": "T1021.001"
+    },
+    {
+      "events": 351,
+      "ips": 130,
+      "name": "Data Destruction",
+      "technique": "T1485"
+    },
+    {
+      "events": 260,
+      "ips": 130,
+      "name": "Data Encrypted for Impact",
+      "technique": "T1486"
+    },
+    {
+      "events": 9645,
+      "ips": 127,
+      "name": "Command and Scripting Interpreter",
+      "technique": "T1059"
+    },
+    {
+      "events": 2391,
+      "ips": 88,
+      "name": "Mail Protocols",
+      "technique": "T1071.003"
+    },
+    {
+      "events": 1325,
+      "ips": 88,
+      "name": "Software",
+      "technique": "T1592.002"
+    },
+    {
+      "events": 10231,
+      "ips": 85,
+      "name": "Forced Authentication",
+      "technique": "T1187"
+    },
+    {
+      "events": 9903,
+      "ips": 79,
+      "name": "Unix Shell",
+      "technique": "T1059.004"
+    },
+    {
+      "events": 146,
+      "ips": 72,
+      "name": "SMB/Windows Admin Shares",
+      "technique": "T1021.002"
+    },
+    {
+      "events": 485,
+      "ips": 65,
+      "name": "Reflection Amplification",
+      "technique": "T1498.002"
+    },
+    {
+      "events": 384,
+      "ips": 60,
+      "name": "Credentials In Files",
+      "technique": "T1552.001"
+    },
+    {
+      "events": 65987,
+      "ips": 55,
+      "name": "Financial Theft",
+      "technique": "T1657"
+    },
+    {
+      "events": 7378,
+      "ips": 40,
+      "name": "Unsecured Credentials",
+      "technique": "T1552"
+    },
+    {
+      "events": 5,
+      "ips": 34,
+      "name": "Email Addresses",
+      "technique": "T1589.002"
+    },
+    {
+      "events": 91,
+      "ips": 33,
+      "name": "Modify Parameter",
+      "technique": "T0836"
+    },
+    {
+      "events": 163,
+      "ips": 33,
+      "name": "Remote System Discovery",
+      "technique": "T0846"
+    },
+    {
+      "events": 91,
+      "ips": 33,
+      "name": "Unauthorized Command Message",
+      "technique": "T0855"
+    },
+    {
+      "events": 107,
+      "ips": 33,
+      "name": "Network Sniffing",
+      "technique": "T1040"
+    },
+    {
+      "events": 412,
+      "ips": 33,
+      "name": "Ingress Tool Transfer",
+      "technique": "T1105"
+    },
+    {
+      "events": 879,
+      "ips": 26,
+      "name": "Default Accounts",
+      "technique": "T1078.001"
+    },
+    {
+      "events": 82,
+      "ips": 22,
+      "name": "Phishing",
+      "technique": "T1566"
+    },
+    {
+      "events": 388,
+      "ips": 20,
+      "name": "Proxy",
+      "technique": "T1090"
+    },
+    {
+      "events": 388,
+      "ips": 20,
+      "name": "Protocol Tunneling",
+      "technique": "T1572"
+    },
+    {
+      "events": 331,
+      "ips": 15,
+      "name": "Gather Victim Host Information",
+      "technique": "T1592"
+    },
+    {
+      "events": 49,
+      "ips": 12,
+      "name": "Remote System Information Discovery",
+      "technique": "T0888"
+    },
+    {
+      "events": 3,
+      "ips": 11,
+      "name": "Server Software Component",
+      "technique": "T1505"
+    },
+    {
+      "events": 19,
+      "ips": 8,
+      "name": "Web Shell",
+      "technique": "T1505.003"
+    },
+    {
+      "events": 10,
+      "ips": 4,
+      "name": "SSH Authorized Keys",
+      "technique": "T1098.004"
+    },
+    {
+      "events": 0,
+      "ips": 2,
+      "name": "File and Directory Discovery",
+      "technique": "T1083"
+    },
+    {
+      "events": 6,
+      "ips": 1,
+      "name": "Point & Tag Identification",
+      "technique": "T0861"
+    }
+  ],
+  "countries": [
+    {
+      "country": "US",
+      "ips": 650
+    },
+    {
+      "country": "SG",
+      "ips": 175
+    },
+    {
+      "country": "NL",
+      "ips": 153
+    },
+    {
+      "country": "CN",
+      "ips": 128
+    },
+    {
+      "country": "DE",
+      "ips": 121
+    },
+    {
+      "country": "BR",
+      "ips": 46
+    },
+    {
+      "country": "RO",
+      "ips": 40
+    },
+    {
+      "country": "BG",
+      "ips": 36
+    },
+    {
+      "country": "GB",
+      "ips": 36
+    },
+    {
+      "country": "BE",
+      "ips": 34
+    },
+    {
+      "country": "RU",
+      "ips": 34
+    },
+    {
+      "country": "FR",
+      "ips": 31
+    },
+    {
+      "country": "HK",
+      "ips": 25
+    },
+    {
+      "country": "IR",
+      "ips": 24
+    },
+    {
+      "country": "VN",
+      "ips": 23
+    },
+    {
+      "country": "CA",
+      "ips": 22
+    },
+    {
+      "country": "SE",
+      "ips": 22
+    },
+    {
+      "country": "SC",
+      "ips": 21
+    },
+    {
+      "country": "IN",
+      "ips": 20
+    },
+    {
+      "country": "PL",
+      "ips": 20
+    }
+  ],
+  "observed": {
+    "asns": 1136,
+    "countries": 153,
+    "credential_pairs": 103583,
+    "cves": 12,
+    "events": 677745,
+    "hashes": 2,
+    "ips": 10752,
+    "urls": 35
+  },
+  "published": {
+    "active_24h": 878,
+    "anonymizers": 250,
+    "asns": 376,
+    "countries": 68,
+    "cves": 10,
+    "fingerprints": 200,
+    "hashes": 2,
+    "ips": 1693,
+    "ips_30d": 8105,
+    "scanners": 8427,
+    "urls": 11
+  },
+  "services": [
+    {
+      "ips": 1140,
+      "service": "http"
+    },
+    {
+      "ips": 385,
+      "service": "vnc"
+    },
+    {
+      "ips": 230,
+      "service": "rdp"
+    },
+    {
+      "ips": 179,
+      "service": "mysql"
+    },
+    {
+      "ips": 159,
+      "service": "postgres"
+    },
+    {
+      "ips": 154,
+      "service": "ssh"
+    },
+    {
+      "ips": 140,
+      "service": "ftp"
+    },
+    {
+      "ips": 131,
+      "service": "mongodb"
+    },
+    {
+      "ips": 131,
+      "service": "redis"
+    },
+    {
+      "ips": 96,
+      "service": "imap"
+    },
+    {
+      "ips": 93,
+      "service": "sip"
+    },
+    {
+      "ips": 89,
+      "service": "mssql"
+    },
+    {
+      "ips": 88,
+      "service": "smb"
+    },
+    {
+      "ips": 88,
+      "service": "smtp"
+    },
+    {
+      "ips": 74,
+      "service": "rsync"
+    },
+    {
+      "ips": 59,
+      "service": "pop3"
+    },
+    {
+      "ips": 45,
+      "service": "memcached"
+    },
+    {
+      "ips": 43,
+      "service": "telnet"
+    },
+    {
+      "ips": 33,
+      "service": "modbus"
+    },
+    {
+      "ips": 33,
+      "service": "mqtt"
+    },
+    {
+      "ips": 23,
+      "service": "snmp"
+    },
+    {
+      "ips": 21,
+      "service": "ntp"
+    },
+    {
+      "ips": 7,
+      "service": "tftp"
+    }
+  ]
+}
