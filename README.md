@@ -26,7 +26,7 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 | IPv4 addresses (`ipv4-30d.txt`) | — | 8,105 | 30 days |
 | Networks (ASNs) | 1,136 | 376 | 7 days |
 | Countries | 153 | 68 | 7 days |
-| CVEs exploited (9 in CISA KEV) | 12 | 10 | 7 days |
+| CVEs exploited (all CISA KEV) | 12 | 10 | 7 days |
 | Payload / download URLs | 35 | 11 | 7 days |
 | Malware hashes | 2 | 2 | 30 days |
 | Tooling fingerprints (JA4, HASSH) | — | 200 | 7 days |
