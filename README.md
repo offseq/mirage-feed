@@ -20,21 +20,21 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 
 | | Observed by Mirage, last 24 h | In the feed | Feed window |
 |---|---:|---:|---|
-| Source IPs active in the last 24 h | 13,231 | 973 | 24 h |
-| Source IPs | — | 1,732 | 7 days |
-| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 240 | 7 days |
-| IPv4 addresses (`ipv4-30d.txt`) | — | 8,184 | 30 days |
-| Networks (ASNs) | 1,278 | 363 | 7 days |
-| Countries | 157 | 70 | 7 days |
+| Source IPs active in the last 24 h | 12,052 | 922 | 24 h |
+| Source IPs | — | 1,747 | 7 days |
+| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 237 | 7 days |
+| IPv4 addresses (`ipv4-30d.txt`) | — | 8,197 | 30 days |
+| Networks (ASNs) | 1,241 | 362 | 7 days |
+| Countries | 140 | 68 | 7 days |
 | CVEs exploited (all CISA KEV) | 12 | 10 | 7 days |
-| Payload / download URLs | 41 | 11 | 7 days |
-| Malware hashes | 2 | 2 | 30 days |
+| Payload / download URLs | 36 | 9 | 7 days |
+| Malware hashes | 0 | 2 | 30 days |
 | Tooling fingerprints (JA4, HASSH) | — | 200 | 7 days |
-| Research scanners (excluded) | — | 8,266 | 7 days |
-| Credential pairs tried | 94,882 | top 100 passwords | 7 days |
-| Events | 806.35k events | — | — |
+| Research scanners (excluded) | — | 8,209 | 7 days |
+| Credential pairs tried | 115,277 | top 100 passwords | 7 days |
+| Events | 726.44k events | — | — |
 
-<sub>Snapshot 2026-11-15 02:54 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot (CVEs: 7 days); the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-11-16 02:52 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot (CVEs: 7 days); the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
