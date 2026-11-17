@@ -87,9 +87,14 @@ keeps `generated` and gets a new `build`.
 - **CIRCL Vulnerability-Lookup**: [MirageSight](https://github.com/vulnerability-lookup/MirageSight) posts an
   `exploited` sighting per CVE and day from `latest/cves-7d.csv`, twice a day, on
   [vulnerability.circl.lu](https://vulnerability.circl.lu/sightings/?query=OffSeq+Mirage).
-- **Zeek**: `zkg install zeek-offseq-mirage` ([package](https://github.com/offseq/zeek-offseq-mirage)) loads
-  `latest/zeek/mirage.intel` into the Intel framework daily and removes entries that drop out.
-- **Suricata**: `suricata-update` installs `latest/suricata/mirage.tar.gz` (see below).
+- **malicious-ip**: lists the feed as a source (`offseq.com-*`) for its
+  [malicious IP lists](https://github.com/romainmarcoux/malicious-ip).
+- **NETSHIELD**: its [honeypot monitor](https://github.com/juergen2025sys/NETSHIELD/blob/e39f5d84e054d8ba9827e1006f9798567008b9e0/.github/workflows/honeypot_monitor.yml)
+  reads `latest/ipv4-30d.txt`.
+
+**Available through** Zeek (`zkg install zeek-offseq-mirage`, [package](https://github.com/offseq/zeek-offseq-mirage),
+which loads `latest/zeek/mirage.intel` into the Intel framework daily and removes entries that drop out) and
+`suricata-update` (`latest/suricata/mirage.tar.gz`, see below).
 
 **Stability.** The paths, file formats and CSV columns these tools read are a stable interface, checked by
 `tests/test_contract.py`. A change is listed in [CHANGELOG.md](CHANGELOG.md) and announced to the projects above

@@ -54,6 +54,7 @@ def test_csv_columns(out, consumer, path, columns):
     ("consumer", "path"),
     [
         ("FireHOL, crowdsec-blocklist-import, Bert-JanP feed list", "latest/ipv4-7d.txt"),
+        ("NETSHIELD honeypot monitor", "latest/ipv4-30d.txt"),
         ("Yeti OffSeqMirage feed, Bert-JanP feed list", "latest/urls-7d.txt"),
     ],
 )
@@ -61,7 +62,7 @@ def test_plain_lists(out, consumer, path):
     lines = (out / path).read_text().splitlines()
     assert lines, f"{consumer} fetches {path}"
     for line in lines:
-        if path.endswith("ipv4-7d.txt"):
+        if "ipv4" in path:
             assert ipaddress.ip_address(line).version == 4, f"{consumer} reads one IPv4 per line in {path}: {line!r}"
         else:
             assert line.startswith(("http://", "https://")), f"{consumer} reads one URL per line in {path}: {line!r}"
