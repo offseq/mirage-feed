@@ -82,6 +82,19 @@ keeps `generated` and gets a new `build`.
 
 ## Integrations
 
+### Who uses this feed
+
+- **CIRCL Vulnerability-Lookup**: [MirageSight](https://github.com/vulnerability-lookup/MirageSight) posts an
+  `exploited` sighting per CVE and day from `latest/cves-7d.csv`, twice a day, on
+  [vulnerability.circl.lu](https://vulnerability.circl.lu/sightings/?query=OffSeq+Mirage).
+- **Zeek**: `zkg install zeek-offseq-mirage` ([package](https://github.com/offseq/zeek-offseq-mirage)) loads
+  `latest/zeek/mirage.intel` into the Intel framework daily and removes entries that drop out.
+- **Suricata**: `suricata-update` installs `latest/suricata/mirage.tar.gz` (see below).
+
+**Stability.** The paths, file formats and CSV columns these tools read are a stable interface, checked by
+`tests/test_contract.py`. A change is listed in [CHANGELOG.md](CHANGELOG.md) and announced to the projects above
+before it ships.
+
 <details>
 <summary><b>pfSense / OPNsense</b></summary>
 
