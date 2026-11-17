@@ -8,8 +8,8 @@ exist stay stable within a major version; additions bump the minor version.
 Documented on 2026-11-17:
 
 - The paths, formats and columns read by external consumers (CIRCL MirageSight, Yeti, the Zeek package, the
-  suricata-update bundle, the STIX bundle for OpenCTI, the MISP feed and the plain IPv4 and URL lists used by FireHOL
-  and CrowdSec importers) are pinned by `tests/test_contract.py`. Changing them needs a major version.
+  suricata-update bundle, the STIX bundle for OpenCTI, the MISP feed and the plain IPv4 and URL lists used by FireHOL,
+  CrowdSec importers and NETSHIELD) are pinned by `tests/test_contract.py`. Changing them needs a major version.
 
 Added on 2026-11-14:
 

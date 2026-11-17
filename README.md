@@ -89,7 +89,7 @@ keeps `generated` and gets a new `build`.
   [vulnerability.circl.lu](https://vulnerability.circl.lu/sightings/?query=OffSeq+Mirage).
 - **malicious-ip**: lists the feed as a source (`offseq.com-*`) for its
   [malicious IP lists](https://github.com/romainmarcoux/malicious-ip).
-- **NETSHIELD**: its [honeypot monitor](https://github.com/juergen2025sys/NETSHIELD/blob/e39f5d84e054d8ba9827e1006f9798567008b9e0/.github/workflows/honeypot_monitor.yml)
+- **NETSHIELD**: its [honeypot monitor](https://github.com/juergen2025sys/NETSHIELD/blob/main/.github/workflows/honeypot_monitor.yml)
   reads `latest/ipv4-30d.txt`.
 
 **Available through** Zeek (`zkg install zeek-offseq-mirage`, [package](https://github.com/offseq/zeek-offseq-mirage),
