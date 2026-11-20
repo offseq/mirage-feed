@@ -215,7 +215,7 @@ jsonpointer==3.4 \
     --hash=sha256:136e2e3273fd82a1502274f56ec172f331b6a1703d86a1824d503af4d9a96142 \
     --hash=sha256:e57015ae65af3821c6a3976069860789cf326103f38b22b2178d41d021adad25
     # via jsonschema
-jsonschema==4.26.0 \
+jsonschema[format-nongpl]==4.26.0 \
     --hash=sha256:0c26707e2efad8aa1bfc5b7ce170f3fccc2e4918ff85989ba9ffa9facb2be326 \
     --hash=sha256:d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce
     # via
@@ -618,9 +618,9 @@ stix2-patterns==2.1.2 \
     --hash=sha256:b2059d36c1fd87740f3facc22a4147cde1e2b0acb8d5e4c08fbf04b1dc553185 \
     --hash=sha256:e164e162936303c2e141760130e54f0d247d6272ebf4e1153b8e99e8a42c82ca
     # via stix2-validator
-stix2-validator==3.2.0 \
-    --hash=sha256:bc632ab94d157a6e03ecac8e6ec664ab444e765787efa7aa9926c71db1c97fb3 \
-    --hash=sha256:e7653c6f54b6cc460d05342c59f631bebe35d191ea5670d66a9464fb46a246f6
+stix2-validator==3.3.2 \
+    --hash=sha256:114c1de273566153dbc0583292727ef9b697a8fe13199b5689e65fcaf3a91376 \
+    --hash=sha256:34c77d298a32333ee02a8eb404e29c8ab6036631d994066dc542031cac95a4ac
     # via -r requirements-publish.in
 typing-extensions==4.16.0 \
     --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8 \
