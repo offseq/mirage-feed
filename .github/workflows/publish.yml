@@ -138,9 +138,7 @@ jobs:
           [[ "$day" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "::error::invalid day"; exit 1; }
           [[ "$generated" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || { echo "::error::invalid generated"; exit 1; }
           [[ "$build" =~ ^[0-9a-f]{16}$ ]] || { echo "::error::invalid build"; exit 1; }
-          echo "day=$day" >> "$GITHUB_OUTPUT"
-          echo "generated=$generated" >> "$GITHUB_OUTPUT"
-          echo "build=$build" >> "$GITHUB_OUTPUT"
+          printf 'day=%s\ngenerated=%s\nbuild=%s\n' "$day" "$generated" "$build" >> "$GITHUB_OUTPUT"
           live=false
           # Both mirrors must already serve it: a run that failed between the data push and the R2 flip must retry.
           # The build id, not generated: a generator change rebuilding the same snapshot must republish.

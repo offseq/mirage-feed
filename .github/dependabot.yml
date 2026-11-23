@@ -16,10 +16,10 @@ updates:
       interval: weekly
     cooldown:
       default-days: 14
-    ignore:
-      # 3.3.1 wheel ships without its JSON schemas (oasis-open/cti-stix-validator#248).
-      - dependency-name: stix2-validator
-        versions: ["3.3.1"]
+    groups:
+      # requirements-dev.txt and requirements-publish.txt share this directory and pins; one PR recompiles both.
+      python:
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /site
