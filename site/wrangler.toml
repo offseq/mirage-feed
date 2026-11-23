@@ -19,7 +19,7 @@ send_email = [{ name = "ALERT", destination_address = "npu+platforms@offseq.com"
 [observability]
 enabled = false
 
-# Wrangler 3 has no first-class [[ratelimits]]. Windows are 10 s or 60 s only; the hourly removal cap is enforced upstream via X-Feed-Client-IP.
+# Unsafe bindings predate first-class [[ratelimits]] (same upload metadata). Windows are 10 s or 60 s only; the hourly removal cap is enforced upstream via X-Feed-Client-IP.
 [[unsafe.bindings]]
 name = "REMOVAL_LIMIT"
 type = "ratelimit"

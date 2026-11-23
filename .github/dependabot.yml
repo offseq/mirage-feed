@@ -34,10 +34,10 @@ updates:
         dependency-type: development
         update-types: ["minor", "patch"]
     ignore:
-      # wrangler 4 defaults r2/kv/d1 commands to local storage; upgrade deliberately.
+      # Majors change CLI and deploy defaults; upgrade deliberately.
       - dependency-name: wrangler
         update-types: ["version-update:semver-major"]
-      # v5 needs wrangler 4 as its peer; move both together.
+      # Each major is the peer of a wrangler major; move both together.
       - dependency-name: "@cloudflare/workers-types"
         update-types: ["version-update:semver-major"]
       # Tracks the Node 22 runtime (engines).
