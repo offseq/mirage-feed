@@ -20,21 +20,21 @@ in the formats your firewall, SIEM and threat-intel platform already read.
 
 | | Observed by Mirage, last 24 h | In the feed | Feed window |
 |---|---:|---:|---|
-| Source IPs active in the last 24 h | 10,788 | 1,195 | 24 h |
-| Source IPs | — | 2,218 | 7 days |
-| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 109 | 7 days |
-| IPv4 addresses (`ipv4-30d.txt`) | — | 8,860 | 30 days |
-| Networks (ASNs) | 1,365 | 562 | 7 days |
-| Countries | 154 | 84 | 7 days |
-| CVEs exploited (all CISA KEV) | 15 | 9 | 7 days |
-| Payload / download URLs | 33 | 13 | 7 days |
-| Malware hashes | 5 | 0 | 30 days |
+| Source IPs active in the last 24 h | 11,300 | 1,159 | 24 h |
+| Source IPs | — | 2,210 | 7 days |
+| VPN / Tor exits (only in `anonymizers-7d.txt`) | — | 139 | 7 days |
+| IPv4 addresses (`ipv4-30d.txt`) | — | 8,948 | 30 days |
+| Networks (ASNs) | 1,546 | 570 | 7 days |
+| Countries | 158 | 84 | 7 days |
+| CVEs exploited (all CISA KEV) | 15 | 10 | 7 days |
+| Payload / download URLs | 39 | 17 | 7 days |
+| Malware hashes | 4 | 0 | 30 days |
 | Tooling fingerprints (JA4, HASSH) | — | 200 | 7 days |
-| Research scanners (excluded) | — | 7,758 | 7 days |
-| Credential pairs tried | 78,688 | top 100 passwords | 7 days |
-| Events | 1.04M events | — | — |
+| Research scanners (excluded) | — | 7,557 | 7 days |
+| Credential pairs tried | 99,228 | top 100 passwords | 7 days |
+| Events | 1.14M events | — | — |
 
-<sub>Snapshot 2026-11-23 05:03 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot (CVEs: 7 days); the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
+<sub>Snapshot 2026-11-24 02:52 UTC · the observed column counts everything the fleet saw in the 24 h before the snapshot (CVEs: 7 days); the feed column counts what passed the listing rules over the window shown · entries are published 24 h after first sighting · <a href="#how-an-ip-gets-listed">methodology</a></sub>
 <!-- stats:end -->
 
 ## Quick start
