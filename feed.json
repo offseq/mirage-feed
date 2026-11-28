@@ -1,0 +1,1130 @@
+{
+  "build": "a7afbbb848d49de5",
+  "day": "2026-11-27",
+  "files": [
+    {
+      "bytes": 529,
+      "consumers": [],
+      "count": 1,
+      "format": "text",
+      "path": "LICENSE-DATA",
+      "sha256": "59e8a385fef775ac2440ca2910d7dc2cee67d1d25f8cf3586f1795d0cb714830",
+      "window": null
+    },
+    {
+      "bytes": 9561,
+      "consumers": [
+        "feeds.offseq.com",
+        "atom"
+      ],
+      "count": 35,
+      "format": "json",
+      "path": "history.json",
+      "sha256": "fb27778cee2c17c28190ec6ffe060398f9615af28e93750f3ee5fe0e4853d72a",
+      "window": "90d"
+    },
+    {
+      "bytes": 1709,
+      "consumers": [
+        "siem",
+        "enrichment"
+      ],
+      "count": 122,
+      "format": "txt",
+      "path": "latest/anonymizers-7d.txt",
+      "sha256": "74e928542d9c03a087e72eed333c6ca7daaf42806f7854fb7878bb44c142b3a4",
+      "window": "7d"
+    },
+    {
+      "bytes": 399120,
+      "consumers": [
+        "splunk",
+        "sentinel",
+        "elastic"
+      ],
+      "count": 2480,
+      "format": "csv",
+      "path": "latest/attackers-7d.csv",
+      "sha256": "c8c53a41c60058aa645b5a150510217d609c14cdafedd2f691768c4f3de1d59e",
+      "window": "7d"
+    },
+    {
+      "bytes": 399120,
+      "consumers": [
+        "opencti"
+      ],
+      "count": 2480,
+      "format": "csv",
+      "path": "latest/attackers-ipv4-7d.csv",
+      "sha256": "c8c53a41c60058aa645b5a150510217d609c14cdafedd2f691768c4f3de1d59e",
+      "window": "7d"
+    },
+    {
+      "bytes": 83019,
+      "consumers": [
+        "crowdsec"
+      ],
+      "count": 2358,
+      "format": "crowdsec-csv",
+      "path": "latest/crowdsec/mirage-7d.csv",
+      "sha256": "033e0316e20d2cede5bbe1d10d1fc857f06d41b890e5f4b234c3b0c4c48d9335",
+      "window": "7d"
+    },
+    {
+      "bytes": 1086,
+      "consumers": [
+        "siem",
+        "vuln-mgmt"
+      ],
+      "count": 11,
+      "format": "csv",
+      "path": "latest/cves-7d.csv",
+      "sha256": "2aa6d853a497b84f12a9c064c52f048003954a966c1f26c19cfc3889ebc83c71",
+      "window": "7d"
+    },
+    {
+      "bytes": 127307,
+      "consumers": [
+        "defender-for-endpoint"
+      ],
+      "count": 500,
+      "format": "defender-csv",
+      "path": "latest/defender/defender-top500.csv",
+      "sha256": "ba4ef1ee597c1c931c2afbe35b41b737dda2829fa40a3cd76847bccd3bfa2770",
+      "window": "7d"
+    },
+    {
+      "bytes": 0,
+      "consumers": [
+        "dns-rpz",
+        "edl",
+        "siem"
+      ],
+      "count": 0,
+      "format": "txt",
+      "path": "latest/domains-7d.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "window": "7d"
+    },
+    {
+      "bytes": 17530,
+      "consumers": [
+        "zeek",
+        "suricata"
+      ],
+      "count": 191,
+      "format": "csv",
+      "path": "latest/fingerprints.csv",
+      "sha256": "4b0a97f036e7a073f619d9e992da8ee2dfa27e595b7478cea6de1e51d28b012e",
+      "window": null
+    },
+    {
+      "bytes": 0,
+      "consumers": [
+        "edr",
+        "siem"
+      ],
+      "count": 0,
+      "format": "txt",
+      "path": "latest/hashes-sha256-30d.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "window": "30d"
+    },
+    {
+      "bytes": 852,
+      "consumers": [
+        "zeek",
+        "siem"
+      ],
+      "count": 9,
+      "format": "csv",
+      "path": "latest/hassh.csv",
+      "sha256": "a3c5012d8bb30e7251ee5bce0e1a487964727bbe8c6fdcd3a9f1e54632d9c945",
+      "window": null
+    },
+    {
+      "bytes": 71628,
+      "consumers": [
+        "ipset",
+        "iptables"
+      ],
+      "count": 2358,
+      "format": "ipset-restore",
+      "path": "latest/ipset/mirage.ipset",
+      "sha256": "d894d56872ceaff7a81af4a658f01d1d03ac0c7ad1e10d5787e6ea50926820e7",
+      "window": "7d"
+    },
+    {
+      "bytes": 13793,
+      "consumers": [
+        "pfsense",
+        "opnsense",
+        "fortigate",
+        "palo-alto",
+        "crowdsec",
+        "ipset"
+      ],
+      "count": 972,
+      "format": "txt",
+      "path": "latest/ipv4-1d.txt",
+      "sha256": "d607bb0f2bc36946d66ce19a32982c2899e29fbf1ee244c8759078f201dbb675",
+      "window": "1d"
+    },
+    {
+      "bytes": 126739,
+      "consumers": [
+        "pfsense",
+        "opnsense",
+        "fortigate",
+        "palo-alto",
+        "crowdsec",
+        "ipset"
+      ],
+      "count": 8949,
+      "format": "txt",
+      "path": "latest/ipv4-30d.txt",
+      "sha256": "10d7a14160d61104183f253bf97a7b2bba8c19734370ad2b147c4e53442ea367",
+      "window": "30d"
+    },
+    {
+      "bytes": 40546,
+      "consumers": [
+        "aws-waf"
+      ],
+      "count": 2358,
+      "format": "txt",
+      "path": "latest/ipv4-7d-cidr32.txt",
+      "sha256": "0dc1718b421179297a166e862c8b5cbfa4aab08a547a57966702c592b834d056",
+      "window": "7d"
+    },
+    {
+      "bytes": 33472,
+      "consumers": [
+        "pfsense",
+        "opnsense",
+        "fortigate",
+        "palo-alto",
+        "crowdsec",
+        "ipset"
+      ],
+      "count": 2358,
+      "format": "txt",
+      "path": "latest/ipv4-7d.txt",
+      "sha256": "b19fcebeab98296c41a2e203c08407eabf65d11bcd82841b7587518608be33ac",
+      "window": "7d"
+    },
+    {
+      "bytes": 2789,
+      "consumers": [
+        "siem",
+        "change-review"
+      ],
+      "count": 197,
+      "format": "txt",
+      "path": "latest/ipv4-added-1d.txt",
+      "sha256": "9d7c62091f3f9cdef4162f0dae6939e2dd8a6f5a65c34e62ac3e3bb122c80f54",
+      "window": "1d"
+    },
+    {
+      "bytes": 2808,
+      "consumers": [
+        "siem",
+        "change-review"
+      ],
+      "count": 200,
+      "format": "txt",
+      "path": "latest/ipv4-removed-1d.txt",
+      "sha256": "d73cf411285cb25a453867a3074a2df084e9bcf874bf373d3bdd837f033f12c8",
+      "window": "1d"
+    },
+    {
+      "bytes": 31707,
+      "consumers": [
+        "pfsense",
+        "opnsense",
+        "fortigate",
+        "palo-alto",
+        "crowdsec",
+        "ipset"
+      ],
+      "count": 2235,
+      "format": "txt",
+      "path": "latest/ipv4-top10k.txt",
+      "sha256": "d67f647b3f4e487062d4c63f9386dac0a993b8e6f5c91b7635543fc497d3b626",
+      "window": "7d"
+    },
+    {
+      "bytes": 14216,
+      "consumers": [
+        "pfsense",
+        "opnsense",
+        "fortigate",
+        "palo-alto",
+        "crowdsec",
+        "ipset"
+      ],
+      "count": 1000,
+      "format": "txt",
+      "path": "latest/ipv4-top1k.txt",
+      "sha256": "c9af9e09643d3b79b5762f86ad07ef2c537bb9b0bf2d2ca971d9bb03766999ee",
+      "window": "7d"
+    },
+    {
+      "bytes": 0,
+      "consumers": [
+        "pfsense",
+        "opnsense",
+        "fortigate",
+        "palo-alto",
+        "crowdsec",
+        "ipset"
+      ],
+      "count": 0,
+      "format": "txt",
+      "path": "latest/ipv6-7d.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "window": "7d"
+    },
+    {
+      "bytes": 110152,
+      "consumers": [
+        "allowlist"
+      ],
+      "count": 7748,
+      "format": "txt",
+      "path": "latest/known-scanners-ipv4.txt",
+      "sha256": "a62d5e3b801f3401df915a8dd214d0c4cdc09fe5f6a61bf3b4d8eafe26582642",
+      "window": null
+    },
+    {
+      "bytes": 572,
+      "consumers": [
+        "allowlist"
+      ],
+      "count": 25,
+      "format": "txt",
+      "path": "latest/known-scanners-ipv6.txt",
+      "sha256": "f19ee06e896d7b5eb8e53569529b5ecc80f2f8b1b29bfbcda67df67f5452c067",
+      "window": null
+    },
+    {
+      "bytes": 1704109,
+      "consumers": [
+        "feeds.offseq.com"
+      ],
+      "count": 16844,
+      "files": 215,
+      "format": "ip-lookup-shards",
+      "path": "latest/lookup/",
+      "sha256": "bae6f296952e6ebcc197abbcc35ae720afce689a75e275e6f92837e28c0fbaaa",
+      "window": "30d"
+    },
+    {
+      "bytes": 368794,
+      "consumers": [
+        "mikrotik"
+      ],
+      "count": 2358,
+      "format": "routeros-script",
+      "path": "latest/mikrotik/mirage-7d.rsc",
+      "sha256": "a55e8fa6804901a6dc04a3906ea51c9091f182a448398a11b048542157bef7d3",
+      "window": "7d"
+    },
+    {
+      "bytes": 36532,
+      "consumers": [
+        "nftables"
+      ],
+      "count": 2358,
+      "format": "nftables",
+      "path": "latest/nft/mirage.nft",
+      "sha256": "507928e4711187f418bc9d698e2723212d7c4fdc90dcc955a95889924b82989a",
+      "window": "7d"
+    },
+    {
+      "bytes": 819,
+      "consumers": [
+        "password-policy"
+      ],
+      "count": 100,
+      "format": "txt",
+      "path": "latest/passwords-top100.txt",
+      "sha256": "4b4d4ae15cba32d7c5811a2ed3266622d50f085d8ef342fcf2cb5583b3a7bbc5",
+      "window": null
+    },
+    {
+      "bytes": 9163,
+      "consumers": [
+        "hunting"
+      ],
+      "count": 445,
+      "format": "txt",
+      "path": "latest/paths-7d.txt",
+      "sha256": "7e4a8a877d7512f2014cc8e5a2959d96463301d6047df431f82a60f47a72178c",
+      "window": "7d"
+    },
+    {
+      "bytes": 84171,
+      "consumers": [
+        "elastic",
+        "splunk",
+        "jq"
+      ],
+      "count": 2495,
+      "format": "ndjson+gzip",
+      "path": "latest/records-7d.ndjson.gz",
+      "sha256": "0dd229ffebb67167e6674708802cbfcc74f673daf11f3fd5cea5af2e7e055a4f",
+      "window": "7d"
+    },
+    {
+      "bytes": 6327352,
+      "consumers": [
+        "opencti",
+        "sentinel",
+        "misp",
+        "taxii-import"
+      ],
+      "count": 11894,
+      "format": "stix-2.1",
+      "path": "latest/stix/mirage.json",
+      "sha256": "debb927447bb8369d5459c529e28eb98c230e445106c73895635d830af29e033",
+      "window": "7d"
+    },
+    {
+      "bytes": 42,
+      "consumers": [
+        "suricata"
+      ],
+      "count": 1,
+      "format": "suricata-iprep-categories",
+      "path": "latest/suricata/categories.txt",
+      "sha256": "11f6626ca9d306bb8d1a6c49cb4c2749dbe1451ea5070dcc44a0904189177202",
+      "window": null
+    },
+    {
+      "bytes": 33472,
+      "consumers": [
+        "suricata"
+      ],
+      "count": 2358,
+      "format": "suricata-dataset",
+      "path": "latest/suricata/datasets/ips.lst",
+      "sha256": "b19fcebeab98296c41a2e203c08407eabf65d11bcd82841b7587518608be33ac",
+      "window": "7d"
+    },
+    {
+      "bytes": 1319,
+      "consumers": [
+        "suricata"
+      ],
+      "count": 23,
+      "format": "suricata-dataset",
+      "path": "latest/suricata/datasets/paths.lst",
+      "sha256": "1753c3aa58fcbf06f168b05551ff1c4f205e68582dda85a9ca2764a57589dafe",
+      "window": "7d"
+    },
+    {
+      "bytes": 0,
+      "consumers": [
+        "suricata"
+      ],
+      "count": 0,
+      "format": "suricata-dataset",
+      "path": "latest/suricata/datasets/sha256.lst",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "window": "30d"
+    },
+    {
+      "bytes": 230,
+      "consumers": [
+        "suricata"
+      ],
+      "count": 6,
+      "format": "suricata-dataset",
+      "path": "latest/suricata/datasets/uas.lst",
+      "sha256": "288843f485e9fd0d7352f35bc52f12288c54679603901ed3c83c1b575620b02d",
+      "window": "7d"
+    },
+    {
+      "bytes": 45377,
+      "consumers": [
+        "suricata"
+      ],
+      "count": 2358,
+      "format": "suricata-iprep",
+      "path": "latest/suricata/mirage-iprep.list",
+      "sha256": "8acf164fc11303db688dde44e90129900f89c801f8553dd39493e646cf4bdf96",
+      "window": "7d"
+    },
+    {
+      "bytes": 774,
+      "consumers": [
+        "suricata"
+      ],
+      "count": 3,
+      "format": "suricata-rules",
+      "path": "latest/suricata/mirage.rules",
+      "sha256": "a88760b7118acc45f8a01e2a5b6f12b2177110d28bc1fcfc0423e3e89d53399e",
+      "window": null
+    },
+    {
+      "bytes": 12989,
+      "consumers": [
+        "suricata",
+        "suricata-update"
+      ],
+      "count": 3,
+      "format": "suricata-update",
+      "path": "latest/suricata/mirage.tar.gz",
+      "sha256": "d6ebda1a839d2417b1d5e1829a4cc4030e3de71d2fb4cc9c9c79ef3b48c17661",
+      "window": "7d"
+    },
+    {
+      "bytes": 581,
+      "consumers": [
+        "proxy",
+        "edl",
+        "siem"
+      ],
+      "count": 15,
+      "format": "txt",
+      "path": "latest/urls-7d.txt",
+      "sha256": "4e5b61bf4f20bbe4b5769667ad62fd0b9f433026943a24317c7bd41fba3d9833",
+      "window": "7d"
+    },
+    {
+      "bytes": 169,
+      "consumers": [
+        "hunting"
+      ],
+      "count": 6,
+      "format": "txt",
+      "path": "latest/user-agents-7d.txt",
+      "sha256": "b53674ff32aae3566523080d919bb1061b57d08649570c991548d97fa28ebd27",
+      "window": "7d"
+    },
+    {
+      "bytes": 233860,
+      "consumers": [
+        "zeek"
+      ],
+      "count": 2379,
+      "format": "zeek-intel",
+      "path": "latest/zeek/mirage.intel",
+      "sha256": "69886dbfb57f3eb27d4eadb8948a76761dd4c1812fae8c9d6caa8fabbe6325d5",
+      "window": "7d"
+    },
+    {
+      "bytes": 539062,
+      "consumers": [
+        "misp"
+      ],
+      "count": 2341,
+      "format": "misp-event",
+      "path": "misp/285a739d-617a-5e29-8db8-c228a1d59fe7.json",
+      "sha256": "1ef4867c92f37cddb7dc80debc6ae6e04a5dc85d460a0165ada1929181760ff7",
+      "window": "7d"
+    },
+    {
+      "bytes": 540907,
+      "consumers": [
+        "misp"
+      ],
+      "count": 2350,
+      "format": "misp-event",
+      "path": "misp/2b6582f4-8e71-5547-a09b-15772d198ba1.json",
+      "sha256": "a434c41361bcc7e8bf8a0c09142e0c808989153530aa3d736377f63d73a3ef33",
+      "window": "7d"
+    },
+    {
+      "bytes": 403765,
+      "consumers": [
+        "misp"
+      ],
+      "count": 1732,
+      "format": "misp-event",
+      "path": "misp/351d55b8-847b-567d-a2c1-b044f8a9a9f5.json",
+      "sha256": "53a8ee764f75f67482767f97359d51b7144d63af7983036b1069cb3c31295571",
+      "window": "7d"
+    },
+    {
+      "bytes": 418692,
+      "consumers": [
+        "misp"
+      ],
+      "count": 1796,
+      "format": "misp-event",
+      "path": "misp/3f16edf6-7147-59ee-9a6f-2a67306dfe82.json",
+      "sha256": "61b8103335c9a0a40d392945671940bfe25924c3d3f8538b4ac634e9aac69428",
+      "window": "7d"
+    },
+    {
+      "bytes": 580916,
+      "consumers": [
+        "misp"
+      ],
+      "count": 2550,
+      "format": "misp-event",
+      "path": "misp/a316ceff-b2d1-5678-8dca-3ef0f0f38547.json",
+      "sha256": "2af0c0e94e060ca0da376b3b95a57c60406a96ebc42d966739a8b11b8799de51",
+      "window": "7d"
+    },
+    {
+      "bytes": 568563,
+      "consumers": [
+        "misp"
+      ],
+      "count": 2521,
+      "format": "misp-event",
+      "path": "misp/b9858279-00db-5643-9200-00716f2760f6.json",
+      "sha256": "bfec8fdec2cb3400875952c9a4b73eca5d4a101c90fdd8a15742bb5c4ef807d5",
+      "window": "7d"
+    },
+    {
+      "bytes": 570713,
+      "consumers": [
+        "misp"
+      ],
+      "count": 2492,
+      "format": "misp-event",
+      "path": "misp/edba569e-53d2-5633-af94-399cc6a2b8c5.json",
+      "sha256": "16c9ff3a6046876374d8c454fb8d0d96cc9ed07cb5ce61ae1df4a65c80de6d2a",
+      "window": "7d"
+    },
+    {
+      "bytes": 535242,
+      "consumers": [
+        "misp"
+      ],
+      "count": 2323,
+      "format": "misp-event",
+      "path": "misp/f83c9e70-baf3-5869-bc48-cf42af75de38.json",
+      "sha256": "82a209cb7daf7d5e644ade24531a1e24e689f88b4128fcd20fe157bf22578903",
+      "window": "7d"
+    },
+    {
+      "bytes": 1267350,
+      "consumers": [
+        "misp"
+      ],
+      "count": 18105,
+      "format": "misp-hashes",
+      "path": "misp/hashes.csv",
+      "sha256": "3928d8d3f3d2ac7a2b59c7ebee00c631d473932eaab57bd81af7f293dd5b1a6b",
+      "window": null
+    },
+    {
+      "bytes": 2330,
+      "consumers": [
+        "misp"
+      ],
+      "count": 8,
+      "format": "misp-manifest",
+      "path": "misp/manifest.json",
+      "sha256": "3e8dd5082779b009e6ba83ec226c4f490ffacb4af81d2b5755692f27d39ade0e",
+      "window": null
+    },
+    {
+      "bytes": 44729,
+      "consumers": [
+        "social"
+      ],
+      "count": 1,
+      "format": "png",
+      "path": "og-github.png",
+      "sha256": "f90b3edd1ae0f698aea0a3b307fe3a61477df553020dc300c356d4b8706eed8e",
+      "window": null
+    },
+    {
+      "bytes": 44112,
+      "consumers": [
+        "social"
+      ],
+      "count": 1,
+      "format": "png",
+      "path": "og.png",
+      "sha256": "a961e392b9f4501cee48a22fead959b25bac2cb46768ab8f54f34cda950d1536",
+      "window": null
+    },
+    {
+      "bytes": 2985,
+      "consumers": [
+        "jsonschema"
+      ],
+      "count": 1,
+      "format": "json-schema",
+      "path": "schema/record.schema.json",
+      "sha256": "b667be5c0b9a7b5eacc2fb8b661ddc2977966a06d6620a58a68fdfdb46baae25",
+      "window": null
+    },
+    {
+      "bytes": 7371,
+      "consumers": [
+        "feeds.offseq.com"
+      ],
+      "count": 1,
+      "format": "json",
+      "path": "stats.json",
+      "sha256": "055ddb38fe0fb6a9a8429398186509050bafc136ff4d967af382ec3863db7d2c",
+      "window": null
+    }
+  ],
+  "generated": "2026-11-28T02:48:25Z",
+  "license": {
+    "code": "MIT",
+    "data": "CC-BY-4.0"
+  },
+  "mirrors": [
+    "https://feeds.offseq.com/mirage-feed/",
+    "https://raw.githubusercontent.com/offseq/mirage-feed/data/"
+  ],
+  "name": "mirage-feed",
+  "policy": {
+    "delay_hours": 24,
+    "ipv6_prefix": 64,
+    "min_networks": 2,
+    "min_sensors": 3,
+    "min_sources": 2,
+    "ttl_days": 7
+  },
+  "publisher": "OffSeq",
+  "schema_version": "2.2",
+  "stats": {
+    "attack": [
+      {
+        "events": 479529,
+        "ips": 2394,
+        "name": "Brute Force",
+        "technique": "T1110"
+      },
+      {
+        "events": 61158,
+        "ips": 1992,
+        "name": "Exploit Public-Facing Application",
+        "technique": "T1190"
+      },
+      {
+        "events": 9716,
+        "ips": 1306,
+        "name": "Network Service Discovery",
+        "technique": "T1046"
+      },
+      {
+        "events": 10237,
+        "ips": 636,
+        "name": "Active Scanning",
+        "technique": "T1595"
+      },
+      {
+        "events": 4146,
+        "ips": 435,
+        "name": "Vulnerability Scanning",
+        "technique": "T1595.002"
+      },
+      {
+        "events": 2516,
+        "ips": 300,
+        "name": "Email Collection",
+        "technique": "T1114"
+      },
+      {
+        "events": 6343,
+        "ips": 292,
+        "name": "Valid Accounts",
+        "technique": "T1078"
+      },
+      {
+        "events": 154268,
+        "ips": 264,
+        "name": "VNC",
+        "technique": "T1021.005"
+      },
+      {
+        "events": 883,
+        "ips": 223,
+        "name": "Exploitation of Remote Services",
+        "technique": "T1210"
+      },
+      {
+        "events": 2948,
+        "ips": 186,
+        "name": "Remote Desktop Protocol",
+        "technique": "T1021.001"
+      },
+      {
+        "events": 350,
+        "ips": 127,
+        "name": "Data Destruction",
+        "technique": "T1485"
+      },
+      {
+        "events": 263,
+        "ips": 125,
+        "name": "Data Encrypted for Impact",
+        "technique": "T1486"
+      },
+      {
+        "events": 1161,
+        "ips": 97,
+        "name": "Command and Scripting Interpreter",
+        "technique": "T1059"
+      },
+      {
+        "events": 5910,
+        "ips": 93,
+        "name": "Mail Protocols",
+        "technique": "T1071.003"
+      },
+      {
+        "events": 4902,
+        "ips": 91,
+        "name": "Forced Authentication",
+        "technique": "T1187"
+      },
+      {
+        "events": 149,
+        "ips": 78,
+        "name": "SMB/Windows Admin Shares",
+        "technique": "T1021.002"
+      },
+      {
+        "events": 60,
+        "ips": 78,
+        "name": "Software",
+        "technique": "T1592.002"
+      },
+      {
+        "events": 580,
+        "ips": 77,
+        "name": "Credentials In Files",
+        "technique": "T1552.001"
+      },
+      {
+        "events": 5468,
+        "ips": 70,
+        "name": "Unix Shell",
+        "technique": "T1059.004"
+      },
+      {
+        "events": 136036,
+        "ips": 56,
+        "name": "Financial Theft",
+        "technique": "T1657"
+      },
+      {
+        "events": 510,
+        "ips": 53,
+        "name": "Reflection Amplification",
+        "technique": "T1498.002"
+      },
+      {
+        "events": 1186,
+        "ips": 39,
+        "name": "Unsecured Credentials",
+        "technique": "T1552"
+      },
+      {
+        "events": 135,
+        "ips": 33,
+        "name": "Network Sniffing",
+        "technique": "T1040"
+      },
+      {
+        "events": 100,
+        "ips": 30,
+        "name": "Modify Parameter",
+        "technique": "T0836"
+      },
+      {
+        "events": 212,
+        "ips": 30,
+        "name": "Remote System Discovery",
+        "technique": "T0846"
+      },
+      {
+        "events": 100,
+        "ips": 30,
+        "name": "Unauthorized Command Message",
+        "technique": "T0855"
+      },
+      {
+        "events": 1123,
+        "ips": 27,
+        "name": "Default Accounts",
+        "technique": "T1078.001"
+      },
+      {
+        "events": 48,
+        "ips": 27,
+        "name": "Proxy",
+        "technique": "T1090"
+      },
+      {
+        "events": 48,
+        "ips": 27,
+        "name": "Protocol Tunneling",
+        "technique": "T1572"
+      },
+      {
+        "events": 507,
+        "ips": 23,
+        "name": "Ingress Tool Transfer",
+        "technique": "T1105"
+      },
+      {
+        "events": 5,
+        "ips": 23,
+        "name": "Email Addresses",
+        "technique": "T1589.002"
+      },
+      {
+        "events": 47,
+        "ips": 18,
+        "name": "Phishing",
+        "technique": "T1566"
+      },
+      {
+        "events": 54,
+        "ips": 14,
+        "name": "Remote System Information Discovery",
+        "technique": "T0888"
+      },
+      {
+        "events": 84,
+        "ips": 10,
+        "name": "Gather Victim Host Information",
+        "technique": "T1592"
+      },
+      {
+        "events": 5,
+        "ips": 6,
+        "name": "SSH Authorized Keys",
+        "technique": "T1098.004"
+      },
+      {
+        "events": 10,
+        "ips": 4,
+        "name": "Server Software Component",
+        "technique": "T1505"
+      },
+      {
+        "events": 30,
+        "ips": 3,
+        "name": "Web Shell",
+        "technique": "T1505.003"
+      },
+      {
+        "events": 30,
+        "ips": 2,
+        "name": "Point & Tag Identification",
+        "technique": "T0861"
+      },
+      {
+        "events": 0,
+        "ips": 1,
+        "name": "File and Directory Discovery",
+        "technique": "T1083"
+      }
+    ],
+    "countries": [
+      {
+        "country": "US",
+        "ips": 568
+      },
+      {
+        "country": "TR",
+        "ips": 249
+      },
+      {
+        "country": "IN",
+        "ips": 241
+      },
+      {
+        "country": "SG",
+        "ips": 146
+      },
+      {
+        "country": "NL",
+        "ips": 127
+      },
+      {
+        "country": "DE",
+        "ips": 121
+      },
+      {
+        "country": "CN",
+        "ips": 97
+      },
+      {
+        "country": "KR",
+        "ips": 63
+      },
+      {
+        "country": "FR",
+        "ips": 46
+      },
+      {
+        "country": "GB",
+        "ips": 46
+      },
+      {
+        "country": "BE",
+        "ips": 45
+      },
+      {
+        "country": "BR",
+        "ips": 44
+      },
+      {
+        "country": "VN",
+        "ips": 43
+      },
+      {
+        "country": "HK",
+        "ips": 38
+      },
+      {
+        "country": "RO",
+        "ips": 35
+      },
+      {
+        "country": "BG",
+        "ips": 31
+      },
+      {
+        "country": "RU",
+        "ips": 31
+      },
+      {
+        "country": "TH",
+        "ips": 30
+      },
+      {
+        "country": "CA",
+        "ips": 27
+      },
+      {
+        "country": "PK",
+        "ips": 25
+      }
+    ],
+    "observed": {
+      "asns": 1184,
+      "countries": 146,
+      "credential_pairs": 69391,
+      "cves": 11,
+      "events": 685965,
+      "hashes": 2,
+      "ips": 9301,
+      "urls": 42
+    },
+    "published": {
+      "active_24h": 972,
+      "anonymizers": 122,
+      "asns": 632,
+      "countries": 88,
+      "cves": 11,
+      "fingerprints": 200,
+      "hashes": 0,
+      "ips": 2358,
+      "ips_30d": 8949,
+      "scanners": 7773,
+      "urls": 15
+    },
+    "services": [
+      {
+        "ips": 1047,
+        "service": "http"
+      },
+      {
+        "ips": 914,
+        "service": "mssql"
+      },
+      {
+        "ips": 264,
+        "service": "vnc"
+      },
+      {
+        "ips": 186,
+        "service": "rdp"
+      },
+      {
+        "ips": 159,
+        "service": "mysql"
+      },
+      {
+        "ips": 156,
+        "service": "ssh"
+      },
+      {
+        "ips": 150,
+        "service": "ftp"
+      },
+      {
+        "ips": 139,
+        "service": "postgres"
+      },
+      {
+        "ips": 127,
+        "service": "mongodb"
+      },
+      {
+        "ips": 110,
+        "service": "redis"
+      },
+      {
+        "ips": 102,
+        "service": "imap"
+      },
+      {
+        "ips": 101,
+        "service": "sip"
+      },
+      {
+        "ips": 93,
+        "service": "smtp"
+      },
+      {
+        "ips": 92,
+        "service": "smb"
+      },
+      {
+        "ips": 80,
+        "service": "rsync"
+      },
+      {
+        "ips": 58,
+        "service": "pop3"
+      },
+      {
+        "ips": 39,
+        "service": "memcached"
+      },
+      {
+        "ips": 39,
+        "service": "telnet"
+      },
+      {
+        "ips": 33,
+        "service": "mqtt"
+      },
+      {
+        "ips": 30,
+        "service": "modbus"
+      },
+      {
+        "ips": 17,
+        "service": "ntp"
+      },
+      {
+        "ips": 16,
+        "service": "snmp"
+      },
+      {
+        "ips": 3,
+        "service": "tftp"
+      }
+    ]
+  },
+  "tlp": "TLP:CLEAR"
+}
